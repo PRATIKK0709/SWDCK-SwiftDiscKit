@@ -7,6 +7,12 @@ private enum LocalDefaults {
     static let channelId = "1473037288656081027"
 }
 
+private enum DemoImageURLs {
+    static let swift25 = "https://www.swift.org/assets/images/swift-og.png"
+    static let swiftOrange = "https://developer.apple.com/assets/elements/icons/swift/swift-64x64_2x.png"
+    static let swiftGreen = "https://img.icons8.com/?size=512&id=24465&format=png&color=53B848"
+}
+
 actor DemoState {
     private var lastBotMessage: Message?
     private var lastFollowupMessage: Message?
@@ -824,7 +830,7 @@ private func componentV2DemoData() -> (components: [ComponentV2Node], attachment
                             accessory: .thumbnail(
                                 ComponentV2Thumbnail(
                                     media: ComponentV2Media(
-                                        url: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=512"
+                                        url: DemoImageURLs.swiftOrange
                                     )
                                 )
                             )
@@ -909,12 +915,12 @@ private func componentV2DemoData() -> (components: [ComponentV2Node], attachment
                             items: [
                                 ComponentV2MediaGalleryItem(
                                     media: ComponentV2UnfurledMediaItem(
-                                        url: "https://images.unsplash.com/photo-1515879218367-8466d910aaa4?w=1200"
+                                        url: DemoImageURLs.swift25
                                     )
                                 ),
                                 ComponentV2MediaGalleryItem(
                                     media: ComponentV2UnfurledMediaItem(
-                                        url: "https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=1200"
+                                        url: DemoImageURLs.swiftGreen
                                     )
                                 ),
                             ]
