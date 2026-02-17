@@ -6,7 +6,7 @@
 - Discord REST API (`v10`)
 - Discord Gateway (`WebSocket`)
 - Slash commands and interaction handling
-- Components V2 message/interaction support
+- Components V2 message/interaction support (including modal inputs)
 
 ## Current Scope
 
@@ -26,9 +26,13 @@ This repository currently implements:
   - Create slash command (global/guild)
   - Bulk overwrite slash commands (global/guild)
   - Interaction response
+  - Interaction modal response (`type=9`)
   - Deferred response
   - Edit original interaction response
   - Followup interaction message
+- Modal submit decoding helpers:
+  - Submitted component values
+  - Submitted file IDs and resolved file metadata
 - Built-in rate-limit handling (bucket + global handling, retries)
 
 ## Package Layout
@@ -148,6 +152,16 @@ try await interaction.respond("Immediate response")
 try await interaction.defer_()
 try await interaction.editResponse("Edited response")
 _ = try await interaction.followUp("Followup")
+try await interaction.presentModal(
+    customId: "upload_modal",
+    title: "Upload Demo",
+    components: [
+        ComponentV2Label(
+            label: "Upload files",
+            component: .fileUpload(ComponentV2FileUpload(customId: "files"))
+        )
+    ]
+)
 ```
 
 ### Components V2 APIs
@@ -182,6 +196,12 @@ _ = try await bot.sendComponentsV2Message(
 - `role_select`
 - `mentionable_select`
 - `channel_select`
+- `text_input`
+- `label`
+- `file_upload`
+- `radio_group`
+- `checkbox_group`
+- `checkbox`
 - `thumbnail`
 - `media_gallery`
 - `file`
@@ -206,6 +226,7 @@ Slash commands:
 - `/say`
 - `/delete_last`
 - `/componentsv2`
+- `/components_modal`
 
 ## Notes
 

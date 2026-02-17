@@ -334,4 +334,151 @@ final class ComponentV2Tests: XCTestCase {
         XCTAssertEqual(children?.count, 2)
         XCTAssertEqual(children?.last?["type"] as? Int, DiscordComponentType.file.rawValue)
     }
+
+    func testModalResponseWithFileUploadEncoding() throws {
+        let response = InteractionResponse.modal(
+            customId: "components_file_upload_modal",
+            title: "Upload Demo",
+            components: [
+                ComponentV2Label(
+                    label: "Upload",
+                    component: .fileUpload(
+                        ComponentV2FileUpload(
+                            customId: "demo_files",
+                            minValues: 0,
+                            maxValues: 3,
+                            required: false
+                        )
+                    )
+                ),
+            ]
+        )
+
+        let data = try JSONCoder.encode(response)
+        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+
+        XCTAssertEqual(json?["type"] as? Int, 9)
+
+        let payload = json?["data"] as? [String: Any]
+        XCTAssertEqual(payload?["custom_id"] as? String, "components_file_upload_modal")
+        XCTAssertEqual(payload?["title"] as? String, "Upload Demo")
+
+        let labels = payload?["components"] as? [[String: Any]]
+        XCTAssertEqual(labels?.first?["type"] as? Int, DiscordComponentType.label.rawValue)
+
+        let nested = labels?.first?["component"] as? [String: Any]
+        XCTAssertEqual(nested?["type"] as? Int, DiscordComponentType.fileUpload.rawValue)
+        XCTAssertEqual(nested?["custom_id"] as? String, "demo_files")
+    }
+
+    func testModalSubmitDecodingWithFileUpload() throws {
+        let json = """
+        {
+          "id": "123",
+          "application_id": "456",
+          "type": 5,
+          "token": "tok",
+          "version": 1,
+          "data": {
+            "custom_id": "components_file_upload_modal",
+            "components": [
+              {
+                "id": 1,
+                "type": 18,
+                "component": {
+                  "custom_id": "demo_files",
+                  "id": 2,
+                  "type": 19,
+                  "values": ["111111111111111111111"]
+                }
+              },
+              {
+                "id": 2,
+                "type": 18,
+                "component": {
+                  "custom_id": "demo_public",
+                  "id": 3,
+                  "type": 23,
+                  "value": true
+                }
+              }
+            ],
+            "resolved": {
+              "attachments": {
+                "111111111111111111111": {
+                  "id": "111111111111111111111",
+                  "filename": "bug.png",
+                  "content_type": "image/png"
+                }
+              }
+            }
+          }
+        }
+        """.data(using: .utf8)!
+
+        let interaction = try JSONCoder.decode(Interaction.self, from: json)
+        XCTAssertEqual(interaction.type, .modalSubmit)
+        XCTAssertEqual(interaction.data?.customId, "components_file_upload_modal")
+        XCTAssertEqual(interaction.data?.submittedValues(customId: "demo_files")?.first, "111111111111111111111")
+        XCTAssertEqual(interaction.data?.submittedValue(customId: "demo_public")?.boolValue, true)
+
+        let attachments = interaction.data?.submittedAttachments(customId: "demo_files")
+        XCTAssertEqual(attachments?.count, 1)
+        XCTAssertEqual(attachments?.first?.filename, "bug.png")
+    }
+
+    func testModalInputComponentsEncoding() throws {
+        let labels: [ComponentV2Label] = [
+            ComponentV2Label(
+                label: "Category",
+                component: .radioGroup(
+                    ComponentV2RadioGroup(
+                        customId: "demo_radio",
+                        options: [
+                            ComponentV2RadioGroupOption(label: "Bug", value: "bug"),
+                            ComponentV2RadioGroupOption(label: "Feedback", value: "feedback"),
+                        ],
+                        required: true
+                    )
+                )
+            ),
+            ComponentV2Label(
+                label: "Features",
+                component: .checkboxGroup(
+                    ComponentV2CheckboxGroup(
+                        customId: "demo_checks",
+                        options: [
+                            ComponentV2CheckboxOption(label: "API", value: "api"),
+                            ComponentV2CheckboxOption(label: "Gateway", value: "gateway"),
+                        ],
+                        minValues: 0,
+                        maxValues: 2
+                    )
+                )
+            ),
+            ComponentV2Label(
+                label: "Public",
+                component: .checkbox(
+                    ComponentV2Checkbox(
+                        customId: "demo_public",
+                        label: "Visible to team",
+                        value: false
+                    )
+                )
+            ),
+        ]
+
+        let data = try JSONCoder.encode(labels)
+        let json = try JSONSerialization.jsonObject(with: data) as? [[String: Any]]
+
+        XCTAssertEqual(json?.count, 3)
+        let radio = json?.first?["component"] as? [String: Any]
+        XCTAssertEqual(radio?["type"] as? Int, DiscordComponentType.radioGroup.rawValue)
+
+        let checkboxGroup = json?[1]["component"] as? [String: Any]
+        XCTAssertEqual(checkboxGroup?["type"] as? Int, DiscordComponentType.checkboxGroup.rawValue)
+
+        let checkbox = json?.last?["component"] as? [String: Any]
+        XCTAssertEqual(checkbox?["type"] as? Int, DiscordComponentType.checkbox.rawValue)
+    }
 }

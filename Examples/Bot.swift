@@ -86,6 +86,29 @@ struct DiscordKitBotMain {
                 return
             }
 
+            if interaction.type == .modalSubmit, interaction.data?.customId == "components_file_upload_modal" {
+                let category = interaction.data?.submittedValues(customId: "demo_category")?.joined(separator: ", ") ?? "none"
+                let note = interaction.data?.submittedValue(customId: "demo_note")?.stringValue ?? "none"
+                let isPublic = interaction.data?.submittedValue(customId: "demo_public")?.boolValue ?? false
+                let files = interaction.data?.submittedAttachments(customId: "demo_files") ?? []
+                let fileList = files.map(\.filename).joined(separator: ", ")
+                let fileSummary = fileList.isEmpty ? "none" : fileList
+
+                let summary = """
+                Modal submitted.
+                Category: \(category)
+                Public: \(isPublic)
+                Note: \(note)
+                Files: \(fileSummary)
+                """
+                do {
+                    try await interaction.respond(summary, ephemeral: true)
+                } catch {
+                    print("Modal submit response failed: \(error)")
+                }
+                return
+            }
+
             if interaction.type == .messageComponent {
                 let customId = interaction.data?.customId ?? ""
                 let selectedValues = interaction.data?.values?.joined(separator: ", ") ?? "none"
@@ -291,6 +314,14 @@ struct DiscordKitBotMain {
             try await interaction.respond("Sent full Components V2 demo message \(sent.id)", ephemeral: true)
         }
 
+        bot.slashCommand("components_modal", description: "Open modal with File Upload component") { interaction in
+            try await interaction.presentModal(
+                customId: "components_file_upload_modal",
+                title: "Components Modal Demo",
+                components: componentModalDemoData()
+            )
+        }
+
         print("Starting DiscordKitBot...")
         try await bot.start()
     }
@@ -304,15 +335,7 @@ private extension String {
 
 private func componentV2DemoData() -> (components: [ComponentV2Node], attachments: [DiscordFileUpload]) {
     let attachmentName = "component-v2-demo.txt"
-    let attachmentData = Data(
-        """
-        DiscordKit Components V2 attachment demo.
-        - Buttons
-        - Select menus
-        - Sections/Container
-        - Media gallery
-        """.utf8
-    )
+    let attachmentData = Data("DiscordKit Components V2 file component demo.".utf8)
 
     let attachment = DiscordFileUpload(
         filename: attachmentName,
@@ -325,19 +348,17 @@ private func componentV2DemoData() -> (components: [ComponentV2Node], attachment
             ComponentV2Container(
                 accentColor: 0x5865F2,
                 components: [
-                    .textDisplay(ComponentV2TextDisplay("## DiscordKit Components V2 Demo")),
-                    .textDisplay(ComponentV2TextDisplay("This message demonstrates a broad set of V2 components in one layout.")),
-                    .separator(ComponentV2Separator(divider: true, spacing: 2)),
+                    .textDisplay(ComponentV2TextDisplay("DiscordKit Components V2 demo")),
+                    .separator(ComponentV2Separator()),
                     .section(
                         ComponentV2Section(
                             components: [
-                                .textDisplay(ComponentV2TextDisplay("### Buttons + Accessories")),
-                                .textDisplay(ComponentV2TextDisplay("Use the action row below or the accessory button."))
+                                .textDisplay(ComponentV2TextDisplay("Section + accessory button"))
                             ],
                             accessory: .button(
                                 ComponentV2Button(
                                     style: .primary,
-                                    label: "Accessory",
+                                    label: "Press",
                                     customId: "cv2_btn_accessory"
                                 )
                             )
@@ -352,8 +373,7 @@ private func componentV2DemoData() -> (components: [ComponentV2Node], attachment
                                 ComponentV2Thumbnail(
                                     media: ComponentV2Media(
                                         url: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=512"
-                                    ),
-                                    description: "Demo thumbnail"
+                                    )
                                 )
                             )
                         )
@@ -365,12 +385,11 @@ private func componentV2DemoData() -> (components: [ComponentV2Node], attachment
                                 .button(ComponentV2Button(style: .secondary, label: "Secondary", customId: "cv2_btn_secondary")),
                                 .button(ComponentV2Button(style: .success, label: "Success", customId: "cv2_btn_success")),
                                 .button(ComponentV2Button(style: .danger, label: "Danger", customId: "cv2_btn_danger")),
-                                .button(ComponentV2Button(style: .link, label: "Discord Docs", url: "https://docs.discord.com/developers/docs/components/overview")),
+                                .button(ComponentV2Button(style: .link, label: "Discord Docs", url: "https://docs.discord.com/developers/components/overview")),
                             ]
                         )
                     ),
-                    .separator(ComponentV2Separator(divider: true, spacing: 1)),
-                    .textDisplay(ComponentV2TextDisplay("### Select Menus")),
+                    .separator(ComponentV2Separator()),
                     .actionRow(
                         ComponentV2ActionRow(
                             components: [
@@ -381,10 +400,7 @@ private func componentV2DemoData() -> (components: [ComponentV2Node], attachment
                                             ComponentV2SelectOption(label: "Alpha", value: "alpha"),
                                             ComponentV2SelectOption(label: "Beta", value: "beta"),
                                             ComponentV2SelectOption(label: "Gamma", value: "gamma"),
-                                        ],
-                                        placeholder: "Pick a string option",
-                                        minValues: 1,
-                                        maxValues: 2
+                                        ]
                                     )
                                 )
                             ]
@@ -395,8 +411,7 @@ private func componentV2DemoData() -> (components: [ComponentV2Node], attachment
                             components: [
                                 .userSelect(
                                     ComponentV2UserSelect(
-                                        customId: "cv2_select_user",
-                                        placeholder: "Pick a user"
+                                        customId: "cv2_select_user"
                                     )
                                 )
                             ]
@@ -407,8 +422,7 @@ private func componentV2DemoData() -> (components: [ComponentV2Node], attachment
                             components: [
                                 .roleSelect(
                                     ComponentV2RoleSelect(
-                                        customId: "cv2_select_role",
-                                        placeholder: "Pick a role"
+                                        customId: "cv2_select_role"
                                     )
                                 )
                             ]
@@ -419,8 +433,7 @@ private func componentV2DemoData() -> (components: [ComponentV2Node], attachment
                             components: [
                                 .mentionableSelect(
                                     ComponentV2MentionableSelect(
-                                        customId: "cv2_select_mentionable",
-                                        placeholder: "Pick a mentionable"
+                                        customId: "cv2_select_mentionable"
                                     )
                                 )
                             ]
@@ -432,29 +445,25 @@ private func componentV2DemoData() -> (components: [ComponentV2Node], attachment
                                 .channelSelect(
                                     ComponentV2ChannelSelect(
                                         customId: "cv2_select_channel",
-                                        channelTypes: [0, 2, 5, 15],
-                                        placeholder: "Pick a channel"
+                                        channelTypes: [0, 2, 5, 15]
                                     )
                                 )
                             ]
                         )
                     ),
-                    .separator(ComponentV2Separator(divider: true, spacing: 2)),
-                    .textDisplay(ComponentV2TextDisplay("### Media Gallery + File")),
+                    .separator(ComponentV2Separator()),
                     .mediaGallery(
                         ComponentV2MediaGallery(
                             items: [
                                 ComponentV2MediaGalleryItem(
                                     media: ComponentV2UnfurledMediaItem(
                                         url: "https://images.unsplash.com/photo-1515879218367-8466d910aaa4?w=1200"
-                                    ),
-                                    description: "Code setup"
+                                    )
                                 ),
                                 ComponentV2MediaGalleryItem(
                                     media: ComponentV2UnfurledMediaItem(
                                         url: "https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=1200"
-                                    ),
-                                    description: "Team board"
+                                    )
                                 ),
                             ]
                         )
@@ -470,4 +479,53 @@ private func componentV2DemoData() -> (components: [ComponentV2Node], attachment
     ]
 
     return (components, [attachment])
+}
+
+private func componentModalDemoData() -> [ComponentV2Label] {
+    [
+        ComponentV2Label(
+            label: "Issue summary",
+            component: .textInput(
+                ComponentV2TextInput(
+                    customId: "demo_note",
+                    style: .paragraph,
+                    required: true
+                )
+            )
+        ),
+        ComponentV2Label(
+            label: "Category",
+            component: .stringSelect(
+                ComponentV2StringSelect(
+                    customId: "demo_category",
+                    options: [
+                        ComponentV2SelectOption(label: "Bug", value: "bug"),
+                        ComponentV2SelectOption(label: "Feedback", value: "feedback"),
+                        ComponentV2SelectOption(label: "Question", value: "question"),
+                    ]
+                )
+            )
+        ),
+        ComponentV2Label(
+            label: "Upload files",
+            component: .fileUpload(
+                ComponentV2FileUpload(
+                    customId: "demo_files",
+                    minValues: 0,
+                    maxValues: 3,
+                    required: false
+                )
+            )
+        ),
+        ComponentV2Label(
+            label: "Visibility",
+            component: .checkbox(
+                ComponentV2Checkbox(
+                    customId: "demo_public",
+                    label: "Share this publicly",
+                    value: false
+                )
+            )
+        ),
+    ]
 }
