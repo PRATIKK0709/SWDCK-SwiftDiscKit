@@ -151,6 +151,19 @@ public struct DiscordPresenceUpdate: Codable, Sendable {
     }
 }
 
+public struct GatewayBot: Codable, Sendable {
+    public let url: String
+    public let shards: Int?
+    public let sessionStartLimit: SessionStartLimit
+}
+
+public struct SessionStartLimit: Codable, Sendable {
+    public let total: Int
+    public let remaining: Int
+    public let resetAfter: Int
+    public let maxConcurrency: Int
+}
+
 
 public struct GatewayIntents: OptionSet, Sendable {
     public let rawValue: Int

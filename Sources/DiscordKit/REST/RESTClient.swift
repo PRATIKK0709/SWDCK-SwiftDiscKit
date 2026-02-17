@@ -23,20 +23,27 @@ public final class RESTClient: Sendable {
         method: String,
         url: String,
         body: Encodable? = nil,
+        headers: [String: String] = [:],
         decodeAs type: T.Type
     ) async throws -> T {
-        let data = try await rawRequest(method: method, url: url, body: body)
+        let data = try await rawRequest(method: method, url: url, body: body, headers: headers)
         return try JSONCoder.decode(type, from: data)
     }
 
-    func requestVoid(method: String, url: String, body: Encodable? = nil) async throws {
-        _ = try await rawRequest(method: method, url: url, body: body)
+    func requestVoid(
+        method: String,
+        url: String,
+        body: Encodable? = nil,
+        headers: [String: String] = [:]
+    ) async throws {
+        _ = try await rawRequest(method: method, url: url, body: body, headers: headers)
     }
 
     private func rawRequest(
         method: String,
         url urlString: String,
-        body: Encodable?
+        body: Encodable?,
+        headers: [String: String]
     ) async throws -> Data {
         guard let url = URL(string: urlString) else {
             throw DiscordError.connectionFailed(reason: "Invalid URL: \(urlString)")
@@ -46,6 +53,9 @@ public final class RESTClient: Sendable {
         request.httpMethod = method
         request.setValue("Bot \(token)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        for (key, value) in headers {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
 
         if let body {
             request.httpBody = try JSONCoder.encode(body)
@@ -148,6 +158,10 @@ public final class RESTClient: Sendable {
         try await request(method: "GET", url: Routes.currentUser, decodeAs: DiscordUser.self)
     }
 
+    func getGatewayBot() async throws -> GatewayBot {
+        try await request(method: "GET", url: Routes.gatewayBot, decodeAs: GatewayBot.self)
+    }
+
     func getUser(userId: String) async throws -> DiscordUser {
         try await request(method: "GET", url: Routes.user(userId), decodeAs: DiscordUser.self)
     }
@@ -161,8 +175,63 @@ public final class RESTClient: Sendable {
         try await request(method: "GET", url: Routes.guild(guildId), decodeAs: Guild.self)
     }
 
+    func getGuildChannels(guildId: String) async throws -> [Channel] {
+        try await request(method: "GET", url: Routes.guildChannels(guildId), decodeAs: [Channel].self)
+    }
+
+    func getGuildMembers(guildId: String, query: GuildMembersQuery = GuildMembersQuery()) async throws -> [GuildMember] {
+        let url = buildGuildMembersURL(guildId: guildId, query: query)
+        return try await request(method: "GET", url: url, decodeAs: [GuildMember].self)
+    }
+
+    func searchGuildMembers(guildId: String, query: GuildMemberSearchQuery) async throws -> [GuildMember] {
+        let url = buildGuildMemberSearchURL(guildId: guildId, query: query)
+        return try await request(method: "GET", url: url, decodeAs: [GuildMember].self)
+    }
+
     func getGuildMember(guildId: String, userId: String) async throws -> GuildMember {
         try await request(method: "GET", url: Routes.guildMember(guildId, userId: userId), decodeAs: GuildMember.self)
+    }
+
+    func modifyGuildMember(
+        guildId: String,
+        userId: String,
+        modify: ModifyGuildMember,
+        auditLogReason: String? = nil
+    ) async throws -> GuildMember {
+        try await request(
+            method: "PATCH",
+            url: Routes.guildMember(guildId, userId: userId),
+            body: modify,
+            headers: auditLogHeaders(reason: auditLogReason),
+            decodeAs: GuildMember.self
+        )
+    }
+
+    func addGuildMemberRole(
+        guildId: String,
+        userId: String,
+        roleId: String,
+        auditLogReason: String? = nil
+    ) async throws {
+        try await requestVoid(
+            method: "PUT",
+            url: Routes.guildMemberRole(guildId, userId: userId, roleId: roleId),
+            headers: auditLogHeaders(reason: auditLogReason)
+        )
+    }
+
+    func removeGuildMemberRole(
+        guildId: String,
+        userId: String,
+        roleId: String,
+        auditLogReason: String? = nil
+    ) async throws {
+        try await requestVoid(
+            method: "DELETE",
+            url: Routes.guildMemberRole(guildId, userId: userId, roleId: roleId),
+            headers: auditLogHeaders(reason: auditLogReason)
+        )
     }
 
     func getGuildRoles(guildId: String) async throws -> [GuildRole] {
@@ -380,6 +449,63 @@ public final class RESTClient: Sendable {
         )
     }
 
+    func getGlobalCommands(applicationId: String) async throws -> [ApplicationCommand] {
+        try await request(
+            method: "GET",
+            url: Routes.globalCommands(applicationId),
+            decodeAs: [ApplicationCommand].self
+        )
+    }
+
+    func getGuildCommands(applicationId: String, guildId: String) async throws -> [ApplicationCommand] {
+        try await request(
+            method: "GET",
+            url: Routes.guildCommands(applicationId, guildId: guildId),
+            decodeAs: [ApplicationCommand].self
+        )
+    }
+
+    func editGlobalCommand(
+        applicationId: String,
+        commandId: String,
+        command: EditApplicationCommand
+    ) async throws -> ApplicationCommand {
+        try await request(
+            method: "PATCH",
+            url: Routes.globalCommand(applicationId, commandId: commandId),
+            body: command,
+            decodeAs: ApplicationCommand.self
+        )
+    }
+
+    func editGuildCommand(
+        applicationId: String,
+        guildId: String,
+        commandId: String,
+        command: EditApplicationCommand
+    ) async throws -> ApplicationCommand {
+        try await request(
+            method: "PATCH",
+            url: Routes.guildCommand(applicationId, guildId: guildId, commandId: commandId),
+            body: command,
+            decodeAs: ApplicationCommand.self
+        )
+    }
+
+    func deleteGlobalCommand(applicationId: String, commandId: String) async throws {
+        try await requestVoid(
+            method: "DELETE",
+            url: Routes.globalCommand(applicationId, commandId: commandId)
+        )
+    }
+
+    func deleteGuildCommand(applicationId: String, guildId: String, commandId: String) async throws {
+        try await requestVoid(
+            method: "DELETE",
+            url: Routes.guildCommand(applicationId, guildId: guildId, commandId: commandId)
+        )
+    }
+
     @discardableResult
     func createSlashCommand(
         applicationId: String,
@@ -427,6 +553,30 @@ public final class RESTClient: Sendable {
         )
         msg._rest = self
         return msg
+    }
+
+    @discardableResult
+    func getOriginalInteractionResponse(
+        applicationId: String,
+        token: String
+    ) async throws -> Message {
+        var message = try await request(
+            method: "GET",
+            url: Routes.originalInteractionResponse(applicationId, token: token),
+            decodeAs: Message.self
+        )
+        message._rest = self
+        return message
+    }
+
+    func deleteOriginalInteractionResponse(
+        applicationId: String,
+        token: String
+    ) async throws {
+        try await requestVoid(
+            method: "DELETE",
+            url: Routes.originalInteractionResponse(applicationId, token: token)
+        )
     }
 
     @discardableResult
@@ -493,6 +643,31 @@ public final class RESTClient: Sendable {
 }
 
 private extension RESTClient {
+    func buildGuildMembersURL(guildId: String, query: GuildMembersQuery) -> String {
+        guard var components = URLComponents(string: Routes.guildMembers(guildId)) else {
+            return Routes.guildMembers(guildId)
+        }
+
+        var items: [URLQueryItem] = []
+        if let limit = query.limit { items.append(URLQueryItem(name: "limit", value: String(limit))) }
+        if let after = query.after { items.append(URLQueryItem(name: "after", value: after)) }
+
+        components.queryItems = items.isEmpty ? nil : items
+        return components.url?.absoluteString ?? Routes.guildMembers(guildId)
+    }
+
+    func buildGuildMemberSearchURL(guildId: String, query: GuildMemberSearchQuery) -> String {
+        guard var components = URLComponents(string: Routes.guildMembersSearch(guildId)) else {
+            return Routes.guildMembersSearch(guildId)
+        }
+
+        var items: [URLQueryItem] = [URLQueryItem(name: "query", value: query.query)]
+        if let limit = query.limit { items.append(URLQueryItem(name: "limit", value: String(limit))) }
+
+        components.queryItems = items
+        return components.url?.absoluteString ?? Routes.guildMembersSearch(guildId)
+    }
+
     func buildMessageHistoryURL(channelId: String, query: MessageHistoryQuery) -> String {
         guard var components = URLComponents(string: Routes.messages(channelId)) else {
             return Routes.messages(channelId)
@@ -536,6 +711,12 @@ private extension RESTClient {
         default:
             return nil
         }
+    }
+
+    func auditLogHeaders(reason: String?) -> [String: String] {
+        guard let reason, !reason.isEmpty else { return [:] }
+        let encoded = reason.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? reason
+        return ["X-Audit-Log-Reason": encoded]
     }
 
     func buildMultipartBody(
@@ -635,6 +816,46 @@ public struct ApplicationCommand: Codable, Sendable, Identifiable {
     public let contexts: [Int]?
     public let handler: Int?
     public let version: String
+}
+
+public struct EditApplicationCommand: Encodable, Sendable {
+    public let name: String?
+    public let nameLocalizations: [String: String]?
+    public let description: String?
+    public let descriptionLocalizations: [String: String]?
+    public let options: [CommandOption]?
+    public let defaultMemberPermissions: String?
+    public let dmPermission: Bool?
+    public let defaultPermission: Bool?
+    public let nsfw: Bool?
+    public let integrationTypes: [Int]?
+    public let contexts: [Int]?
+
+    public init(
+        name: String? = nil,
+        nameLocalizations: [String: String]? = nil,
+        description: String? = nil,
+        descriptionLocalizations: [String: String]? = nil,
+        options: [CommandOption]? = nil,
+        defaultMemberPermissions: String? = nil,
+        dmPermission: Bool? = nil,
+        defaultPermission: Bool? = nil,
+        nsfw: Bool? = nil,
+        integrationTypes: [Int]? = nil,
+        contexts: [Int]? = nil
+    ) {
+        self.name = name
+        self.nameLocalizations = nameLocalizations
+        self.description = description
+        self.descriptionLocalizations = descriptionLocalizations
+        self.options = options
+        self.defaultMemberPermissions = defaultMemberPermissions
+        self.dmPermission = dmPermission
+        self.defaultPermission = defaultPermission
+        self.nsfw = nsfw
+        self.integrationTypes = integrationTypes
+        self.contexts = contexts
+    }
 }
 
 public struct ApplicationCommandOption: Codable, Sendable {

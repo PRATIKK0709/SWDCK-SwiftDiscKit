@@ -68,6 +68,46 @@ public struct CommandOption: Encodable, Sendable {
     ) -> CommandOption {
         CommandOption(type: .user, name: name, description: description, required: required)
     }
+
+    public static func channel(
+        _ name: String,
+        description: String,
+        required: Bool = false
+    ) -> CommandOption {
+        CommandOption(type: .channel, name: name, description: description, required: required)
+    }
+
+    public static func role(
+        _ name: String,
+        description: String,
+        required: Bool = false
+    ) -> CommandOption {
+        CommandOption(type: .role, name: name, description: description, required: required)
+    }
+
+    public static func mentionable(
+        _ name: String,
+        description: String,
+        required: Bool = false
+    ) -> CommandOption {
+        CommandOption(type: .mentionable, name: name, description: description, required: required)
+    }
+
+    public static func number(
+        _ name: String,
+        description: String,
+        required: Bool = false
+    ) -> CommandOption {
+        CommandOption(type: .number, name: name, description: description, required: required)
+    }
+
+    public static func attachment(
+        _ name: String,
+        description: String,
+        required: Bool = false
+    ) -> CommandOption {
+        CommandOption(type: .attachment, name: name, description: description, required: required)
+    }
 }
 
 public struct CommandChoice: Encodable, Sendable {

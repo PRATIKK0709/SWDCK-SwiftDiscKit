@@ -2,6 +2,7 @@ import Foundation
 
 enum Routes {
     static let baseURL = "https://discord.com/api/v10"
+    static let gatewayBot = "\(baseURL)/gateway/bot"
 
     static func channel(_ channelId: String) -> String {
         "\(baseURL)/channels/\(channelId)"
@@ -27,8 +28,24 @@ enum Routes {
         "\(baseURL)/guilds/\(guildId)/members/\(userId)"
     }
 
+    static func guildMembers(_ guildId: String) -> String {
+        "\(baseURL)/guilds/\(guildId)/members"
+    }
+
+    static func guildMembersSearch(_ guildId: String) -> String {
+        "\(baseURL)/guilds/\(guildId)/members/search"
+    }
+
     static func guildRoles(_ guildId: String) -> String {
         "\(baseURL)/guilds/\(guildId)/roles"
+    }
+
+    static func guildChannels(_ guildId: String) -> String {
+        "\(baseURL)/guilds/\(guildId)/channels"
+    }
+
+    static func guildMemberRole(_ guildId: String, userId: String, roleId: String) -> String {
+        "\(baseURL)/guilds/\(guildId)/members/\(userId)/roles/\(roleId)"
     }
 
     static func globalCommands(_ applicationId: String) -> String {
@@ -41,6 +58,10 @@ enum Routes {
 
     static func guildCommands(_ applicationId: String, guildId: String) -> String {
         "\(baseURL)/applications/\(applicationId)/guilds/\(guildId)/commands"
+    }
+
+    static func guildCommand(_ applicationId: String, guildId: String, commandId: String) -> String {
+        "\(baseURL)/applications/\(applicationId)/guilds/\(guildId)/commands/\(commandId)"
     }
 
     static func interactionResponse(_ interactionId: String, token: String) -> String {

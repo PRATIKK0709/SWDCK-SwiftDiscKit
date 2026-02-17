@@ -156,3 +156,51 @@ public struct GuildMember: Codable, Sendable {
         self.avatarDecorationData = try container.decodeIfPresent(AvatarDecorationData.self, forKey: .avatarDecorationData)
     }
 }
+
+public struct GuildMembersQuery: Sendable {
+    public let limit: Int?
+    public let after: String?
+
+    public init(limit: Int? = nil, after: String? = nil) {
+        self.limit = limit
+        self.after = after
+    }
+}
+
+public struct GuildMemberSearchQuery: Sendable {
+    public let query: String
+    public let limit: Int?
+
+    public init(query: String, limit: Int? = nil) {
+        self.query = query
+        self.limit = limit
+    }
+}
+
+public struct ModifyGuildMember: Encodable, Sendable {
+    public let nick: String?
+    public let roles: [String]?
+    public let mute: Bool?
+    public let deaf: Bool?
+    public let channelId: String?
+    public let communicationDisabledUntil: String?
+    public let flags: Int?
+
+    public init(
+        nick: String? = nil,
+        roles: [String]? = nil,
+        mute: Bool? = nil,
+        deaf: Bool? = nil,
+        channelId: String? = nil,
+        communicationDisabledUntil: String? = nil,
+        flags: Int? = nil
+    ) {
+        self.nick = nick
+        self.roles = roles
+        self.mute = mute
+        self.deaf = deaf
+        self.channelId = channelId
+        self.communicationDisabledUntil = communicationDisabledUntil
+        self.flags = flags
+    }
+}

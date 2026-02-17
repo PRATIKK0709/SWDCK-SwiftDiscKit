@@ -100,12 +100,70 @@ public final class DiscordBot: Sendable {
         try await rest.getChannel(channelId: channelId)
     }
 
+    public func getGatewayBot() async throws -> GatewayBot {
+        try await rest.getGatewayBot()
+    }
+
     public func getGuild(_ guildId: String) async throws -> Guild {
         try await rest.getGuild(guildId: guildId)
     }
 
+    public func getGuildChannels(_ guildId: String) async throws -> [Channel] {
+        try await rest.getGuildChannels(guildId: guildId)
+    }
+
+    public func getGuildMembers(_ guildId: String, query: GuildMembersQuery = GuildMembersQuery()) async throws -> [GuildMember] {
+        try await rest.getGuildMembers(guildId: guildId, query: query)
+    }
+
+    public func searchGuildMembers(_ guildId: String, query: GuildMemberSearchQuery) async throws -> [GuildMember] {
+        try await rest.searchGuildMembers(guildId: guildId, query: query)
+    }
+
     public func getGuildMember(guildId: String, userId: String) async throws -> GuildMember {
         try await rest.getGuildMember(guildId: guildId, userId: userId)
+    }
+
+    public func modifyGuildMember(
+        guildId: String,
+        userId: String,
+        modify: ModifyGuildMember,
+        auditLogReason: String? = nil
+    ) async throws -> GuildMember {
+        try await rest.modifyGuildMember(
+            guildId: guildId,
+            userId: userId,
+            modify: modify,
+            auditLogReason: auditLogReason
+        )
+    }
+
+    public func addGuildMemberRole(
+        guildId: String,
+        userId: String,
+        roleId: String,
+        auditLogReason: String? = nil
+    ) async throws {
+        try await rest.addGuildMemberRole(
+            guildId: guildId,
+            userId: userId,
+            roleId: roleId,
+            auditLogReason: auditLogReason
+        )
+    }
+
+    public func removeGuildMemberRole(
+        guildId: String,
+        userId: String,
+        roleId: String,
+        auditLogReason: String? = nil
+    ) async throws {
+        try await rest.removeGuildMemberRole(
+            guildId: guildId,
+            userId: userId,
+            roleId: roleId,
+            auditLogReason: auditLogReason
+        )
     }
 
     public func getGuildRoles(_ guildId: String) async throws -> [GuildRole] {
@@ -191,6 +249,48 @@ public final class DiscordBot: Sendable {
                 commands: []
             )
         }
+    }
+
+    public func getSlashCommands(guildId: String? = nil) async throws -> [ApplicationCommand] {
+        let applicationId = try await resolveApplicationId()
+        if let guildId {
+            return try await rest.getGuildCommands(applicationId: applicationId, guildId: guildId)
+        }
+        return try await rest.getGlobalCommands(applicationId: applicationId)
+    }
+
+    public func editSlashCommand(
+        commandId: String,
+        guildId: String? = nil,
+        edit: EditApplicationCommand
+    ) async throws -> ApplicationCommand {
+        let applicationId = try await resolveApplicationId()
+        if let guildId {
+            return try await rest.editGuildCommand(
+                applicationId: applicationId,
+                guildId: guildId,
+                commandId: commandId,
+                command: edit
+            )
+        }
+        return try await rest.editGlobalCommand(
+            applicationId: applicationId,
+            commandId: commandId,
+            command: edit
+        )
+    }
+
+    public func deleteSlashCommand(commandId: String, guildId: String? = nil) async throws {
+        let applicationId = try await resolveApplicationId()
+        if let guildId {
+            try await rest.deleteGuildCommand(
+                applicationId: applicationId,
+                guildId: guildId,
+                commandId: commandId
+            )
+            return
+        }
+        try await rest.deleteGlobalCommand(applicationId: applicationId, commandId: commandId)
     }
 
 
