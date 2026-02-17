@@ -82,19 +82,6 @@ public struct GuildRoleTags: Codable, Sendable {
     public let guildConnections: Bool?
 }
 
-public struct GuildRole: Codable, Sendable, Identifiable {
-    public let id: String
-    public let name: String
-    public let color: Int
-    public let hoist: Bool
-    public let icon: String?
-    public let unicodeEmoji: String?
-    public let position: Int
-    public let permissions: String
-    public let managed: Bool
-    public let mentionable: Bool
-}
-
 public struct GuildMember: Codable, Sendable {
     public let user: DiscordUser?
     public let nick: String?

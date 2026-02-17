@@ -11,18 +11,43 @@ public struct Message: Codable, Sendable, Identifiable {
     public let tts: Bool
     public let mentionEveryone: Bool
     public let mentions: [DiscordUser]
+    public let mentionRoles: [String]?
+    public let mentionChannels: [MessageMentionChannel]?
     public let attachments: [Attachment]
     public let embeds: [Embed]
+    public let reactions: [MessageReaction]?
+    public let nonce: JSONValue?
     public let pinned: Bool
+    public let webhookId: String?
     public let type: MessageType
+    public let activity: MessageActivity?
+    public let application: MessageApplication?
+    public let applicationId: String?
+    public let messageReference: MessageReference?
+    public let flags: Int?
+    public let referencedMessage: MessageReferencedMessage?
+    public let interaction: MessageInteraction?
+    public let interactionMetadata: MessageInteractionMetadata?
+    public let thread: Channel?
+    public let components: [JSONValue]?
+    public let stickerItems: [MessageStickerItem]?
+    public let stickers: [JSONValue]?
     public let member: GuildMember?
+    public let position: Int?
+    public let roleSubscriptionData: MessageRoleSubscriptionData?
+    public let resolved: JSONValue?
+    public let poll: JSONValue?
+    public let call: MessageCall?
 
     var _rest: RESTClient?
 
     enum CodingKeys: String, CodingKey {
         case id, channelId, guildId, author, content, timestamp
-        case editedTimestamp, tts, mentionEveryone, mentions
-        case attachments, embeds, pinned, type, member
+        case editedTimestamp, tts, mentionEveryone, mentions, mentionRoles, mentionChannels
+        case attachments, embeds, reactions, nonce, pinned, webhookId, type, activity, application
+        case applicationId, messageReference, flags, referencedMessage, interaction, interactionMetadata
+        case thread, components, stickerItems, stickers, member, position, roleSubscriptionData
+        case resolved, poll, call
     }
 
     @discardableResult
@@ -70,6 +95,99 @@ public struct MessageReference: Codable, Sendable {
     public let messageId: String?
     public let channelId: String?
     public let guildId: String?
+}
+
+public struct MessageMentionChannel: Codable, Sendable, Identifiable {
+    public let id: String
+    public let guildId: String?
+    public let type: Int?
+    public let name: String?
+}
+
+public struct MessageReaction: Codable, Sendable {
+    public let count: Int?
+    public let countDetails: MessageReactionCountDetails?
+    public let me: Bool?
+    public let meBurst: Bool?
+    public let emoji: MessageEmoji
+    public let burstColors: [String]?
+}
+
+public struct MessageReactionCountDetails: Codable, Sendable {
+    public let burst: Int?
+    public let normal: Int?
+}
+
+public struct MessageEmoji: Codable, Sendable {
+    public let id: String?
+    public let name: String?
+    public let animated: Bool?
+}
+
+public struct MessageActivity: Codable, Sendable {
+    public let type: Int?
+    public let partyId: String?
+}
+
+public struct MessageApplication: Codable, Sendable, Identifiable {
+    public let id: String
+    public let coverImage: String?
+    public let description: String?
+    public let icon: String?
+    public let name: String?
+}
+
+public struct MessageInteraction: Codable, Sendable {
+    public let id: String
+    public let type: Int?
+    public let name: String?
+    public let user: DiscordUser?
+}
+
+public struct MessageInteractionMetadata: Codable, Sendable {
+    public let id: String?
+    public let type: Int?
+    public let user: DiscordUser?
+    public let originalResponseMessageId: String?
+    public let interactedMessageId: String?
+    public let authorizingIntegrationOwners: [String: String]?
+}
+
+public struct MessageStickerItem: Codable, Sendable, Identifiable {
+    public let id: String
+    public let name: String?
+    public let formatType: Int?
+}
+
+public struct MessageRoleSubscriptionData: Codable, Sendable {
+    public let roleSubscriptionListingId: String?
+    public let tierName: String?
+    public let totalMonthsSubscribed: Int?
+    public let isRenewal: Bool?
+}
+
+public struct MessageCall: Codable, Sendable {
+    public let participants: [String]?
+    public let endedTimestamp: String?
+}
+
+public struct MessageReferencedMessage: Codable, Sendable, Identifiable {
+    public let id: String
+    public let channelId: String
+    public let guildId: String?
+    public let author: DiscordUser?
+    public let content: String?
+    public let timestamp: String?
+    public let editedTimestamp: String?
+    public let tts: Bool?
+    public let mentionEveryone: Bool?
+    public let mentions: [DiscordUser]?
+    public let mentionRoles: [String]?
+    public let attachments: [Attachment]?
+    public let embeds: [Embed]?
+    public let pinned: Bool?
+    public let type: MessageType?
+    public let flags: Int?
 }
 
 public struct MessageHistoryQuery: Sendable {
