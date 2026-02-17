@@ -229,6 +229,27 @@ public extension Interaction {
     }
 
     @discardableResult
+    func getOriginalResponse() async throws -> Message {
+        guard let rest = _rest else {
+            throw DiscordError.unknown("Interaction has no REST client.")
+        }
+        return try await rest.getOriginalInteractionResponse(
+            applicationId: applicationId,
+            token: token
+        )
+    }
+
+    func deleteOriginalResponse() async throws {
+        guard let rest = _rest else {
+            throw DiscordError.unknown("Interaction has no REST client.")
+        }
+        try await rest.deleteOriginalInteractionResponse(
+            applicationId: applicationId,
+            token: token
+        )
+    }
+
+    @discardableResult
     func followUp(_ content: String, ephemeral: Bool = false) async throws -> Message {
         guard let rest = _rest else {
             throw DiscordError.unknown("Interaction has no REST client.")

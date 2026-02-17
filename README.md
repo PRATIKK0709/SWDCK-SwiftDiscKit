@@ -18,6 +18,7 @@ This repository currently implements:
   - `INTERACTION_CREATE`
   - `READY`
 - REST endpoints:
+  - Get gateway bot metadata (`/gateway/bot`)
   - Send message
   - Edit message
   - Get message
@@ -27,15 +28,23 @@ This repository currently implements:
   - Send Components V2 message with file attachments (multipart upload)
   - Get channel
   - Get guild
+  - Get guild channels
+  - Get guild members (list/search)
   - Get guild member
+  - Modify guild member
+  - Add/remove guild member role
   - Get guild roles
   - Get user
   - Delete message
   - Create slash command (global/guild)
+  - List slash commands (global/guild)
+  - Edit slash commands (global/guild)
+  - Delete slash commands (global/guild)
   - Bulk overwrite slash commands (global/guild)
   - Interaction response
   - Interaction modal response (`type=9`)
   - Deferred response
+  - Get/Delete original interaction response
   - Edit original interaction response
   - Followup interaction message
   - Get/Edit/Delete followup interaction message
@@ -107,6 +116,7 @@ Set bot token through environment (or edit `LocalDefaults.token`):
 export BOT_TOKEN="..."
 export TEST_GUILD_ID="..."
 export TEST_CHANNEL_ID="..."
+export TEST_ROLE_ID="..."
 swift run DiscordKitBot
 ```
 
@@ -136,8 +146,14 @@ await bot.stop()
 let sent = try await bot.sendMessage(to: channelId, content: "hello")
 let channel = try await bot.getChannel(channelId)
 let guild = try await bot.getGuild(guildId)
+let guildChannels = try await bot.getGuildChannels(guildId)
+let guildMembers = try await bot.getGuildMembers(guildId, query: GuildMembersQuery(limit: 100))
+let searchedMembers = try await bot.searchGuildMembers(guildId, query: GuildMemberSearchQuery(query: "name", limit: 10))
 let user = try await bot.getUser(userId)
 let member = try await bot.getGuildMember(guildId: guildId, userId: userId)
+try await bot.modifyGuildMember(guildId: guildId, userId: userId, modify: ModifyGuildMember(nick: "new-nick"))
+try await bot.addGuildMemberRole(guildId: guildId, userId: userId, roleId: roleId)
+try await bot.removeGuildMemberRole(guildId: guildId, userId: userId, roleId: roleId)
 let roles = try await bot.getGuildRoles(guildId)
 let fetched = try await bot.getMessage(channelId: channelId, messageId: sent.id)
 let history = try await bot.getMessages(channelId: channelId, query: MessageHistoryQuery(limit: 20))
@@ -161,6 +177,14 @@ let command = try await bot.createSlashCommand(
     description: "Direct create endpoint",
     guildId: guildId
 )
+let globalCommands = try await bot.getSlashCommands()
+let guildCommands = try await bot.getSlashCommands(guildId: guildId)
+let editedCommand = try await bot.editSlashCommand(
+    commandId: command.id,
+    guildId: guildId,
+    edit: EditApplicationCommand(description: "Updated description")
+)
+try await bot.deleteSlashCommand(commandId: editedCommand.id, guildId: guildId)
 ```
 
 ### Interaction response APIs
@@ -169,6 +193,8 @@ let command = try await bot.createSlashCommand(
 try await interaction.respond("Immediate response")
 try await interaction.defer_()
 try await interaction.editResponse("Edited response")
+let original = try await interaction.getOriginalResponse()
+try await interaction.deleteOriginalResponse()
 _ = try await interaction.followUp("Followup")
 let followup = try await interaction.getFollowUp(messageId: "...")
 _ = try await interaction.editFollowUp(messageId: followup.id, content: "Edited followup")
@@ -232,6 +258,8 @@ _ = try await bot.sendComponentsV2Message(
 Text commands:
 
 - `!ping`
+- `!help`
+- `!panel`
 - `!channel <channel_id>`
 - `!guild <guild_id>`
 - `!roles <guild_id>`
@@ -250,23 +278,11 @@ Text commands:
 Slash commands:
 
 - `/ping`
-- `/singleping`
-- `/deferdemo`
-- `/channelinfo`
-- `/guildinfo`
-- `/roles`
-- `/userinfo`
-- `/memberinfo`
-- `/say`
-- `/message_get`
-- `/message_history`
-- `/message_edit`
-- `/bulk_delete`
-- `/delete_last`
-- `/followup_flow`
-- `/set_status`
 - `/componentsv2`
 - `/components_modal`
+- `/testpanel`
+
+`/testpanel` and `!panel` open the master Components V2 panel that runs the implemented endpoint tests from a single select menu.
 
 ## Notes
 

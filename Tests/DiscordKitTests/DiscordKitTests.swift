@@ -463,6 +463,19 @@ final class ApplicationCommandModelTests: XCTestCase {
         XCTAssertEqual(command.options?.first?.minLength, 1)
         XCTAssertEqual(command.contexts, [0, 1])
     }
+
+    func testEditApplicationCommandEncoding() throws {
+        let edit = EditApplicationCommand(
+            description: "Updated",
+            dmPermission: false,
+            nsfw: true
+        )
+        let data = try JSONCoder.encode(edit)
+        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        XCTAssertEqual(json?["description"] as? String, "Updated")
+        XCTAssertEqual(json?["dm_permission"] as? Bool, false)
+        XCTAssertEqual(json?["nsfw"] as? Bool, true)
+    }
 }
 
 
@@ -746,10 +759,35 @@ final class GatewayPresenceTests: XCTestCase {
         XCTAssertEqual(activities?.first?["name"] as? String, "Testing")
         XCTAssertEqual(activities?.first?["type"] as? Int, 0)
     }
+
+    func testGatewayBotDecoding() throws {
+        let json = """
+        {
+          "url": "wss://gateway.discord.gg",
+          "shards": 2,
+          "session_start_limit": {
+            "total": 1000,
+            "remaining": 999,
+            "reset_after": 14400000,
+            "max_concurrency": 1
+          }
+        }
+        """.data(using: .utf8)!
+
+        let gateway = try JSONCoder.decode(GatewayBot.self, from: json)
+        XCTAssertEqual(gateway.url, "wss://gateway.discord.gg")
+        XCTAssertEqual(gateway.shards, 2)
+        XCTAssertEqual(gateway.sessionStartLimit.total, 1000)
+        XCTAssertEqual(gateway.sessionStartLimit.maxConcurrency, 1)
+    }
 }
 
 final class RouteCoverageTests: XCTestCase {
     func testNewRoutes() {
+        XCTAssertEqual(
+            Routes.gatewayBot,
+            "\(Routes.baseURL)/gateway/bot"
+        )
         XCTAssertEqual(
             Routes.bulkDeleteMessages("123"),
             "\(Routes.baseURL)/channels/123/messages/bulk-delete"
@@ -761,6 +799,26 @@ final class RouteCoverageTests: XCTestCase {
         XCTAssertEqual(
             Routes.followupMessage("app", token: "tok", messageId: "msg"),
             "\(Routes.baseURL)/webhooks/app/tok/messages/msg"
+        )
+        XCTAssertEqual(
+            Routes.guildChannels("456"),
+            "\(Routes.baseURL)/guilds/456/channels"
+        )
+        XCTAssertEqual(
+            Routes.guildMembers("456"),
+            "\(Routes.baseURL)/guilds/456/members"
+        )
+        XCTAssertEqual(
+            Routes.guildMembersSearch("456"),
+            "\(Routes.baseURL)/guilds/456/members/search"
+        )
+        XCTAssertEqual(
+            Routes.guildMemberRole("456", userId: "u1", roleId: "r1"),
+            "\(Routes.baseURL)/guilds/456/members/u1/roles/r1"
+        )
+        XCTAssertEqual(
+            Routes.guildCommand("app", guildId: "g1", commandId: "c1"),
+            "\(Routes.baseURL)/applications/app/guilds/g1/commands/c1"
         )
     }
 }
