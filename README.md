@@ -234,6 +234,10 @@ Slash commands:
 - The demo clears global and guild command scopes once on first ready event before syncing guild commands.
 - Use a private test server when experimenting with command registration and Components V2 payloads.
 
+## Endpoint Coverage
+
+- `docs/discord-api-endpoint-coverage.md`
+
 ## License
 
 MIT
