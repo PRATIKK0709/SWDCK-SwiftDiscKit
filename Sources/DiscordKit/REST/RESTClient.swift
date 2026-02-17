@@ -158,6 +158,10 @@ public final class RESTClient: Sendable {
         try await request(method: "GET", url: Routes.currentUser, decodeAs: DiscordUser.self)
     }
 
+    func getGateway() async throws -> GatewayInfo {
+        try await request(method: "GET", url: Routes.gateway, decodeAs: GatewayInfo.self)
+    }
+
     func getGatewayBot() async throws -> GatewayBot {
         try await request(method: "GET", url: Routes.gatewayBot, decodeAs: GatewayBot.self)
     }
@@ -171,8 +175,399 @@ public final class RESTClient: Sendable {
         try await request(method: "GET", url: Routes.channel(channelId), decodeAs: Channel.self)
     }
 
+    func modifyChannel(
+        channelId: String,
+        modify: ModifyChannel,
+        auditLogReason: String? = nil
+    ) async throws -> Channel {
+        try await request(
+            method: "PATCH",
+            url: Routes.channel(channelId),
+            body: modify,
+            headers: auditLogHeaders(reason: auditLogReason),
+            decodeAs: Channel.self
+        )
+    }
+
+    func deleteChannel(channelId: String, auditLogReason: String? = nil) async throws -> Channel {
+        try await request(
+            method: "DELETE",
+            url: Routes.channel(channelId),
+            headers: auditLogHeaders(reason: auditLogReason),
+            decodeAs: Channel.self
+        )
+    }
+
+    func createWebhook(
+        channelId: String,
+        webhook: CreateWebhook,
+        auditLogReason: String? = nil
+    ) async throws -> Webhook {
+        try await request(
+            method: "POST",
+            url: Routes.channelWebhooks(channelId),
+            body: webhook,
+            headers: auditLogHeaders(reason: auditLogReason),
+            decodeAs: Webhook.self
+        )
+    }
+
+    func getChannelWebhooks(channelId: String) async throws -> [Webhook] {
+        try await request(
+            method: "GET",
+            url: Routes.channelWebhooks(channelId),
+            decodeAs: [Webhook].self
+        )
+    }
+
+    func getWebhook(webhookId: String) async throws -> Webhook {
+        try await request(method: "GET", url: Routes.webhook(webhookId), decodeAs: Webhook.self)
+    }
+
+    func getWebhook(webhookId: String, token: String) async throws -> Webhook {
+        try await request(method: "GET", url: Routes.webhook(webhookId, token: token), decodeAs: Webhook.self)
+    }
+
+    func modifyWebhook(
+        webhookId: String,
+        modify: ModifyWebhook,
+        auditLogReason: String? = nil
+    ) async throws -> Webhook {
+        try await request(
+            method: "PATCH",
+            url: Routes.webhook(webhookId),
+            body: modify,
+            headers: auditLogHeaders(reason: auditLogReason),
+            decodeAs: Webhook.self
+        )
+    }
+
+    func modifyWebhook(
+        webhookId: String,
+        token: String,
+        modify: ModifyWebhook
+    ) async throws -> Webhook {
+        try await request(
+            method: "PATCH",
+            url: Routes.webhook(webhookId, token: token),
+            body: modify,
+            decodeAs: Webhook.self
+        )
+    }
+
+    func deleteWebhook(webhookId: String, auditLogReason: String? = nil) async throws {
+        try await requestVoid(
+            method: "DELETE",
+            url: Routes.webhook(webhookId),
+            headers: auditLogHeaders(reason: auditLogReason)
+        )
+    }
+
+    func deleteWebhook(webhookId: String, token: String) async throws {
+        try await requestVoid(
+            method: "DELETE",
+            url: Routes.webhook(webhookId, token: token)
+        )
+    }
+
+    @discardableResult
+    func executeWebhook(
+        webhookId: String,
+        token: String,
+        execute: ExecuteWebhook,
+        query: ExecuteWebhookQuery = ExecuteWebhookQuery()
+    ) async throws -> Message? {
+        let url = buildExecuteWebhookURL(webhookId: webhookId, token: token, query: query)
+        let data = try await rawRequest(method: "POST", url: url, body: execute, headers: [:])
+        guard query.wait == true, !data.isEmpty else { return nil }
+        var message = try JSONCoder.decode(Message.self, from: data)
+        message._rest = self
+        return message
+    }
+
+    @discardableResult
+    func getWebhookMessage(
+        webhookId: String,
+        token: String,
+        messageId: String,
+        query: WebhookMessageQuery = WebhookMessageQuery()
+    ) async throws -> Message {
+        let url = buildWebhookMessageURL(webhookId: webhookId, token: token, messageId: messageId, query: query)
+        var message = try await request(method: "GET", url: url, decodeAs: Message.self)
+        message._rest = self
+        return message
+    }
+
+    @discardableResult
+    func editWebhookMessage(
+        webhookId: String,
+        token: String,
+        messageId: String,
+        edit: EditWebhookMessage,
+        query: WebhookMessageQuery = WebhookMessageQuery()
+    ) async throws -> Message {
+        let url = buildWebhookMessageURL(webhookId: webhookId, token: token, messageId: messageId, query: query)
+        var message = try await request(method: "PATCH", url: url, body: edit, decodeAs: Message.self)
+        message._rest = self
+        return message
+    }
+
+    func deleteWebhookMessage(
+        webhookId: String,
+        token: String,
+        messageId: String,
+        query: WebhookMessageQuery = WebhookMessageQuery()
+    ) async throws {
+        let url = buildWebhookMessageURL(webhookId: webhookId, token: token, messageId: messageId, query: query)
+        try await requestVoid(method: "DELETE", url: url)
+    }
+
+    func getChannelInvites(channelId: String) async throws -> [Invite] {
+        try await request(method: "GET", url: Routes.channelInvites(channelId), decodeAs: [Invite].self)
+    }
+
+    func createChannelInvite(
+        channelId: String,
+        invite: CreateChannelInvite = CreateChannelInvite(),
+        auditLogReason: String? = nil
+    ) async throws -> Invite {
+        let payload = CreateChannelInvitePayload(
+            maxAge: invite.maxAge,
+            maxUses: invite.maxUses,
+            temporary: invite.temporary,
+            unique: invite.unique,
+            targetType: invite.targetType,
+            targetUserId: invite.targetUserId,
+            targetApplicationId: invite.targetApplicationId,
+            targetEventId: invite.targetEventId,
+            flags: invite.flags,
+            roleIds: invite.roleIds
+        )
+
+        let headers = auditLogHeaders(reason: auditLogReason)
+        if let targetUsersFileData = invite.targetUsersFileData {
+            return try await createChannelInviteMultipart(
+                channelId: channelId,
+                payload: payload,
+                targetUsersFileData: targetUsersFileData,
+                targetUsersFilename: invite.targetUsersFileName,
+                headers: headers
+            )
+        }
+
+        return try await request(
+            method: "POST",
+            url: Routes.channelInvites(channelId),
+            body: payload,
+            headers: headers,
+            decodeAs: Invite.self
+        )
+    }
+
+    func triggerTyping(channelId: String) async throws {
+        try await requestVoid(method: "POST", url: Routes.typing(channelId))
+    }
+
+    func startThreadFromMessage(
+        channelId: String,
+        messageId: String,
+        payload: StartThreadFromMessage,
+        auditLogReason: String? = nil
+    ) async throws -> Channel {
+        try await request(
+            method: "POST",
+            url: Routes.messageThread(channelId, messageId: messageId),
+            body: payload,
+            headers: auditLogHeaders(reason: auditLogReason),
+            decodeAs: Channel.self
+        )
+    }
+
+    func startThreadWithoutMessage(
+        channelId: String,
+        payload: StartThreadWithoutMessage,
+        auditLogReason: String? = nil
+    ) async throws -> Channel {
+        try await request(
+            method: "POST",
+            url: Routes.channelThreads(channelId),
+            body: payload,
+            headers: auditLogHeaders(reason: auditLogReason),
+            decodeAs: Channel.self
+        )
+    }
+
+    func getPublicArchivedThreads(channelId: String, query: ArchivedThreadsQuery = ArchivedThreadsQuery()) async throws -> ArchivedThreadsResponse {
+        let url = buildArchivedThreadsURL(baseURL: Routes.channelArchivedPublicThreads(channelId), query: query)
+        return try await request(method: "GET", url: url, decodeAs: ArchivedThreadsResponse.self)
+    }
+
+    func getPrivateArchivedThreads(channelId: String, query: ArchivedThreadsQuery = ArchivedThreadsQuery()) async throws -> ArchivedThreadsResponse {
+        let url = buildArchivedThreadsURL(baseURL: Routes.channelArchivedPrivateThreads(channelId), query: query)
+        return try await request(method: "GET", url: url, decodeAs: ArchivedThreadsResponse.self)
+    }
+
+    func getJoinedPrivateArchivedThreads(channelId: String, query: ArchivedThreadsQuery = ArchivedThreadsQuery()) async throws -> ArchivedThreadsResponse {
+        let url = buildArchivedThreadsURL(baseURL: Routes.channelJoinedPrivateArchivedThreads(channelId), query: query)
+        return try await request(method: "GET", url: url, decodeAs: ArchivedThreadsResponse.self)
+    }
+
+    func getThreadMembers(channelId: String, query: ThreadMembersQuery = ThreadMembersQuery()) async throws -> [ChannelThreadMember] {
+        let url = buildThreadMembersURL(channelId: channelId, query: query)
+        return try await request(method: "GET", url: url, decodeAs: [ChannelThreadMember].self)
+    }
+
+    func getThreadMember(channelId: String, userId: String, withMember: Bool? = nil) async throws -> ChannelThreadMember {
+        var url = Routes.threadMember(channelId, userId: userId)
+        if let withMember {
+            guard var components = URLComponents(string: url) else {
+                return try await request(method: "GET", url: url, decodeAs: ChannelThreadMember.self)
+            }
+            components.queryItems = [URLQueryItem(name: "with_member", value: withMember ? "true" : "false")]
+            url = components.url?.absoluteString ?? url
+        }
+        return try await request(method: "GET", url: url, decodeAs: ChannelThreadMember.self)
+    }
+
+    func joinThread(channelId: String) async throws {
+        try await requestVoid(method: "PUT", url: Routes.threadMemberMe(channelId))
+    }
+
+    func leaveThread(channelId: String) async throws {
+        try await requestVoid(method: "DELETE", url: Routes.threadMemberMe(channelId))
+    }
+
+    func getMessagePins(channelId: String, query: MessagePinsQuery = MessagePinsQuery()) async throws -> MessagePinsPage {
+        let url = buildMessagePinsURL(channelId: channelId, query: query)
+        var page = try await request(method: "GET", url: url, decodeAs: MessagePinsPage.self)
+        for index in page.items.indices {
+            page.items[index].message._rest = self
+        }
+        return page
+    }
+
+    func getPins(channelId: String) async throws -> [Message] {
+        var messages = try await request(
+            method: "GET",
+            url: Routes.pins(channelId),
+            decodeAs: [Message].self
+        )
+        for index in messages.indices {
+            messages[index]._rest = self
+        }
+        return messages
+    }
+
+    func pinMessage(channelId: String, messageId: String, auditLogReason: String? = nil) async throws {
+        try await requestVoid(
+            method: "PUT",
+            url: Routes.messagePin(channelId, messageId: messageId),
+            headers: auditLogHeaders(reason: auditLogReason)
+        )
+    }
+
+    func pin(channelId: String, messageId: String, auditLogReason: String? = nil) async throws {
+        try await requestVoid(
+            method: "PUT",
+            url: Routes.pin(channelId, messageId: messageId),
+            headers: auditLogHeaders(reason: auditLogReason)
+        )
+    }
+
+    func unpinMessage(channelId: String, messageId: String, auditLogReason: String? = nil) async throws {
+        try await requestVoid(
+            method: "DELETE",
+            url: Routes.messagePin(channelId, messageId: messageId),
+            headers: auditLogHeaders(reason: auditLogReason)
+        )
+    }
+
+    func unpin(channelId: String, messageId: String, auditLogReason: String? = nil) async throws {
+        try await requestVoid(
+            method: "DELETE",
+            url: Routes.pin(channelId, messageId: messageId),
+            headers: auditLogHeaders(reason: auditLogReason)
+        )
+    }
+
+    func createReaction(channelId: String, messageId: String, emoji: String) async throws {
+        let encodedEmoji = encodeEmojiForPath(emoji)
+        try await requestVoid(
+            method: "PUT",
+            url: Routes.messageReactionMe(channelId, messageId: messageId, emoji: encodedEmoji)
+        )
+    }
+
+    func deleteOwnReaction(channelId: String, messageId: String, emoji: String) async throws {
+        let encodedEmoji = encodeEmojiForPath(emoji)
+        try await requestVoid(
+            method: "DELETE",
+            url: Routes.messageReactionMe(channelId, messageId: messageId, emoji: encodedEmoji)
+        )
+    }
+
+    func getReactions(
+        channelId: String,
+        messageId: String,
+        emoji: String,
+        query: ReactionUsersQuery = ReactionUsersQuery()
+    ) async throws -> [DiscordUser] {
+        let encodedEmoji = encodeEmojiForPath(emoji)
+        let url = buildReactionUsersURL(channelId: channelId, messageId: messageId, emoji: encodedEmoji, query: query)
+        return try await request(method: "GET", url: url, decodeAs: [DiscordUser].self)
+    }
+
+    func deleteUserReaction(channelId: String, messageId: String, emoji: String, userId: String) async throws {
+        let encodedEmoji = encodeEmojiForPath(emoji)
+        try await requestVoid(
+            method: "DELETE",
+            url: Routes.messageReactionUser(channelId, messageId: messageId, emoji: encodedEmoji, userId: userId)
+        )
+    }
+
+    func deleteAllReactionsForEmoji(channelId: String, messageId: String, emoji: String) async throws {
+        let encodedEmoji = encodeEmojiForPath(emoji)
+        try await requestVoid(
+            method: "DELETE",
+            url: Routes.messageReactions(channelId, messageId: messageId, emoji: encodedEmoji)
+        )
+    }
+
+    func deleteAllReactions(channelId: String, messageId: String) async throws {
+        try await requestVoid(
+            method: "DELETE",
+            url: Routes.messageReactions(channelId, messageId: messageId)
+        )
+    }
+
     func getGuild(guildId: String) async throws -> Guild {
         try await request(method: "GET", url: Routes.guild(guildId), decodeAs: Guild.self)
+    }
+
+    func createGuildChannel(
+        guildId: String,
+        channel: CreateGuildChannel,
+        auditLogReason: String? = nil
+    ) async throws -> Channel {
+        try await request(
+            method: "POST",
+            url: Routes.guildChannels(guildId),
+            body: channel,
+            headers: auditLogHeaders(reason: auditLogReason),
+            decodeAs: Channel.self
+        )
+    }
+
+    func getGuildWebhooks(guildId: String) async throws -> [Webhook] {
+        try await request(
+            method: "GET",
+            url: Routes.guildWebhooks(guildId),
+            decodeAs: [Webhook].self
+        )
+    }
+
+    func getGuildInvites(guildId: String) async throws -> [Invite] {
+        try await request(method: "GET", url: Routes.guildInvites(guildId), decodeAs: [Invite].self)
     }
 
     func getGuildChannels(guildId: String) async throws -> [Channel] {
@@ -236,6 +631,56 @@ public final class RESTClient: Sendable {
 
     func getGuildRoles(guildId: String) async throws -> [GuildRole] {
         try await request(method: "GET", url: Routes.guildRoles(guildId), decodeAs: [GuildRole].self)
+    }
+
+    func createGuildRole(
+        guildId: String,
+        role: CreateGuildRole,
+        auditLogReason: String? = nil
+    ) async throws -> GuildRole {
+        try await request(
+            method: "POST",
+            url: Routes.guildRoles(guildId),
+            body: role,
+            headers: auditLogHeaders(reason: auditLogReason),
+            decodeAs: GuildRole.self
+        )
+    }
+
+    func getGuildRole(guildId: String, roleId: String) async throws -> GuildRole {
+        try await request(
+            method: "GET",
+            url: Routes.guildRole(guildId, roleId: roleId),
+            decodeAs: GuildRole.self
+        )
+    }
+
+    func modifyGuildRole(
+        guildId: String,
+        roleId: String,
+        modify: ModifyGuildRole,
+        auditLogReason: String? = nil
+    ) async throws -> GuildRole {
+        try await request(
+            method: "PATCH",
+            url: Routes.guildRole(guildId, roleId: roleId),
+            body: modify,
+            headers: auditLogHeaders(reason: auditLogReason),
+            decodeAs: GuildRole.self
+        )
+    }
+
+    func deleteGuildRole(guildId: String, roleId: String, auditLogReason: String? = nil) async throws {
+        try await requestVoid(
+            method: "DELETE",
+            url: Routes.guildRole(guildId, roleId: roleId),
+            headers: auditLogHeaders(reason: auditLogReason)
+        )
+    }
+
+    func getInvite(code: String, query: GetInviteQuery = GetInviteQuery()) async throws -> Invite {
+        let url = buildInviteURL(code: code, query: query)
+        return try await request(method: "GET", url: url, decodeAs: Invite.self)
     }
 
     func getMessage(channelId: String, messageId: String) async throws -> Message {
@@ -388,6 +833,75 @@ public final class RESTClient: Sendable {
         throw DiscordError.connectionFailed(reason: "Max retries exceeded for multipart request")
     }
 
+    @discardableResult
+    private func createChannelInviteMultipart(
+        channelId: String,
+        payload: CreateChannelInvitePayload,
+        targetUsersFileData: Data,
+        targetUsersFilename: String,
+        headers: [String: String]
+    ) async throws -> Invite {
+        guard let url = URL(string: Routes.channelInvites(channelId)) else {
+            throw DiscordError.connectionFailed(reason: "Invalid URL: \(Routes.channelInvites(channelId))")
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("Bot \(token)", forHTTPHeaderField: "Authorization")
+        for (key, value) in headers {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+
+        let boundary = "Boundary-\(UUID().uuidString)"
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try buildInviteMultipartBody(
+            boundary: boundary,
+            payload: payload,
+            targetUsersFileData: targetUsersFileData,
+            targetUsersFilename: targetUsersFilename
+        )
+
+        let routeKey = "POST:\(url.path)"
+
+        for attempt in 1...maxRetries {
+            await rateLimiter.waitIfNeeded(for: routeKey)
+
+            let (data, response): (Data, URLResponse)
+            do {
+                (data, response) = try await session.data(for: request)
+            } catch {
+                if attempt < maxRetries {
+                    try? await Task.sleep(nanoseconds: UInt64(attempt) * 1_000_000_000)
+                    continue
+                }
+                throw DiscordError.connectionFailed(reason: error.localizedDescription)
+            }
+
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw DiscordError.connectionFailed(reason: "Non-HTTP response")
+            }
+
+            await rateLimiter.update(route: routeKey, headers: httpResponse.allHeaderFields)
+
+            switch httpResponse.statusCode {
+            case 200...299:
+                return try JSONCoder.decode(Invite.self, from: data)
+            case 401:
+                throw DiscordError.invalidToken
+            case 429:
+                let retryAfter = headerDouble("Retry-After", from: httpResponse.allHeaderFields) ?? 1.0
+                try? await Task.sleep(nanoseconds: UInt64(retryAfter * 1_000_000_000))
+                if attempt < maxRetries { continue }
+                throw DiscordError.rateLimited(retryAfter: retryAfter)
+            default:
+                let body = String(data: data, encoding: .utf8) ?? "<binary>"
+                throw DiscordError.httpError(statusCode: httpResponse.statusCode, body: body)
+            }
+        }
+
+        throw DiscordError.connectionFailed(reason: "Max retries exceeded for multipart invite request")
+    }
+
     func deleteMessage(channelId: String, messageId: String) async throws {
         try await requestVoid(method: "DELETE", url: Routes.message(channelId, messageId: messageId))
     }
@@ -396,6 +910,15 @@ public final class RESTClient: Sendable {
     func getApplicationId() async throws -> String {
         let user = try await getCurrentUser()
         return user.id
+    }
+
+    func deleteInvite(code: String, auditLogReason: String? = nil) async throws -> Invite {
+        try await request(
+            method: "DELETE",
+            url: Routes.invite(code),
+            headers: auditLogHeaders(reason: auditLogReason),
+            decodeAs: Invite.self
+        )
     }
 
     @discardableResult
@@ -457,11 +980,27 @@ public final class RESTClient: Sendable {
         )
     }
 
+    func getGlobalCommand(applicationId: String, commandId: String) async throws -> ApplicationCommand {
+        try await request(
+            method: "GET",
+            url: Routes.globalCommand(applicationId, commandId: commandId),
+            decodeAs: ApplicationCommand.self
+        )
+    }
+
     func getGuildCommands(applicationId: String, guildId: String) async throws -> [ApplicationCommand] {
         try await request(
             method: "GET",
             url: Routes.guildCommands(applicationId, guildId: guildId),
             decodeAs: [ApplicationCommand].self
+        )
+    }
+
+    func getGuildCommand(applicationId: String, guildId: String, commandId: String) async throws -> ApplicationCommand {
+        try await request(
+            method: "GET",
+            url: Routes.guildCommand(applicationId, guildId: guildId, commandId: commandId),
+            decodeAs: ApplicationCommand.self
         )
     }
 
@@ -683,6 +1222,99 @@ private extension RESTClient {
         return components.url?.absoluteString ?? Routes.messages(channelId)
     }
 
+    func buildMessagePinsURL(channelId: String, query: MessagePinsQuery) -> String {
+        guard var components = URLComponents(string: Routes.messagePins(channelId)) else {
+            return Routes.messagePins(channelId)
+        }
+
+        var items: [URLQueryItem] = []
+        if let before = query.before { items.append(URLQueryItem(name: "before", value: before)) }
+        if let limit = query.limit { items.append(URLQueryItem(name: "limit", value: String(limit))) }
+
+        components.queryItems = items.isEmpty ? nil : items
+        return components.url?.absoluteString ?? Routes.messagePins(channelId)
+    }
+
+    func buildReactionUsersURL(channelId: String, messageId: String, emoji: String, query: ReactionUsersQuery) -> String {
+        guard var components = URLComponents(string: Routes.messageReactions(channelId, messageId: messageId, emoji: emoji)) else {
+            return Routes.messageReactions(channelId, messageId: messageId, emoji: emoji)
+        }
+
+        var items: [URLQueryItem] = []
+        if let after = query.after { items.append(URLQueryItem(name: "after", value: after)) }
+        if let limit = query.limit { items.append(URLQueryItem(name: "limit", value: String(limit))) }
+        if let type = query.type { items.append(URLQueryItem(name: "type", value: String(type.rawValue))) }
+
+        components.queryItems = items.isEmpty ? nil : items
+        return components.url?.absoluteString ?? Routes.messageReactions(channelId, messageId: messageId, emoji: emoji)
+    }
+
+    func buildArchivedThreadsURL(baseURL: String, query: ArchivedThreadsQuery) -> String {
+        guard var components = URLComponents(string: baseURL) else {
+            return baseURL
+        }
+
+        var items: [URLQueryItem] = []
+        if let before = query.before { items.append(URLQueryItem(name: "before", value: before)) }
+        if let limit = query.limit { items.append(URLQueryItem(name: "limit", value: String(limit))) }
+
+        components.queryItems = items.isEmpty ? nil : items
+        return components.url?.absoluteString ?? baseURL
+    }
+
+    func buildThreadMembersURL(channelId: String, query: ThreadMembersQuery) -> String {
+        guard var components = URLComponents(string: Routes.threadMembers(channelId)) else {
+            return Routes.threadMembers(channelId)
+        }
+
+        var items: [URLQueryItem] = []
+        if let withMember = query.withMember { items.append(URLQueryItem(name: "with_member", value: withMember ? "true" : "false")) }
+        if let after = query.after { items.append(URLQueryItem(name: "after", value: after)) }
+        if let limit = query.limit { items.append(URLQueryItem(name: "limit", value: String(limit))) }
+
+        components.queryItems = items.isEmpty ? nil : items
+        return components.url?.absoluteString ?? Routes.threadMembers(channelId)
+    }
+
+    func buildInviteURL(code: String, query: GetInviteQuery) -> String {
+        guard var components = URLComponents(string: Routes.invite(code)) else {
+            return Routes.invite(code)
+        }
+
+        var items: [URLQueryItem] = []
+        if let withCounts = query.withCounts { items.append(URLQueryItem(name: "with_counts", value: withCounts ? "true" : "false")) }
+        if let withExpiration = query.withExpiration { items.append(URLQueryItem(name: "with_expiration", value: withExpiration ? "true" : "false")) }
+        if let guildScheduledEventId = query.guildScheduledEventId { items.append(URLQueryItem(name: "guild_scheduled_event_id", value: guildScheduledEventId)) }
+
+        components.queryItems = items.isEmpty ? nil : items
+        return components.url?.absoluteString ?? Routes.invite(code)
+    }
+
+    func buildExecuteWebhookURL(webhookId: String, token: String, query: ExecuteWebhookQuery) -> String {
+        guard var components = URLComponents(string: Routes.webhook(webhookId, token: token)) else {
+            return Routes.webhook(webhookId, token: token)
+        }
+
+        var items: [URLQueryItem] = []
+        if let wait = query.wait { items.append(URLQueryItem(name: "wait", value: wait ? "true" : "false")) }
+        if let threadId = query.threadId { items.append(URLQueryItem(name: "thread_id", value: threadId)) }
+
+        components.queryItems = items.isEmpty ? nil : items
+        return components.url?.absoluteString ?? Routes.webhook(webhookId, token: token)
+    }
+
+    func buildWebhookMessageURL(webhookId: String, token: String, messageId: String, query: WebhookMessageQuery) -> String {
+        guard var components = URLComponents(string: Routes.webhookMessage(webhookId, token: token, messageId: messageId)) else {
+            return Routes.webhookMessage(webhookId, token: token, messageId: messageId)
+        }
+
+        var items: [URLQueryItem] = []
+        if let threadId = query.threadId { items.append(URLQueryItem(name: "thread_id", value: threadId)) }
+
+        components.queryItems = items.isEmpty ? nil : items
+        return components.url?.absoluteString ?? Routes.webhookMessage(webhookId, token: token, messageId: messageId)
+    }
+
     func headerValue(_ name: String, from headers: [AnyHashable: Any]) -> String? {
         let lowercasedName = name.lowercased()
         for (key, value) in headers where String(describing: key).lowercased() == lowercasedName {
@@ -749,6 +1381,41 @@ private extension RESTClient {
         append("--\(boundary)--\(lineBreak)")
         return body
     }
+
+    func buildInviteMultipartBody(
+        boundary: String,
+        payload: CreateChannelInvitePayload,
+        targetUsersFileData: Data,
+        targetUsersFilename: String
+    ) throws -> Data {
+        var body = Data()
+        let lineBreak = "\r\n"
+
+        func append(_ string: String) {
+            body.append(Data(string.utf8))
+        }
+
+        append("--\(boundary)\(lineBreak)")
+        append("Content-Disposition: form-data; name=\"payload_json\"\(lineBreak)")
+        append("Content-Type: application/json\(lineBreak)\(lineBreak)")
+        let payloadData = try JSONCoder.encode(payload)
+        body.append(payloadData)
+        append(lineBreak)
+
+        append("--\(boundary)\(lineBreak)")
+        append("Content-Disposition: form-data; name=\"target_users_file\"; filename=\"\(targetUsersFilename)\"\(lineBreak)")
+        append("Content-Type: text/csv\(lineBreak)\(lineBreak)")
+        body.append(targetUsersFileData)
+        append(lineBreak)
+
+        append("--\(boundary)--\(lineBreak)")
+        return body
+    }
+
+    func encodeEmojiForPath(_ emoji: String) -> String {
+        let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-._~"))
+        return emoji.addingPercentEncoding(withAllowedCharacters: allowed) ?? emoji
+    }
 }
 
 
@@ -804,8 +1471,10 @@ public struct ApplicationCommand: Codable, Sendable, Identifiable {
     public let guildId: String?
     public let name: String
     public let nameLocalizations: [String: String]?
+    public let nameLocalized: String?
     public let description: String
     public let descriptionLocalizations: [String: String]?
+    public let descriptionLocalized: String?
     public let type: Int?
     public let options: [ApplicationCommandOption]?
     public let defaultMemberPermissions: String?
@@ -862,8 +1531,10 @@ public struct ApplicationCommandOption: Codable, Sendable {
     public let type: Int
     public let name: String
     public let nameLocalizations: [String: String]?
+    public let nameLocalized: String?
     public let description: String
     public let descriptionLocalizations: [String: String]?
+    public let descriptionLocalized: String?
     public let required: Bool?
     public let choices: [ApplicationCommandChoice]?
     public let options: [ApplicationCommandOption]?

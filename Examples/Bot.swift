@@ -173,31 +173,18 @@ struct DiscordKitBotMain {
             }
 
             if interaction.type == .messageComponent {
-                let customId = interaction.data?.customId ?? ""
-                let selectedValues = interaction.data?.values?.joined(separator: ", ") ?? "none"
-
                 do {
-                    if customId == "api_test_select" {
-                        guard let selected = interaction.data?.values?.first else {
-                            try await interaction.respond("No test selected.", ephemeral: true)
-                            return
-                        }
-                        try await interaction.defer_(ephemeral: true)
-                        try await runPanelTest(
-                            selected,
-                            bot: bot,
-                            interaction: interaction,
-                            testGuildId: testGuildId,
-                            testChannelId: testChannelId,
-                            testRoleId: testRoleId
-                        )
-                    } else if customId.hasPrefix("cv2_btn_") {
-                        try await interaction.respond("Button interaction: \(customId)", ephemeral: true)
-                    } else if customId.hasPrefix("cv2_select_") {
-                        try await interaction.respond("Selection for \(customId): \(selectedValues)", ephemeral: true)
-                    }
+                    try await handleMessageComponentInteraction(
+                        interaction: interaction,
+                        bot: bot,
+                        state: state,
+                        testGuildId: testGuildId,
+                        testChannelId: testChannelId,
+                        testRoleId: testRoleId
+                    )
                 } catch {
                     print("Component interaction response failed: \(error)")
+                    try? await interaction.respond("Component handling failed: \(friendlyError(error))", ephemeral: true)
                 }
             }
         }
@@ -242,7 +229,7 @@ struct DiscordKitBotMain {
                     components: panel
                 )
                 await state.setLastBotMessage(sent)
-                try await message.reply("API test panel sent. Use the select menu to run endpoint tests.")
+                try await message.reply("Categorized endpoint dashboard sent. Use category selectors or quick buttons.")
                 return
             }
 
@@ -533,7 +520,7 @@ struct DiscordKitBotMain {
 
         bot.slashCommand(
             "testpanel",
-            description: "Open master endpoint + component test panel"
+            description: "Open categorized endpoint dashboard"
         ) { interaction in
             guard let channelId = interaction.channelId else {
                 try await interaction.respond("No channel available for panel.", ephemeral: true)
@@ -717,51 +704,864 @@ private struct RoleMutationResult: Encodable {
     let success: Bool
 }
 
-private func apiTestPanelData() -> [ComponentV2Node] {
-    let options: [ComponentV2SelectOption] = [
-        ComponentV2SelectOption(label: "GET /gateway/bot", value: "gateway_bot"),
-        ComponentV2SelectOption(label: "GET global commands", value: "get_global_commands"),
-        ComponentV2SelectOption(label: "GET guild commands", value: "get_guild_commands"),
-        ComponentV2SelectOption(label: "PATCH global command", value: "edit_global_command"),
-        ComponentV2SelectOption(label: "PATCH guild command", value: "edit_guild_command"),
-        ComponentV2SelectOption(label: "DELETE global command", value: "delete_global_command"),
-        ComponentV2SelectOption(label: "DELETE guild command", value: "delete_guild_command"),
-        ComponentV2SelectOption(label: "GET @original interaction response", value: "get_original_response"),
-        ComponentV2SelectOption(label: "DELETE @original interaction response", value: "delete_original_response"),
-        ComponentV2SelectOption(label: "GET guild channels", value: "get_guild_channels"),
-        ComponentV2SelectOption(label: "GET guild members", value: "get_guild_members"),
-        ComponentV2SelectOption(label: "GET guild members search", value: "search_guild_members"),
-        ComponentV2SelectOption(label: "PATCH guild member", value: "modify_guild_member"),
-        ComponentV2SelectOption(label: "PUT add member role", value: "add_member_role"),
-        ComponentV2SelectOption(label: "DELETE remove member role", value: "remove_member_role"),
-    ]
+private struct InviteLifecycleResult: Encodable {
+    let created: Invite
+    let deleted: Invite?
+    let channelInvitesCount: Int?
+    let guildInvitesCount: Int?
+}
 
-    return [
-        .container(
-            ComponentV2Container(
-                accentColor: 0x5865F2,
+private struct TypingResult: Encodable {
+    let channelId: String
+    let triggered: Bool
+}
+
+private struct PinMutationResult: Encodable {
+    let channelId: String
+    let messageId: String
+    let action: String
+    let pins: MessagePinsPage
+}
+
+private struct ReactionMutationResult: Encodable {
+    let channelId: String
+    let messageId: String
+    let emoji: String
+    let action: String
+    let users: [DiscordUser]?
+    let message: Message
+}
+
+private struct ChannelLifecycleResult: Encodable {
+    let created: Channel
+    let modified: Channel?
+    let deleted: Channel?
+}
+
+private struct ThreadLifecycleResult: Encodable {
+    let parentChannelId: String
+    let thread: Channel
+    let archivedSnapshot: ArchivedThreadsResponse?
+    let members: [ChannelThreadMember]?
+}
+
+private struct WebhookLifecycleResult: Encodable {
+    let created: Webhook
+    let fetched: Webhook?
+    let modified: Webhook?
+    let channelWebhooksCount: Int?
+    let guildWebhooksCount: Int?
+    let deleted: Bool
+}
+
+private struct WebhookMessageLifecycleResult: Encodable {
+    let webhookId: String
+    let message: Message
+    let fetched: Message?
+    let edited: Message?
+    let deleted: Bool
+}
+
+private struct GuildRoleLifecycleResult: Encodable {
+    let created: GuildRole
+    let fetched: GuildRole?
+    let modified: GuildRole?
+    let deleted: Bool
+}
+
+private struct LegacyPinsResult: Encodable {
+    let channelId: String
+    let messageId: String
+    let action: String
+    let pinsCount: Int
+}
+
+private struct PanelEndpointDefinition: Sendable {
+    let id: String
+    let label: String
+    let libraryMethod: String
+    let route: String
+    let category: String
+}
+
+private struct PanelSmokeCheck: Encodable {
+    let endpoint: String
+    let success: Bool
+    let details: String
+}
+
+private struct PanelSmokeSuiteResult: Encodable {
+    let total: Int
+    let passed: Int
+    let failed: Int
+    let checks: [PanelSmokeCheck]
+}
+
+private func panelGatewayEndpoints() -> [PanelEndpointDefinition] {
+    [
+        PanelEndpointDefinition(
+            id: "gateway_url",
+            label: "Gateway URL",
+            libraryMethod: "bot.getGateway()",
+            route: "GET /gateway",
+            category: "Gateway"
+        ),
+        PanelEndpointDefinition(
+            id: "gateway_bot",
+            label: "Gateway Bot Metadata",
+            libraryMethod: "bot.getGatewayBot()",
+            route: "GET /gateway/bot",
+            category: "Gateway"
+        ),
+    ]
+}
+
+private func panelCommandEndpoints() -> [PanelEndpointDefinition] {
+    [
+        PanelEndpointDefinition(
+            id: "get_global_commands",
+            label: "List Global Commands",
+            libraryMethod: "bot.getSlashCommands()",
+            route: "GET /applications/{application.id}/commands",
+            category: "Application Commands"
+        ),
+        PanelEndpointDefinition(
+            id: "get_guild_commands",
+            label: "List Guild Commands",
+            libraryMethod: "bot.getSlashCommands(guildId:)",
+            route: "GET /applications/{application.id}/guilds/{guild.id}/commands",
+            category: "Application Commands"
+        ),
+        PanelEndpointDefinition(
+            id: "get_global_command_by_id",
+            label: "Get Global Command By ID",
+            libraryMethod: "bot.getSlashCommand(commandId:)",
+            route: "GET /applications/{application.id}/commands/{command.id}",
+            category: "Application Commands"
+        ),
+        PanelEndpointDefinition(
+            id: "get_guild_command_by_id",
+            label: "Get Guild Command By ID",
+            libraryMethod: "bot.getSlashCommand(commandId:guildId:)",
+            route: "GET /applications/{application.id}/guilds/{guild.id}/commands/{command.id}",
+            category: "Application Commands"
+        ),
+        PanelEndpointDefinition(
+            id: "edit_global_command",
+            label: "Edit Global Command",
+            libraryMethod: "bot.editSlashCommand(commandId:edit:)",
+            route: "PATCH /applications/{application.id}/commands/{command.id}",
+            category: "Application Commands"
+        ),
+        PanelEndpointDefinition(
+            id: "edit_guild_command",
+            label: "Edit Guild Command",
+            libraryMethod: "bot.editSlashCommand(commandId:guildId:edit:)",
+            route: "PATCH /applications/{application.id}/guilds/{guild.id}/commands/{command.id}",
+            category: "Application Commands"
+        ),
+        PanelEndpointDefinition(
+            id: "delete_global_command",
+            label: "Delete Global Command",
+            libraryMethod: "bot.deleteSlashCommand(commandId:)",
+            route: "DELETE /applications/{application.id}/commands/{command.id}",
+            category: "Application Commands"
+        ),
+        PanelEndpointDefinition(
+            id: "delete_guild_command",
+            label: "Delete Guild Command",
+            libraryMethod: "bot.deleteSlashCommand(commandId:guildId:)",
+            route: "DELETE /applications/{application.id}/guilds/{guild.id}/commands/{command.id}",
+            category: "Application Commands"
+        ),
+    ]
+}
+
+private func panelInteractionEndpoints() -> [PanelEndpointDefinition] {
+    [
+        PanelEndpointDefinition(
+            id: "get_original_response",
+            label: "Fetch Original Interaction Response",
+            libraryMethod: "interaction.getOriginalResponse()",
+            route: "GET /webhooks/{application.id}/{interaction.token}/messages/@original",
+            category: "Interaction Webhook"
+        ),
+        PanelEndpointDefinition(
+            id: "delete_original_response",
+            label: "Delete Original Interaction Response",
+            libraryMethod: "interaction.deleteOriginalResponse()",
+            route: "DELETE /webhooks/{application.id}/{interaction.token}/messages/@original",
+            category: "Interaction Webhook"
+        ),
+    ]
+}
+
+private func panelGuildEndpoints() -> [PanelEndpointDefinition] {
+    [
+        PanelEndpointDefinition(
+            id: "get_guild_channels",
+            label: "List Guild Channels",
+            libraryMethod: "bot.getGuildChannels(_:)",
+            route: "GET /guilds/{guild.id}/channels",
+            category: "Guild Resources"
+        ),
+        PanelEndpointDefinition(
+            id: "get_guild_members",
+            label: "List Guild Members",
+            libraryMethod: "bot.getGuildMembers(_:query:)",
+            route: "GET /guilds/{guild.id}/members",
+            category: "Guild Resources"
+        ),
+        PanelEndpointDefinition(
+            id: "search_guild_members",
+            label: "Search Guild Members",
+            libraryMethod: "bot.searchGuildMembers(_:query:)",
+            route: "GET /guilds/{guild.id}/members/search",
+            category: "Guild Resources"
+        ),
+        PanelEndpointDefinition(
+            id: "modify_guild_member",
+            label: "Modify Guild Member",
+            libraryMethod: "bot.modifyGuildMember(...)",
+            route: "PATCH /guilds/{guild.id}/members/{user.id}",
+            category: "Guild Resources"
+        ),
+        PanelEndpointDefinition(
+            id: "add_member_role",
+            label: "Add Guild Member Role",
+            libraryMethod: "bot.addGuildMemberRole(...)",
+            route: "PUT /guilds/{guild.id}/members/{user.id}/roles/{role.id}",
+            category: "Guild Resources"
+        ),
+        PanelEndpointDefinition(
+            id: "remove_member_role",
+            label: "Remove Guild Member Role",
+            libraryMethod: "bot.removeGuildMemberRole(...)",
+            route: "DELETE /guilds/{guild.id}/members/{user.id}/roles/{role.id}",
+            category: "Guild Resources"
+        ),
+    ]
+}
+
+private func panelChannelMessageEndpoints() -> [PanelEndpointDefinition] {
+    [
+        PanelEndpointDefinition(
+            id: "get_channel_invites",
+            label: "List Channel Invites",
+            libraryMethod: "bot.getChannelInvites(_:)",
+            route: "GET /channels/{channel.id}/invites",
+            category: "Channel + Message"
+        ),
+        PanelEndpointDefinition(
+            id: "create_channel_invite",
+            label: "Create Channel Invite",
+            libraryMethod: "bot.createChannelInvite(...)",
+            route: "POST /channels/{channel.id}/invites",
+            category: "Channel + Message"
+        ),
+        PanelEndpointDefinition(
+            id: "get_guild_invites",
+            label: "List Guild Invites",
+            libraryMethod: "bot.getGuildInvites(_:)",
+            route: "GET /guilds/{guild.id}/invites",
+            category: "Channel + Message"
+        ),
+        PanelEndpointDefinition(
+            id: "delete_invite",
+            label: "Delete Invite",
+            libraryMethod: "bot.deleteInvite(code:)",
+            route: "DELETE /invites/{invite.code}",
+            category: "Channel + Message"
+        ),
+        PanelEndpointDefinition(
+            id: "get_invite",
+            label: "Get Invite By Code",
+            libraryMethod: "bot.getInvite(code:query:)",
+            route: "GET /invites/{invite.code}",
+            category: "Channel + Message"
+        ),
+        PanelEndpointDefinition(
+            id: "trigger_typing",
+            label: "Trigger Typing Indicator",
+            libraryMethod: "bot.triggerTyping(in:)",
+            route: "POST /channels/{channel.id}/typing",
+            category: "Channel + Message"
+        ),
+        PanelEndpointDefinition(
+            id: "get_message_pins",
+            label: "List Message Pins",
+            libraryMethod: "bot.getMessagePins(channelId:query:)",
+            route: "GET /channels/{channel.id}/messages/pins",
+            category: "Channel + Message"
+        ),
+        PanelEndpointDefinition(
+            id: "get_pins_legacy",
+            label: "List Pins (Legacy Route)",
+            libraryMethod: "bot.getPins(_:)",
+            route: "GET /channels/{channel.id}/pins",
+            category: "Channel + Message"
+        ),
+        PanelEndpointDefinition(
+            id: "pin_message",
+            label: "Pin Message",
+            libraryMethod: "bot.pinMessage(channelId:messageId:)",
+            route: "PUT /channels/{channel.id}/messages/pins/{message.id}",
+            category: "Channel + Message"
+        ),
+        PanelEndpointDefinition(
+            id: "pin_legacy",
+            label: "Pin Message (Legacy Route)",
+            libraryMethod: "bot.pin(channelId:messageId:)",
+            route: "PUT /channels/{channel.id}/pins/{message.id}",
+            category: "Channel + Message"
+        ),
+        PanelEndpointDefinition(
+            id: "unpin_message",
+            label: "Unpin Message",
+            libraryMethod: "bot.unpinMessage(channelId:messageId:)",
+            route: "DELETE /channels/{channel.id}/messages/pins/{message.id}",
+            category: "Channel + Message"
+        ),
+        PanelEndpointDefinition(
+            id: "unpin_legacy",
+            label: "Unpin Message (Legacy Route)",
+            libraryMethod: "bot.unpin(channelId:messageId:)",
+            route: "DELETE /channels/{channel.id}/pins/{message.id}",
+            category: "Channel + Message"
+        ),
+        PanelEndpointDefinition(
+            id: "create_reaction",
+            label: "Create Reaction (@me)",
+            libraryMethod: "bot.createReaction(channelId:messageId:emoji:)",
+            route: "PUT /channels/{channel.id}/messages/{message.id}/reactions/{emoji}/@me",
+            category: "Channel + Message"
+        ),
+        PanelEndpointDefinition(
+            id: "delete_own_reaction",
+            label: "Delete Own Reaction",
+            libraryMethod: "bot.deleteOwnReaction(channelId:messageId:emoji:)",
+            route: "DELETE /channels/{channel.id}/messages/{message.id}/reactions/{emoji}/@me",
+            category: "Channel + Message"
+        ),
+        PanelEndpointDefinition(
+            id: "get_reactions",
+            label: "List Reactions for Emoji",
+            libraryMethod: "bot.getReactions(channelId:messageId:emoji:query:)",
+            route: "GET /channels/{channel.id}/messages/{message.id}/reactions/{emoji}",
+            category: "Channel + Message"
+        ),
+        PanelEndpointDefinition(
+            id: "delete_user_reaction",
+            label: "Delete User Reaction",
+            libraryMethod: "bot.deleteUserReaction(channelId:messageId:emoji:userId:)",
+            route: "DELETE /channels/{channel.id}/messages/{message.id}/reactions/{emoji}/{user.id}",
+            category: "Channel + Message"
+        ),
+        PanelEndpointDefinition(
+            id: "delete_all_reactions_for_emoji",
+            label: "Delete All for Emoji",
+            libraryMethod: "bot.deleteAllReactionsForEmoji(channelId:messageId:emoji:)",
+            route: "DELETE /channels/{channel.id}/messages/{message.id}/reactions/{emoji}",
+            category: "Channel + Message"
+        ),
+        PanelEndpointDefinition(
+            id: "delete_all_reactions",
+            label: "Delete All Reactions",
+            libraryMethod: "bot.deleteAllReactions(channelId:messageId:)",
+            route: "DELETE /channels/{channel.id}/messages/{message.id}/reactions",
+            category: "Channel + Message"
+        ),
+    ]
+}
+
+private func panelThreadLifecycleEndpoints() -> [PanelEndpointDefinition] {
+    [
+        PanelEndpointDefinition(
+            id: "create_guild_channel",
+            label: "Create Guild Channel",
+            libraryMethod: "bot.createGuildChannel(guildId:channel:)",
+            route: "POST /guilds/{guild.id}/channels",
+            category: "Threads + Channel Lifecycle"
+        ),
+        PanelEndpointDefinition(
+            id: "modify_channel",
+            label: "Modify Channel",
+            libraryMethod: "bot.modifyChannel(channelId:modify:)",
+            route: "PATCH /channels/{channel.id}",
+            category: "Threads + Channel Lifecycle"
+        ),
+        PanelEndpointDefinition(
+            id: "delete_channel",
+            label: "Delete Channel",
+            libraryMethod: "bot.deleteChannel(channelId:)",
+            route: "DELETE /channels/{channel.id}",
+            category: "Threads + Channel Lifecycle"
+        ),
+        PanelEndpointDefinition(
+            id: "start_thread_without_message",
+            label: "Start Thread Without Message",
+            libraryMethod: "bot.startThreadWithoutMessage(...)",
+            route: "POST /channels/{channel.id}/threads",
+            category: "Threads + Channel Lifecycle"
+        ),
+        PanelEndpointDefinition(
+            id: "start_thread_from_message",
+            label: "Start Thread From Message",
+            libraryMethod: "bot.startThreadFromMessage(...)",
+            route: "POST /channels/{channel.id}/messages/{message.id}/threads",
+            category: "Threads + Channel Lifecycle"
+        ),
+        PanelEndpointDefinition(
+            id: "get_public_archived_threads",
+            label: "List Public Archived Threads",
+            libraryMethod: "bot.getPublicArchivedThreads(...)",
+            route: "GET /channels/{channel.id}/threads/archived/public",
+            category: "Threads + Channel Lifecycle"
+        ),
+        PanelEndpointDefinition(
+            id: "get_private_archived_threads",
+            label: "List Private Archived Threads",
+            libraryMethod: "bot.getPrivateArchivedThreads(...)",
+            route: "GET /channels/{channel.id}/threads/archived/private",
+            category: "Threads + Channel Lifecycle"
+        ),
+        PanelEndpointDefinition(
+            id: "get_joined_private_archived_threads",
+            label: "List Joined Private Archived",
+            libraryMethod: "bot.getJoinedPrivateArchivedThreads(...)",
+            route: "GET /channels/{channel.id}/users/@me/threads/archived/private",
+            category: "Threads + Channel Lifecycle"
+        ),
+        PanelEndpointDefinition(
+            id: "get_thread_members",
+            label: "List Thread Members",
+            libraryMethod: "bot.getThreadMembers(...)",
+            route: "GET /channels/{channel.id}/thread-members",
+            category: "Threads + Channel Lifecycle"
+        ),
+        PanelEndpointDefinition(
+            id: "get_thread_member",
+            label: "Get Thread Member",
+            libraryMethod: "bot.getThreadMember(...)",
+            route: "GET /channels/{channel.id}/thread-members/{user.id}",
+            category: "Threads + Channel Lifecycle"
+        ),
+        PanelEndpointDefinition(
+            id: "join_thread",
+            label: "Join Thread (@me)",
+            libraryMethod: "bot.joinThread(channelId:)",
+            route: "PUT /channels/{channel.id}/thread-members/@me",
+            category: "Threads + Channel Lifecycle"
+        ),
+        PanelEndpointDefinition(
+            id: "leave_thread",
+            label: "Leave Thread (@me)",
+            libraryMethod: "bot.leaveThread(channelId:)",
+            route: "DELETE /channels/{channel.id}/thread-members/@me",
+            category: "Threads + Channel Lifecycle"
+        ),
+    ]
+}
+
+private func panelWebhookRoleEndpoints() -> [PanelEndpointDefinition] {
+    [
+        PanelEndpointDefinition(
+            id: "create_webhook",
+            label: "Create Webhook",
+            libraryMethod: "bot.createWebhook(...)",
+            route: "POST /channels/{channel.id}/webhooks",
+            category: "Webhooks + Roles"
+        ),
+        PanelEndpointDefinition(
+            id: "get_channel_webhooks",
+            label: "List Channel Webhooks",
+            libraryMethod: "bot.getChannelWebhooks(_:)",
+            route: "GET /channels/{channel.id}/webhooks",
+            category: "Webhooks + Roles"
+        ),
+        PanelEndpointDefinition(
+            id: "get_guild_webhooks",
+            label: "List Guild Webhooks",
+            libraryMethod: "bot.getGuildWebhooks(_:)",
+            route: "GET /guilds/{guild.id}/webhooks",
+            category: "Webhooks + Roles"
+        ),
+        PanelEndpointDefinition(
+            id: "get_webhook",
+            label: "Get Webhook",
+            libraryMethod: "bot.getWebhook(_:)",
+            route: "GET /webhooks/{webhook.id}",
+            category: "Webhooks + Roles"
+        ),
+        PanelEndpointDefinition(
+            id: "get_webhook_token",
+            label: "Get Webhook With Token",
+            libraryMethod: "bot.getWebhook(_:token:)",
+            route: "GET /webhooks/{webhook.id}/{webhook.token}",
+            category: "Webhooks + Roles"
+        ),
+        PanelEndpointDefinition(
+            id: "modify_webhook",
+            label: "Modify Webhook",
+            libraryMethod: "bot.modifyWebhook(webhookId:modify:)",
+            route: "PATCH /webhooks/{webhook.id}",
+            category: "Webhooks + Roles"
+        ),
+        PanelEndpointDefinition(
+            id: "modify_webhook_token",
+            label: "Modify Webhook With Token",
+            libraryMethod: "bot.modifyWebhook(webhookId:token:modify:)",
+            route: "PATCH /webhooks/{webhook.id}/{webhook.token}",
+            category: "Webhooks + Roles"
+        ),
+        PanelEndpointDefinition(
+            id: "delete_webhook",
+            label: "Delete Webhook",
+            libraryMethod: "bot.deleteWebhook(webhookId:)",
+            route: "DELETE /webhooks/{webhook.id}",
+            category: "Webhooks + Roles"
+        ),
+        PanelEndpointDefinition(
+            id: "delete_webhook_token",
+            label: "Delete Webhook With Token",
+            libraryMethod: "bot.deleteWebhook(webhookId:token:)",
+            route: "DELETE /webhooks/{webhook.id}/{webhook.token}",
+            category: "Webhooks + Roles"
+        ),
+        PanelEndpointDefinition(
+            id: "execute_webhook",
+            label: "Execute Webhook",
+            libraryMethod: "bot.executeWebhook(...)",
+            route: "POST /webhooks/{webhook.id}/{webhook.token}",
+            category: "Webhooks + Roles"
+        ),
+        PanelEndpointDefinition(
+            id: "get_webhook_message",
+            label: "Get Webhook Message",
+            libraryMethod: "bot.getWebhookMessage(...)",
+            route: "GET /webhooks/{webhook.id}/{webhook.token}/messages/{message.id}",
+            category: "Webhooks + Roles"
+        ),
+        PanelEndpointDefinition(
+            id: "edit_webhook_message",
+            label: "Edit Webhook Message",
+            libraryMethod: "bot.editWebhookMessage(...)",
+            route: "PATCH /webhooks/{webhook.id}/{webhook.token}/messages/{message.id}",
+            category: "Webhooks + Roles"
+        ),
+        PanelEndpointDefinition(
+            id: "delete_webhook_message",
+            label: "Delete Webhook Message",
+            libraryMethod: "bot.deleteWebhookMessage(...)",
+            route: "DELETE /webhooks/{webhook.id}/{webhook.token}/messages/{message.id}",
+            category: "Webhooks + Roles"
+        ),
+        PanelEndpointDefinition(
+            id: "create_guild_role",
+            label: "Create Guild Role",
+            libraryMethod: "bot.createGuildRole(...)",
+            route: "POST /guilds/{guild.id}/roles",
+            category: "Webhooks + Roles"
+        ),
+        PanelEndpointDefinition(
+            id: "get_guild_role",
+            label: "Get Guild Role",
+            libraryMethod: "bot.getGuildRole(guildId:roleId:)",
+            route: "GET /guilds/{guild.id}/roles/{role.id}",
+            category: "Webhooks + Roles"
+        ),
+        PanelEndpointDefinition(
+            id: "modify_guild_role",
+            label: "Modify Guild Role",
+            libraryMethod: "bot.modifyGuildRole(...)",
+            route: "PATCH /guilds/{guild.id}/roles/{role.id}",
+            category: "Webhooks + Roles"
+        ),
+        PanelEndpointDefinition(
+            id: "delete_guild_role",
+            label: "Delete Guild Role",
+            libraryMethod: "bot.deleteGuildRole(...)",
+            route: "DELETE /guilds/{guild.id}/roles/{role.id}",
+            category: "Webhooks + Roles"
+        ),
+    ]
+}
+
+private func panelEndpointCatalog() -> [PanelEndpointDefinition] {
+    panelGatewayEndpoints()
+        + panelCommandEndpoints()
+        + panelInteractionEndpoints()
+        + panelGuildEndpoints()
+        + panelChannelMessageEndpoints()
+        + panelThreadLifecycleEndpoints()
+        + panelWebhookRoleEndpoints()
+}
+
+private func panelEndpoint(by id: String) -> PanelEndpointDefinition? {
+    panelEndpointCatalog().first { $0.id == id }
+}
+
+private func panelEndpointTitle(_ id: String) -> String {
+    guard let endpoint = panelEndpoint(by: id) else {
+        return "Endpoint Test"
+    }
+    return "\(endpoint.category) · \(endpoint.libraryMethod) · \(endpoint.route)"
+}
+
+private func panelOptions(from endpoints: [PanelEndpointDefinition]) -> [ComponentV2SelectOption] {
+    endpoints.map {
+        ComponentV2SelectOption(
+            label: $0.label,
+            value: $0.id,
+            description: $0.libraryMethod
+        )
+    }
+}
+
+private func panelSelect(customId: String, placeholder: String, endpoints: [PanelEndpointDefinition]) -> ComponentV2Node {
+    .actionRow(
+        ComponentV2ActionRow(
+            components: [
+                .stringSelect(
+                    ComponentV2StringSelect(
+                        customId: customId,
+                        options: panelOptions(from: endpoints),
+                        placeholder: placeholder,
+                        minValues: 1,
+                        maxValues: 1
+                    )
+                )
+            ]
+        )
+    )
+}
+
+private func apiTestPanelData() -> [ComponentV2Node] {
+    [
+        .textDisplay(ComponentV2TextDisplay("## SwiftDiscKit Endpoint Test Dashboard")),
+        .textDisplay(
+            ComponentV2TextDisplay(
+                """
+                Use the category menus below to run endpoint tests.
+                Results are returned as ephemeral JSON dumps so you can verify payload shape quickly.
+                """
+            )
+        ),
+        .actionRow(
+            ComponentV2ActionRow(
                 components: [
-                    .textDisplay(ComponentV2TextDisplay("DiscordKit Master Endpoint Test Panel")),
-                    .textDisplay(ComponentV2TextDisplay("Pick one endpoint from the menu below to run a full API test.")),
-                    .actionRow(
-                        ComponentV2ActionRow(
-                            components: [
-                                .stringSelect(
-                                    ComponentV2StringSelect(
-                                        customId: "api_test_select",
-                                        options: options,
-                                        placeholder: "Choose endpoint test",
-                                        minValues: 1,
-                                        maxValues: 1
-                                    )
-                                )
-                            ]
-                        )
-                    ),
+                    .button(ComponentV2Button(style: .primary, label: "Run Smoke Suite", customId: "api_quick_smoke")),
+                    .button(ComponentV2Button(style: .secondary, label: "Usage Guide", customId: "api_quick_guide")),
+                    .button(ComponentV2Button(style: .success, label: "Refresh Panel", customId: "api_quick_refresh")),
                 ]
             )
         ),
+        .separator(ComponentV2Separator(divider: true, spacing: 1)),
+        .textDisplay(ComponentV2TextDisplay("### Gateway")),
+        .textDisplay(ComponentV2TextDisplay("Session and sharding metadata endpoints.")),
+        panelSelect(
+            customId: "api_select_gateway",
+            placeholder: "Run gateway endpoint test",
+            endpoints: panelGatewayEndpoints()
+        ),
+        .separator(ComponentV2Separator(divider: true, spacing: 1)),
+        .textDisplay(ComponentV2TextDisplay("### Application Commands")),
+        .textDisplay(ComponentV2TextDisplay("Create, list, edit, and delete command endpoint validation.")),
+        panelSelect(
+            customId: "api_select_commands",
+            placeholder: "Run application command endpoint test",
+            endpoints: panelCommandEndpoints()
+        ),
+        .separator(ComponentV2Separator(divider: true, spacing: 1)),
+        .textDisplay(ComponentV2TextDisplay("### Interaction Webhook")),
+        .textDisplay(ComponentV2TextDisplay("Validate original interaction response fetch/delete operations.")),
+        panelSelect(
+            customId: "api_select_interactions",
+            placeholder: "Run interaction webhook endpoint test",
+            endpoints: panelInteractionEndpoints()
+        ),
+        .separator(ComponentV2Separator(divider: true, spacing: 1)),
+        .textDisplay(ComponentV2TextDisplay("### Guild Resources")),
+        .textDisplay(ComponentV2TextDisplay("Channels, members, member patching, and role mutation endpoints.")),
+        panelSelect(
+            customId: "api_select_guild",
+            placeholder: "Run guild resource endpoint test",
+            endpoints: panelGuildEndpoints()
+        ),
+        .separator(ComponentV2Separator(divider: true, spacing: 1)),
+        .textDisplay(ComponentV2TextDisplay("### Channel + Message")),
+        .textDisplay(ComponentV2TextDisplay("Invites, typing, pins, and reaction lifecycle endpoints.")),
+        panelSelect(
+            customId: "api_select_channel_message",
+            placeholder: "Run channel + message endpoint test",
+            endpoints: panelChannelMessageEndpoints()
+        ),
+        .separator(ComponentV2Separator(divider: true, spacing: 1)),
+        .textDisplay(ComponentV2TextDisplay("### Threads + Channel Lifecycle")),
+        .textDisplay(ComponentV2TextDisplay("Channel create/update/delete and thread lifecycle endpoints.")),
+        panelSelect(
+            customId: "api_select_thread_lifecycle",
+            placeholder: "Run thread + channel lifecycle test",
+            endpoints: panelThreadLifecycleEndpoints()
+        ),
+        .separator(ComponentV2Separator(divider: true, spacing: 1)),
+        .textDisplay(ComponentV2TextDisplay("### Webhooks + Roles")),
+        .textDisplay(ComponentV2TextDisplay("Webhook lifecycle, webhook messages, and guild role lifecycle endpoints.")),
+        panelSelect(
+            customId: "api_select_webhook_role",
+            placeholder: "Run webhook + role endpoint test",
+            endpoints: panelWebhookRoleEndpoints()
+        ),
     ]
+}
+
+private func selectedPanelEndpointId(customId: String, values: [String]?) -> String? {
+    let panelSelectIds: Set<String> = [
+        "api_test_select",
+        "api_select_gateway",
+        "api_select_commands",
+        "api_select_interactions",
+        "api_select_guild",
+        "api_select_channel_message",
+        "api_select_thread_lifecycle",
+        "api_select_webhook_role",
+    ]
+    guard panelSelectIds.contains(customId) else { return nil }
+    return values?.first
+}
+
+private func handleMessageComponentInteraction(
+    interaction: Interaction,
+    bot: DiscordBot,
+    state: DemoState,
+    testGuildId: String,
+    testChannelId: String,
+    testRoleId: String?
+) async throws {
+    let customId = interaction.data?.customId ?? ""
+    let selectedValues = interaction.data?.values
+    let selectedValuesText = selectedValues?.joined(separator: ", ") ?? "none"
+
+    if let selected = selectedPanelEndpointId(customId: customId, values: selectedValues) {
+        try await interaction.defer_(ephemeral: true)
+        do {
+            try await runPanelTest(
+                selected,
+                bot: bot,
+                interaction: interaction,
+                testGuildId: testGuildId,
+                testChannelId: testChannelId,
+                testRoleId: testRoleId
+            )
+        } catch {
+            _ = try? await interaction.editResponse("Endpoint test failed: \(friendlyError(error))")
+        }
+        return
+    }
+
+    switch customId {
+    case "api_quick_smoke":
+        try await interaction.defer_(ephemeral: true)
+        do {
+            try await runPanelSmokeSuite(
+                bot: bot,
+                interaction: interaction,
+                testGuildId: testGuildId,
+                testChannelId: testChannelId
+            )
+        } catch {
+            _ = try? await interaction.editResponse("Smoke suite failed: \(friendlyError(error))")
+        }
+
+    case "api_quick_guide":
+        try await interaction.respond(
+            """
+            Dashboard usage:
+            - Pick one endpoint from a category menu
+            - Wait for the ephemeral JSON result
+            - Use Run Smoke Suite for fast sanity checks
+            """,
+            ephemeral: true
+        )
+
+    case "api_quick_refresh":
+        guard let channelId = interaction.channelId else {
+            try await interaction.respond("No channel available to post refreshed dashboard.", ephemeral: true)
+            return
+        }
+        try await interaction.defer_(ephemeral: true)
+        let sent = try await bot.sendComponentsV2Message(to: channelId, components: apiTestPanelData())
+        await state.setLastBotMessage(sent)
+        _ = try await interaction.editResponse("Dashboard refreshed. New panel message id: \(sent.id)")
+
+    case let value where value.hasPrefix("cv2_btn_"):
+        try await interaction.respond("Button interaction: \(value)", ephemeral: true)
+
+    case let value where value.hasPrefix("cv2_select_"):
+        try await interaction.respond("Selection for \(value): \(selectedValuesText)", ephemeral: true)
+
+    default:
+        try await interaction.respond("Unsupported component action `\(customId)`.", ephemeral: true)
+    }
+}
+
+private func runPanelSmokeSuite(
+    bot: DiscordBot,
+    interaction: Interaction,
+    testGuildId: String,
+    testChannelId: String
+) async throws {
+    var checks: [PanelSmokeCheck] = []
+
+    do {
+        let gateway = try await bot.getGateway()
+        checks.append(PanelSmokeCheck(endpoint: "bot.getGateway()", success: true, details: "url=\(gateway.url)"))
+    } catch {
+        checks.append(PanelSmokeCheck(endpoint: "bot.getGateway()", success: false, details: friendlyError(error)))
+    }
+
+    do {
+        let gateway = try await bot.getGatewayBot()
+        let shardInfo = gateway.shards.map(String.init) ?? "unknown"
+        checks.append(PanelSmokeCheck(endpoint: "bot.getGatewayBot()", success: true, details: "shards=\(shardInfo)"))
+    } catch {
+        checks.append(PanelSmokeCheck(endpoint: "bot.getGatewayBot()", success: false, details: friendlyError(error)))
+    }
+
+    do {
+        let channels = try await bot.getGuildChannels(testGuildId)
+        checks.append(PanelSmokeCheck(endpoint: "bot.getGuildChannels(_:)", success: true, details: "count=\(channels.count)"))
+    } catch {
+        checks.append(PanelSmokeCheck(endpoint: "bot.getGuildChannels(_:)", success: false, details: friendlyError(error)))
+    }
+
+    do {
+        let commands = try await bot.getSlashCommands(guildId: testGuildId)
+        checks.append(PanelSmokeCheck(endpoint: "bot.getSlashCommands(guildId:)", success: true, details: "count=\(commands.count)"))
+    } catch {
+        checks.append(PanelSmokeCheck(endpoint: "bot.getSlashCommands(guildId:)", success: false, details: friendlyError(error)))
+    }
+
+    do {
+        let sent = try await bot.sendMessage(to: testChannelId, content: "Smoke suite message endpoint check.")
+        checks.append(PanelSmokeCheck(endpoint: "bot.sendMessage(to:content:)", success: true, details: "message_id=\(sent.id)"))
+    } catch {
+        checks.append(PanelSmokeCheck(endpoint: "bot.sendMessage(to:content:)", success: false, details: friendlyError(error)))
+    }
+
+    let passed = checks.filter(\.success).count
+    let result = PanelSmokeSuiteResult(
+        total: checks.count,
+        passed: passed,
+        failed: checks.count - passed,
+        checks: checks
+    )
+    try await sendDeferredInteractionDump(
+        interaction,
+        title: "Smoke Suite · SwiftDiscKit",
+        value: result,
+        ephemeral: true
+    )
 }
 
 private func runPanelTest(
@@ -772,16 +1572,22 @@ private func runPanelTest(
     testChannelId: String,
     testRoleId: String?
 ) async throws {
+    let title = panelEndpointTitle(selected)
+
     switch selected {
+    case "gateway_url":
+        let gateway = try await bot.getGateway()
+        try await sendDeferredInteractionDump(interaction, title: title, value: gateway, ephemeral: true)
+
     case "gateway_bot":
         let gateway = try await bot.getGatewayBot()
-        try await sendDeferredInteractionDump(interaction, title: "GET /gateway/bot", value: gateway, ephemeral: true)
+        try await sendDeferredInteractionDump(interaction, title: title, value: gateway, ephemeral: true)
 
     case "get_global_commands":
         let commands = try await bot.getSlashCommands()
         try await sendDeferredInteractionDump(
             interaction,
-            title: "GET /applications/{application.id}/commands",
+            title: title,
             value: EndpointCollectionDump(count: commands.count, items: commands),
             ephemeral: true
         )
@@ -790,8 +1596,32 @@ private func runPanelTest(
         let commands = try await bot.getSlashCommands(guildId: testGuildId)
         try await sendDeferredInteractionDump(
             interaction,
-            title: "GET /applications/{application.id}/guilds/{guild.id}/commands",
+            title: title,
             value: EndpointCollectionDump(count: commands.count, items: commands),
+            ephemeral: true
+        )
+
+    case "get_global_command_by_id":
+        let name = tempCommandName(prefix: "gcid")
+        let created = try await bot.createSlashCommand(name, description: "temp get global command")
+        let fetched = try await bot.getSlashCommand(commandId: created.id)
+        try await bot.deleteSlashCommand(commandId: created.id)
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: CommandLifecycleResult(created: fetched, edited: nil, deleted: true),
+            ephemeral: true
+        )
+
+    case "get_guild_command_by_id":
+        let name = tempCommandName(prefix: "gcidg")
+        let created = try await bot.createSlashCommand(name, description: "temp get guild command", guildId: testGuildId)
+        let fetched = try await bot.getSlashCommand(commandId: created.id, guildId: testGuildId)
+        try await bot.deleteSlashCommand(commandId: created.id, guildId: testGuildId)
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: CommandLifecycleResult(created: fetched, edited: nil, deleted: true),
             ephemeral: true
         )
 
@@ -805,7 +1635,7 @@ private func runPanelTest(
         try await bot.deleteSlashCommand(commandId: created.id)
         try await sendDeferredInteractionDump(
             interaction,
-            title: "PATCH /applications/{application.id}/commands/{command.id}",
+            title: title,
             value: CommandLifecycleResult(created: created, edited: edited, deleted: true),
             ephemeral: true
         )
@@ -821,7 +1651,7 @@ private func runPanelTest(
         try await bot.deleteSlashCommand(commandId: created.id, guildId: testGuildId)
         try await sendDeferredInteractionDump(
             interaction,
-            title: "PATCH /applications/{application.id}/guilds/{guild.id}/commands/{command.id}",
+            title: title,
             value: CommandLifecycleResult(created: created, edited: edited, deleted: true),
             ephemeral: true
         )
@@ -832,7 +1662,7 @@ private func runPanelTest(
         try await bot.deleteSlashCommand(commandId: created.id)
         try await sendDeferredInteractionDump(
             interaction,
-            title: "DELETE /applications/{application.id}/commands/{command.id}",
+            title: title,
             value: CommandLifecycleResult(created: created, edited: nil, deleted: true),
             ephemeral: true
         )
@@ -843,7 +1673,7 @@ private func runPanelTest(
         try await bot.deleteSlashCommand(commandId: created.id, guildId: testGuildId)
         try await sendDeferredInteractionDump(
             interaction,
-            title: "DELETE /applications/{application.id}/guilds/{guild.id}/commands/{command.id}",
+            title: title,
             value: CommandLifecycleResult(created: created, edited: nil, deleted: true),
             ephemeral: true
         )
@@ -852,7 +1682,7 @@ private func runPanelTest(
         let original = try await interaction.getOriginalResponse()
         try await sendDeferredInteractionDump(
             interaction,
-            title: "GET /webhooks/{application.id}/{interaction.token}/messages/@original",
+            title: title,
             value: original,
             ephemeral: true
         )
@@ -861,7 +1691,7 @@ private func runPanelTest(
         let original = try await interaction.getOriginalResponse()
         try await interaction.deleteOriginalResponse()
         let chunks = renderEndpointDumpChunks(
-            title: "DELETE /webhooks/{application.id}/{interaction.token}/messages/@original",
+            title: title,
             value: DeleteMessageResult(channelId: original.channelId, messageId: original.id)
         )
         for chunk in chunks {
@@ -872,7 +1702,7 @@ private func runPanelTest(
         let channels = try await bot.getGuildChannels(testGuildId)
         try await sendDeferredInteractionDump(
             interaction,
-            title: "GET /guilds/{guild.id}/channels",
+            title: title,
             value: EndpointCollectionDump(count: channels.count, items: channels),
             ephemeral: true
         )
@@ -881,7 +1711,7 @@ private func runPanelTest(
         let members = try await bot.getGuildMembers(testGuildId, query: GuildMembersQuery(limit: 25))
         try await sendDeferredInteractionDump(
             interaction,
-            title: "GET /guilds/{guild.id}/members",
+            title: title,
             value: EndpointCollectionDump(count: members.count, items: members),
             ephemeral: true
         )
@@ -894,7 +1724,7 @@ private func runPanelTest(
         )
         try await sendDeferredInteractionDump(
             interaction,
-            title: "GET /guilds/{guild.id}/members/search",
+            title: title,
             value: EndpointCollectionDump(count: members.count, items: members),
             ephemeral: true
         )
@@ -922,7 +1752,7 @@ private func runPanelTest(
         )
         try await sendDeferredInteractionDump(
             interaction,
-            title: "PATCH /guilds/{guild.id}/members/{user.id}",
+            title: title,
             value: patched,
             ephemeral: true
         )
@@ -940,7 +1770,7 @@ private func runPanelTest(
         )
         try await sendDeferredInteractionDump(
             interaction,
-            title: "PUT /guilds/{guild.id}/members/{user.id}/roles/{role.id}",
+            title: title,
             value: RoleMutationResult(guildId: testGuildId, userId: targetUserId, roleId: roleId, action: "add", success: true),
             ephemeral: true
         )
@@ -958,8 +1788,1072 @@ private func runPanelTest(
         )
         try await sendDeferredInteractionDump(
             interaction,
-            title: "DELETE /guilds/{guild.id}/members/{user.id}/roles/{role.id}",
+            title: title,
             value: RoleMutationResult(guildId: testGuildId, userId: targetUserId, roleId: roleId, action: "remove", success: true),
+            ephemeral: true
+        )
+
+    case "get_channel_invites":
+        let invites = try await bot.getChannelInvites(testChannelId)
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: EndpointCollectionDump(count: invites.count, items: invites),
+            ephemeral: true
+        )
+
+    case "create_channel_invite":
+        let invite = try await bot.createChannelInvite(
+            channelId: testChannelId,
+            invite: CreateChannelInvite(
+                maxAge: 3600,
+                maxUses: 5,
+                temporary: false,
+                unique: true
+            ),
+            auditLogReason: "DiscordKit create invite endpoint test"
+        )
+        let channelInvites = try await bot.getChannelInvites(testChannelId)
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: InviteLifecycleResult(
+                created: invite,
+                deleted: nil,
+                channelInvitesCount: channelInvites.count,
+                guildInvitesCount: nil
+            ),
+            ephemeral: true
+        )
+
+    case "get_guild_invites":
+        let invites = try await bot.getGuildInvites(testGuildId)
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: EndpointCollectionDump(count: invites.count, items: invites),
+            ephemeral: true
+        )
+
+    case "delete_invite":
+        let invite = try await bot.createChannelInvite(
+            channelId: testChannelId,
+            invite: CreateChannelInvite(maxAge: 600, maxUses: 1, unique: true),
+            auditLogReason: "DiscordKit create invite for delete test"
+        )
+        let deleted = try await bot.deleteInvite(
+            code: invite.code,
+            auditLogReason: "DiscordKit delete invite endpoint test"
+        )
+        let guildInvites = try await bot.getGuildInvites(testGuildId)
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: InviteLifecycleResult(
+                created: invite,
+                deleted: deleted,
+                channelInvitesCount: nil,
+                guildInvitesCount: guildInvites.count
+            ),
+            ephemeral: true
+        )
+
+    case "get_invite":
+        let invite = try await bot.createChannelInvite(
+            channelId: testChannelId,
+            invite: CreateChannelInvite(maxAge: 3600, maxUses: 5, unique: true),
+            auditLogReason: "DiscordKit create invite for get test"
+        )
+        let fetched = try await bot.getInvite(
+            code: invite.code,
+            query: GetInviteQuery(withCounts: true, withExpiration: true)
+        )
+        _ = try? await bot.deleteInvite(code: invite.code, auditLogReason: "DiscordKit cleanup invite after get test")
+        try await sendDeferredInteractionDump(interaction, title: title, value: fetched, ephemeral: true)
+
+    case "trigger_typing":
+        try await bot.triggerTyping(in: testChannelId)
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: TypingResult(channelId: testChannelId, triggered: true),
+            ephemeral: true
+        )
+
+    case "get_message_pins":
+        let pins = try await bot.getMessagePins(
+            channelId: testChannelId,
+            query: MessagePinsQuery(limit: 25)
+        )
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: pins,
+            ephemeral: true
+        )
+
+    case "get_pins_legacy":
+        let pins = try await bot.getPins(testChannelId)
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: EndpointCollectionDump(count: pins.count, items: pins),
+            ephemeral: true
+        )
+
+    case "pin_message":
+        let testMessage = try await bot.sendMessage(
+            to: testChannelId,
+            content: "Pin endpoint test \(Int(Date().timeIntervalSince1970))"
+        )
+        try await bot.pinMessage(
+            channelId: testMessage.channelId,
+            messageId: testMessage.id,
+            auditLogReason: "DiscordKit pin message endpoint test"
+        )
+        let pins = try await bot.getMessagePins(channelId: testMessage.channelId, query: MessagePinsQuery(limit: 25))
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: PinMutationResult(
+                channelId: testMessage.channelId,
+                messageId: testMessage.id,
+                action: "pin",
+                pins: pins
+            ),
+            ephemeral: true
+        )
+
+    case "pin_legacy":
+        let testMessage = try await bot.sendMessage(
+            to: testChannelId,
+            content: "Legacy pin endpoint test \(Int(Date().timeIntervalSince1970))"
+        )
+        try await bot.pin(
+            channelId: testMessage.channelId,
+            messageId: testMessage.id,
+            auditLogReason: "DiscordKit legacy pin endpoint test"
+        )
+        let pins = try await bot.getPins(testMessage.channelId)
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: LegacyPinsResult(
+                channelId: testMessage.channelId,
+                messageId: testMessage.id,
+                action: "pin_legacy",
+                pinsCount: pins.count
+            ),
+            ephemeral: true
+        )
+
+    case "unpin_message":
+        let testMessage = try await bot.sendMessage(
+            to: testChannelId,
+            content: "Unpin endpoint test \(Int(Date().timeIntervalSince1970))"
+        )
+        try await bot.pinMessage(
+            channelId: testMessage.channelId,
+            messageId: testMessage.id,
+            auditLogReason: "DiscordKit pre-pin for unpin endpoint test"
+        )
+        try await bot.unpinMessage(
+            channelId: testMessage.channelId,
+            messageId: testMessage.id,
+            auditLogReason: "DiscordKit unpin message endpoint test"
+        )
+        let pins = try await bot.getMessagePins(channelId: testMessage.channelId, query: MessagePinsQuery(limit: 25))
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: PinMutationResult(
+                channelId: testMessage.channelId,
+                messageId: testMessage.id,
+                action: "unpin",
+                pins: pins
+            ),
+            ephemeral: true
+        )
+
+    case "unpin_legacy":
+        let testMessage = try await bot.sendMessage(
+            to: testChannelId,
+            content: "Legacy unpin endpoint test \(Int(Date().timeIntervalSince1970))"
+        )
+        try await bot.pin(
+            channelId: testMessage.channelId,
+            messageId: testMessage.id,
+            auditLogReason: "DiscordKit setup legacy unpin endpoint test"
+        )
+        try await bot.unpin(
+            channelId: testMessage.channelId,
+            messageId: testMessage.id,
+            auditLogReason: "DiscordKit legacy unpin endpoint test"
+        )
+        let pins = try await bot.getPins(testMessage.channelId)
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: LegacyPinsResult(
+                channelId: testMessage.channelId,
+                messageId: testMessage.id,
+                action: "unpin_legacy",
+                pinsCount: pins.count
+            ),
+            ephemeral: true
+        )
+
+    case "create_reaction":
+        let emoji = "🔥"
+        let testMessage = try await bot.sendMessage(
+            to: testChannelId,
+            content: "Create reaction endpoint test \(Int(Date().timeIntervalSince1970))"
+        )
+        try await bot.createReaction(channelId: testMessage.channelId, messageId: testMessage.id, emoji: emoji)
+        let users = try await bot.getReactions(
+            channelId: testMessage.channelId,
+            messageId: testMessage.id,
+            emoji: emoji,
+            query: ReactionUsersQuery(limit: 25)
+        )
+        let updatedMessage = try await bot.getMessage(channelId: testMessage.channelId, messageId: testMessage.id)
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: ReactionMutationResult(
+                channelId: testMessage.channelId,
+                messageId: testMessage.id,
+                emoji: emoji,
+                action: "create",
+                users: users,
+                message: updatedMessage
+            ),
+            ephemeral: true
+        )
+
+    case "delete_own_reaction":
+        let emoji = "🔥"
+        let testMessage = try await bot.sendMessage(
+            to: testChannelId,
+            content: "Delete own reaction endpoint test \(Int(Date().timeIntervalSince1970))"
+        )
+        try await bot.createReaction(channelId: testMessage.channelId, messageId: testMessage.id, emoji: emoji)
+        try await bot.deleteOwnReaction(channelId: testMessage.channelId, messageId: testMessage.id, emoji: emoji)
+        let updatedMessage = try await bot.getMessage(channelId: testMessage.channelId, messageId: testMessage.id)
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: ReactionMutationResult(
+                channelId: testMessage.channelId,
+                messageId: testMessage.id,
+                emoji: emoji,
+                action: "delete_own",
+                users: nil,
+                message: updatedMessage
+            ),
+            ephemeral: true
+        )
+
+    case "get_reactions":
+        let emoji = "🔥"
+        let testMessage = try await bot.sendMessage(
+            to: testChannelId,
+            content: "Get reactions endpoint test \(Int(Date().timeIntervalSince1970))"
+        )
+        try await bot.createReaction(channelId: testMessage.channelId, messageId: testMessage.id, emoji: emoji)
+        let users = try await bot.getReactions(
+            channelId: testMessage.channelId,
+            messageId: testMessage.id,
+            emoji: emoji,
+            query: ReactionUsersQuery(limit: 100, type: .normal)
+        )
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: EndpointCollectionDump(count: users.count, items: users),
+            ephemeral: true
+        )
+
+    case "delete_user_reaction":
+        let emoji = "🔥"
+        let testMessage = try await bot.sendMessage(
+            to: testChannelId,
+            content: "Delete user reaction endpoint test \(Int(Date().timeIntervalSince1970))"
+        )
+        try await bot.createReaction(channelId: testMessage.channelId, messageId: testMessage.id, emoji: emoji)
+        guard let botUserId = await bot.currentUser?.id else {
+            throw DiscordError.invalidRequest(message: "Bot user ID not available yet.")
+        }
+        try await bot.deleteUserReaction(
+            channelId: testMessage.channelId,
+            messageId: testMessage.id,
+            emoji: emoji,
+            userId: botUserId
+        )
+        let updatedMessage = try await bot.getMessage(channelId: testMessage.channelId, messageId: testMessage.id)
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: ReactionMutationResult(
+                channelId: testMessage.channelId,
+                messageId: testMessage.id,
+                emoji: emoji,
+                action: "delete_user",
+                users: nil,
+                message: updatedMessage
+            ),
+            ephemeral: true
+        )
+
+    case "delete_all_reactions_for_emoji":
+        let emoji = "🔥"
+        let testMessage = try await bot.sendMessage(
+            to: testChannelId,
+            content: "Delete reactions for emoji endpoint test \(Int(Date().timeIntervalSince1970))"
+        )
+        try await bot.createReaction(channelId: testMessage.channelId, messageId: testMessage.id, emoji: emoji)
+        try await bot.deleteAllReactionsForEmoji(channelId: testMessage.channelId, messageId: testMessage.id, emoji: emoji)
+        let updatedMessage = try await bot.getMessage(channelId: testMessage.channelId, messageId: testMessage.id)
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: ReactionMutationResult(
+                channelId: testMessage.channelId,
+                messageId: testMessage.id,
+                emoji: emoji,
+                action: "delete_all_for_emoji",
+                users: nil,
+                message: updatedMessage
+            ),
+            ephemeral: true
+        )
+
+    case "delete_all_reactions":
+        let testMessage = try await bot.sendMessage(
+            to: testChannelId,
+            content: "Delete all reactions endpoint test \(Int(Date().timeIntervalSince1970))"
+        )
+        try await bot.createReaction(channelId: testMessage.channelId, messageId: testMessage.id, emoji: "🔥")
+        try await bot.createReaction(channelId: testMessage.channelId, messageId: testMessage.id, emoji: "✅")
+        try await bot.deleteAllReactions(channelId: testMessage.channelId, messageId: testMessage.id)
+        let updatedMessage = try await bot.getMessage(channelId: testMessage.channelId, messageId: testMessage.id)
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: ReactionMutationResult(
+                channelId: testMessage.channelId,
+                messageId: testMessage.id,
+                emoji: "*",
+                action: "delete_all",
+                users: nil,
+                message: updatedMessage
+            ),
+            ephemeral: true
+        )
+
+    case "create_guild_channel":
+        let created = try await bot.createGuildChannel(
+            guildId: testGuildId,
+            channel: CreateGuildChannel(
+                name: tempChannelName(prefix: "api-create"),
+                type: ChannelType.guildText.rawValue,
+                topic: "Create guild channel endpoint test"
+            ),
+            auditLogReason: "DiscordKit create guild channel endpoint test"
+        )
+        let deleted = try await bot.deleteChannel(
+            channelId: created.id,
+            auditLogReason: "DiscordKit cleanup created guild channel endpoint test"
+        )
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: ChannelLifecycleResult(created: created, modified: nil, deleted: deleted),
+            ephemeral: true
+        )
+
+    case "modify_channel":
+        let created = try await bot.createGuildChannel(
+            guildId: testGuildId,
+            channel: CreateGuildChannel(
+                name: tempChannelName(prefix: "api-modify"),
+                type: ChannelType.guildText.rawValue,
+                topic: "Before modify"
+            ),
+            auditLogReason: "DiscordKit setup channel for modify endpoint test"
+        )
+        let modified = try await bot.modifyChannel(
+            channelId: created.id,
+            modify: ModifyChannel(name: "\(created.name ?? "modified")-updated", topic: "After modify"),
+            auditLogReason: "DiscordKit modify channel endpoint test"
+        )
+        let deleted = try await bot.deleteChannel(
+            channelId: created.id,
+            auditLogReason: "DiscordKit cleanup channel after modify endpoint test"
+        )
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: ChannelLifecycleResult(created: created, modified: modified, deleted: deleted),
+            ephemeral: true
+        )
+
+    case "delete_channel":
+        let created = try await bot.createGuildChannel(
+            guildId: testGuildId,
+            channel: CreateGuildChannel(
+                name: tempChannelName(prefix: "api-delete"),
+                type: ChannelType.guildText.rawValue,
+                topic: "Delete channel endpoint test"
+            ),
+            auditLogReason: "DiscordKit setup channel for delete endpoint test"
+        )
+        let deleted = try await bot.deleteChannel(
+            channelId: created.id,
+            auditLogReason: "DiscordKit delete channel endpoint test"
+        )
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: ChannelLifecycleResult(created: created, modified: nil, deleted: deleted),
+            ephemeral: true
+        )
+
+    case "start_thread_without_message":
+        let thread = try await bot.startThreadWithoutMessage(
+            channelId: testChannelId,
+            payload: StartThreadWithoutMessage(
+                name: tempThreadName(prefix: "api-thread"),
+                autoArchiveDuration: 60,
+                type: ChannelType.publicThread.rawValue,
+                invitable: false
+            ),
+            auditLogReason: "DiscordKit start thread without message endpoint test"
+        )
+        let members = try await bot.getThreadMembers(channelId: thread.id, query: ThreadMembersQuery(withMember: true, limit: 100))
+        _ = try? await bot.deleteChannel(channelId: thread.id, auditLogReason: "DiscordKit cleanup thread without message endpoint test")
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: ThreadLifecycleResult(parentChannelId: testChannelId, thread: thread, archivedSnapshot: nil, members: members),
+            ephemeral: true
+        )
+
+    case "start_thread_from_message":
+        let baseMessage = try await bot.sendMessage(
+            to: testChannelId,
+            content: "Start thread from message endpoint test \(Int(Date().timeIntervalSince1970))"
+        )
+        let thread = try await bot.startThreadFromMessage(
+            channelId: testChannelId,
+            messageId: baseMessage.id,
+            payload: StartThreadFromMessage(
+                name: tempThreadName(prefix: "api-msg-thread"),
+                autoArchiveDuration: 60
+            ),
+            auditLogReason: "DiscordKit start thread from message endpoint test"
+        )
+        let members = try await bot.getThreadMembers(channelId: thread.id, query: ThreadMembersQuery(withMember: true, limit: 100))
+        _ = try? await bot.deleteChannel(channelId: thread.id, auditLogReason: "DiscordKit cleanup thread from message endpoint test")
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: ThreadLifecycleResult(parentChannelId: testChannelId, thread: thread, archivedSnapshot: nil, members: members),
+            ephemeral: true
+        )
+
+    case "get_public_archived_threads":
+        let thread = try await bot.startThreadWithoutMessage(
+            channelId: testChannelId,
+            payload: StartThreadWithoutMessage(
+                name: tempThreadName(prefix: "api-arch-pub"),
+                autoArchiveDuration: 60,
+                type: ChannelType.publicThread.rawValue
+            ),
+            auditLogReason: "DiscordKit setup public archived threads endpoint test"
+        )
+        _ = try await bot.modifyChannel(
+            channelId: thread.id,
+            modify: ModifyChannel(archived: true),
+            auditLogReason: "DiscordKit archive thread for public archived list endpoint test"
+        )
+        let archive = try await bot.getPublicArchivedThreads(channelId: testChannelId, query: ArchivedThreadsQuery(limit: 50))
+        _ = try? await bot.deleteChannel(channelId: thread.id, auditLogReason: "DiscordKit cleanup archived public thread endpoint test")
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: archive,
+            ephemeral: true
+        )
+
+    case "get_private_archived_threads":
+        let thread = try await bot.startThreadWithoutMessage(
+            channelId: testChannelId,
+            payload: StartThreadWithoutMessage(
+                name: tempThreadName(prefix: "api-arch-prv"),
+                autoArchiveDuration: 60,
+                type: ChannelType.privateThread.rawValue,
+                invitable: false
+            ),
+            auditLogReason: "DiscordKit setup private archived threads endpoint test"
+        )
+        _ = try await bot.modifyChannel(
+            channelId: thread.id,
+            modify: ModifyChannel(archived: true),
+            auditLogReason: "DiscordKit archive thread for private archived list endpoint test"
+        )
+        let archive = try await bot.getPrivateArchivedThreads(channelId: testChannelId, query: ArchivedThreadsQuery(limit: 50))
+        _ = try? await bot.deleteChannel(channelId: thread.id, auditLogReason: "DiscordKit cleanup archived private thread endpoint test")
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: archive,
+            ephemeral: true
+        )
+
+    case "get_joined_private_archived_threads":
+        let thread = try await bot.startThreadWithoutMessage(
+            channelId: testChannelId,
+            payload: StartThreadWithoutMessage(
+                name: tempThreadName(prefix: "api-arch-join"),
+                autoArchiveDuration: 60,
+                type: ChannelType.privateThread.rawValue,
+                invitable: false
+            ),
+            auditLogReason: "DiscordKit setup joined private archived endpoint test"
+        )
+        _ = try await bot.modifyChannel(
+            channelId: thread.id,
+            modify: ModifyChannel(archived: true),
+            auditLogReason: "DiscordKit archive thread for joined private archived endpoint test"
+        )
+        let archive = try await bot.getJoinedPrivateArchivedThreads(channelId: testChannelId, query: ArchivedThreadsQuery(limit: 50))
+        _ = try? await bot.deleteChannel(channelId: thread.id, auditLogReason: "DiscordKit cleanup joined private archived thread endpoint test")
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: archive,
+            ephemeral: true
+        )
+
+    case "get_thread_members":
+        let thread = try await bot.startThreadWithoutMessage(
+            channelId: testChannelId,
+            payload: StartThreadWithoutMessage(
+                name: tempThreadName(prefix: "api-members"),
+                autoArchiveDuration: 60,
+                type: ChannelType.publicThread.rawValue
+            ),
+            auditLogReason: "DiscordKit setup thread members endpoint test"
+        )
+        let members = try await bot.getThreadMembers(
+            channelId: thread.id,
+            query: ThreadMembersQuery(withMember: true, limit: 100)
+        )
+        _ = try? await bot.deleteChannel(channelId: thread.id, auditLogReason: "DiscordKit cleanup thread members endpoint test")
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: EndpointCollectionDump(count: members.count, items: members),
+            ephemeral: true
+        )
+
+    case "get_thread_member":
+        let thread = try await bot.startThreadWithoutMessage(
+            channelId: testChannelId,
+            payload: StartThreadWithoutMessage(
+                name: tempThreadName(prefix: "api-member"),
+                autoArchiveDuration: 60,
+                type: ChannelType.publicThread.rawValue
+            ),
+            auditLogReason: "DiscordKit setup thread member endpoint test"
+        )
+        guard let botUserId = await bot.currentUser?.id else {
+            throw DiscordError.invalidRequest(message: "Bot user ID not available yet.")
+        }
+        let member = try await bot.getThreadMember(channelId: thread.id, userId: botUserId, withMember: true)
+        _ = try? await bot.deleteChannel(channelId: thread.id, auditLogReason: "DiscordKit cleanup thread member endpoint test")
+        try await sendDeferredInteractionDump(interaction, title: title, value: member, ephemeral: true)
+
+    case "join_thread":
+        let thread = try await bot.startThreadWithoutMessage(
+            channelId: testChannelId,
+            payload: StartThreadWithoutMessage(
+                name: tempThreadName(prefix: "api-join"),
+                autoArchiveDuration: 60,
+                type: ChannelType.publicThread.rawValue
+            ),
+            auditLogReason: "DiscordKit setup join thread endpoint test"
+        )
+        try await bot.leaveThread(channelId: thread.id)
+        try await bot.joinThread(channelId: thread.id)
+        let members = try await bot.getThreadMembers(channelId: thread.id, query: ThreadMembersQuery(withMember: true, limit: 100))
+        _ = try? await bot.deleteChannel(channelId: thread.id, auditLogReason: "DiscordKit cleanup join thread endpoint test")
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: ThreadLifecycleResult(parentChannelId: testChannelId, thread: thread, archivedSnapshot: nil, members: members),
+            ephemeral: true
+        )
+
+    case "leave_thread":
+        let thread = try await bot.startThreadWithoutMessage(
+            channelId: testChannelId,
+            payload: StartThreadWithoutMessage(
+                name: tempThreadName(prefix: "api-leave"),
+                autoArchiveDuration: 60,
+                type: ChannelType.publicThread.rawValue
+            ),
+            auditLogReason: "DiscordKit setup leave thread endpoint test"
+        )
+        try await bot.leaveThread(channelId: thread.id)
+        let members = try await bot.getThreadMembers(channelId: thread.id, query: ThreadMembersQuery(withMember: true, limit: 100))
+        _ = try? await bot.deleteChannel(channelId: thread.id, auditLogReason: "DiscordKit cleanup leave thread endpoint test")
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: ThreadLifecycleResult(parentChannelId: testChannelId, thread: thread, archivedSnapshot: nil, members: members),
+            ephemeral: true
+        )
+
+    case "create_webhook":
+        let webhook = try await bot.createWebhook(
+            channelId: testChannelId,
+            webhook: CreateWebhook(name: tempWebhookName(prefix: "api-create")),
+            auditLogReason: "DiscordKit create webhook endpoint test"
+        )
+        try? await bot.deleteWebhook(
+            webhookId: webhook.id,
+            auditLogReason: "DiscordKit cleanup create webhook endpoint test"
+        )
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: WebhookLifecycleResult(
+                created: webhook,
+                fetched: nil,
+                modified: nil,
+                channelWebhooksCount: nil,
+                guildWebhooksCount: nil,
+                deleted: true
+            ),
+            ephemeral: true
+        )
+
+    case "get_channel_webhooks":
+        let webhook = try await bot.createWebhook(
+            channelId: testChannelId,
+            webhook: CreateWebhook(name: tempWebhookName(prefix: "api-list-channel")),
+            auditLogReason: "DiscordKit setup channel webhooks endpoint test"
+        )
+        let webhooks = try await bot.getChannelWebhooks(testChannelId)
+        try? await bot.deleteWebhook(
+            webhookId: webhook.id,
+            auditLogReason: "DiscordKit cleanup channel webhooks endpoint test"
+        )
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: EndpointCollectionDump(count: webhooks.count, items: webhooks),
+            ephemeral: true
+        )
+
+    case "get_guild_webhooks":
+        let webhook = try await bot.createWebhook(
+            channelId: testChannelId,
+            webhook: CreateWebhook(name: tempWebhookName(prefix: "api-list-guild")),
+            auditLogReason: "DiscordKit setup guild webhooks endpoint test"
+        )
+        let webhooks = try await bot.getGuildWebhooks(testGuildId)
+        try? await bot.deleteWebhook(
+            webhookId: webhook.id,
+            auditLogReason: "DiscordKit cleanup guild webhooks endpoint test"
+        )
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: EndpointCollectionDump(count: webhooks.count, items: webhooks),
+            ephemeral: true
+        )
+
+    case "get_webhook":
+        let webhook = try await bot.createWebhook(
+            channelId: testChannelId,
+            webhook: CreateWebhook(name: tempWebhookName(prefix: "api-get")),
+            auditLogReason: "DiscordKit setup get webhook endpoint test"
+        )
+        let fetched = try await bot.getWebhook(webhook.id)
+        try? await bot.deleteWebhook(
+            webhookId: webhook.id,
+            auditLogReason: "DiscordKit cleanup get webhook endpoint test"
+        )
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: WebhookLifecycleResult(
+                created: webhook,
+                fetched: fetched,
+                modified: nil,
+                channelWebhooksCount: nil,
+                guildWebhooksCount: nil,
+                deleted: true
+            ),
+            ephemeral: true
+        )
+
+    case "get_webhook_token":
+        let webhook = try await bot.createWebhook(
+            channelId: testChannelId,
+            webhook: CreateWebhook(name: tempWebhookName(prefix: "api-get-token")),
+            auditLogReason: "DiscordKit setup get webhook token endpoint test"
+        )
+        guard let token = webhook.token else {
+            throw DiscordError.invalidRequest(message: "Webhook token missing in create webhook response.")
+        }
+        let fetched = try await bot.getWebhook(webhook.id, token: token)
+        try? await bot.deleteWebhook(
+            webhookId: webhook.id,
+            auditLogReason: "DiscordKit cleanup get webhook token endpoint test"
+        )
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: WebhookLifecycleResult(
+                created: webhook,
+                fetched: fetched,
+                modified: nil,
+                channelWebhooksCount: nil,
+                guildWebhooksCount: nil,
+                deleted: true
+            ),
+            ephemeral: true
+        )
+
+    case "modify_webhook":
+        let webhook = try await bot.createWebhook(
+            channelId: testChannelId,
+            webhook: CreateWebhook(name: tempWebhookName(prefix: "api-modify")),
+            auditLogReason: "DiscordKit setup modify webhook endpoint test"
+        )
+        let modified = try await bot.modifyWebhook(
+            webhookId: webhook.id,
+            modify: ModifyWebhook(name: "\(webhook.name ?? "webhook")-updated"),
+            auditLogReason: "DiscordKit modify webhook endpoint test"
+        )
+        try? await bot.deleteWebhook(
+            webhookId: webhook.id,
+            auditLogReason: "DiscordKit cleanup modify webhook endpoint test"
+        )
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: WebhookLifecycleResult(
+                created: webhook,
+                fetched: nil,
+                modified: modified,
+                channelWebhooksCount: nil,
+                guildWebhooksCount: nil,
+                deleted: true
+            ),
+            ephemeral: true
+        )
+
+    case "modify_webhook_token":
+        let webhook = try await bot.createWebhook(
+            channelId: testChannelId,
+            webhook: CreateWebhook(name: tempWebhookName(prefix: "api-modify-token")),
+            auditLogReason: "DiscordKit setup modify webhook token endpoint test"
+        )
+        guard let token = webhook.token else {
+            throw DiscordError.invalidRequest(message: "Webhook token missing in create webhook response.")
+        }
+        let modified = try await bot.modifyWebhook(
+            webhookId: webhook.id,
+            token: token,
+            modify: ModifyWebhook(name: "\(webhook.name ?? "webhook")-token-updated")
+        )
+        try? await bot.deleteWebhook(
+            webhookId: webhook.id,
+            auditLogReason: "DiscordKit cleanup modify webhook token endpoint test"
+        )
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: WebhookLifecycleResult(
+                created: webhook,
+                fetched: nil,
+                modified: modified,
+                channelWebhooksCount: nil,
+                guildWebhooksCount: nil,
+                deleted: true
+            ),
+            ephemeral: true
+        )
+
+    case "delete_webhook":
+        let webhook = try await bot.createWebhook(
+            channelId: testChannelId,
+            webhook: CreateWebhook(name: tempWebhookName(prefix: "api-delete")),
+            auditLogReason: "DiscordKit setup delete webhook endpoint test"
+        )
+        try await bot.deleteWebhook(
+            webhookId: webhook.id,
+            auditLogReason: "DiscordKit delete webhook endpoint test"
+        )
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: WebhookLifecycleResult(
+                created: webhook,
+                fetched: nil,
+                modified: nil,
+                channelWebhooksCount: nil,
+                guildWebhooksCount: nil,
+                deleted: true
+            ),
+            ephemeral: true
+        )
+
+    case "delete_webhook_token":
+        let webhook = try await bot.createWebhook(
+            channelId: testChannelId,
+            webhook: CreateWebhook(name: tempWebhookName(prefix: "api-delete-token")),
+            auditLogReason: "DiscordKit setup delete webhook token endpoint test"
+        )
+        guard let token = webhook.token else {
+            throw DiscordError.invalidRequest(message: "Webhook token missing in create webhook response.")
+        }
+        try await bot.deleteWebhook(webhookId: webhook.id, token: token)
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: WebhookLifecycleResult(
+                created: webhook,
+                fetched: nil,
+                modified: nil,
+                channelWebhooksCount: nil,
+                guildWebhooksCount: nil,
+                deleted: true
+            ),
+            ephemeral: true
+        )
+
+    case "execute_webhook":
+        let webhook = try await bot.createWebhook(
+            channelId: testChannelId,
+            webhook: CreateWebhook(name: tempWebhookName(prefix: "api-exec")),
+            auditLogReason: "DiscordKit setup execute webhook endpoint test"
+        )
+        guard let token = webhook.token else {
+            throw DiscordError.invalidRequest(message: "Webhook token missing in create webhook response.")
+        }
+        let executed = try await bot.executeWebhook(
+            webhookId: webhook.id,
+            token: token,
+            execute: ExecuteWebhook(content: "Execute webhook endpoint test"),
+            query: ExecuteWebhookQuery(wait: true)
+        )
+        guard let message = executed else {
+            throw DiscordError.invalidRequest(message: "Webhook execute with wait=true returned no message.")
+        }
+        try? await bot.deleteWebhookMessage(webhookId: webhook.id, token: token, messageId: message.id)
+        try? await bot.deleteWebhook(webhookId: webhook.id, auditLogReason: "DiscordKit cleanup execute webhook endpoint test")
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: WebhookMessageLifecycleResult(
+                webhookId: webhook.id,
+                message: message,
+                fetched: nil,
+                edited: nil,
+                deleted: true
+            ),
+            ephemeral: true
+        )
+
+    case "get_webhook_message":
+        let webhook = try await bot.createWebhook(
+            channelId: testChannelId,
+            webhook: CreateWebhook(name: tempWebhookName(prefix: "api-get-msg")),
+            auditLogReason: "DiscordKit setup get webhook message endpoint test"
+        )
+        guard let token = webhook.token else {
+            throw DiscordError.invalidRequest(message: "Webhook token missing in create webhook response.")
+        }
+        guard let message = try await bot.executeWebhook(
+            webhookId: webhook.id,
+            token: token,
+            execute: ExecuteWebhook(content: "Get webhook message endpoint test"),
+            query: ExecuteWebhookQuery(wait: true)
+        ) else {
+            throw DiscordError.invalidRequest(message: "Webhook execute with wait=true returned no message.")
+        }
+        let fetched = try await bot.getWebhookMessage(
+            webhookId: webhook.id,
+            token: token,
+            messageId: message.id
+        )
+        try? await bot.deleteWebhookMessage(webhookId: webhook.id, token: token, messageId: message.id)
+        try? await bot.deleteWebhook(webhookId: webhook.id, auditLogReason: "DiscordKit cleanup get webhook message endpoint test")
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: WebhookMessageLifecycleResult(
+                webhookId: webhook.id,
+                message: message,
+                fetched: fetched,
+                edited: nil,
+                deleted: true
+            ),
+            ephemeral: true
+        )
+
+    case "edit_webhook_message":
+        let webhook = try await bot.createWebhook(
+            channelId: testChannelId,
+            webhook: CreateWebhook(name: tempWebhookName(prefix: "api-edit-msg")),
+            auditLogReason: "DiscordKit setup edit webhook message endpoint test"
+        )
+        guard let token = webhook.token else {
+            throw DiscordError.invalidRequest(message: "Webhook token missing in create webhook response.")
+        }
+        guard let message = try await bot.executeWebhook(
+            webhookId: webhook.id,
+            token: token,
+            execute: ExecuteWebhook(content: "Edit webhook message endpoint test"),
+            query: ExecuteWebhookQuery(wait: true)
+        ) else {
+            throw DiscordError.invalidRequest(message: "Webhook execute with wait=true returned no message.")
+        }
+        let edited = try await bot.editWebhookMessage(
+            webhookId: webhook.id,
+            token: token,
+            messageId: message.id,
+            edit: EditWebhookMessage(content: "Edited webhook message endpoint test")
+        )
+        try? await bot.deleteWebhookMessage(webhookId: webhook.id, token: token, messageId: message.id)
+        try? await bot.deleteWebhook(webhookId: webhook.id, auditLogReason: "DiscordKit cleanup edit webhook message endpoint test")
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: WebhookMessageLifecycleResult(
+                webhookId: webhook.id,
+                message: message,
+                fetched: nil,
+                edited: edited,
+                deleted: true
+            ),
+            ephemeral: true
+        )
+
+    case "delete_webhook_message":
+        let webhook = try await bot.createWebhook(
+            channelId: testChannelId,
+            webhook: CreateWebhook(name: tempWebhookName(prefix: "api-del-msg")),
+            auditLogReason: "DiscordKit setup delete webhook message endpoint test"
+        )
+        guard let token = webhook.token else {
+            throw DiscordError.invalidRequest(message: "Webhook token missing in create webhook response.")
+        }
+        guard let message = try await bot.executeWebhook(
+            webhookId: webhook.id,
+            token: token,
+            execute: ExecuteWebhook(content: "Delete webhook message endpoint test"),
+            query: ExecuteWebhookQuery(wait: true)
+        ) else {
+            throw DiscordError.invalidRequest(message: "Webhook execute with wait=true returned no message.")
+        }
+        try await bot.deleteWebhookMessage(webhookId: webhook.id, token: token, messageId: message.id)
+        try? await bot.deleteWebhook(webhookId: webhook.id, auditLogReason: "DiscordKit cleanup delete webhook message endpoint test")
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: WebhookMessageLifecycleResult(
+                webhookId: webhook.id,
+                message: message,
+                fetched: nil,
+                edited: nil,
+                deleted: true
+            ),
+            ephemeral: true
+        )
+
+    case "create_guild_role":
+        let created = try await bot.createGuildRole(
+            guildId: testGuildId,
+            role: CreateGuildRole(name: tempRoleName(prefix: "api-create-role"), mentionable: true),
+            auditLogReason: "DiscordKit create guild role endpoint test"
+        )
+        try? await bot.deleteGuildRole(
+            guildId: testGuildId,
+            roleId: created.id,
+            auditLogReason: "DiscordKit cleanup create guild role endpoint test"
+        )
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: GuildRoleLifecycleResult(created: created, fetched: nil, modified: nil, deleted: true),
+            ephemeral: true
+        )
+
+    case "get_guild_role":
+        let created = try await bot.createGuildRole(
+            guildId: testGuildId,
+            role: CreateGuildRole(name: tempRoleName(prefix: "api-get-role"), mentionable: false),
+            auditLogReason: "DiscordKit setup get guild role endpoint test"
+        )
+        let fetched = try await bot.getGuildRole(guildId: testGuildId, roleId: created.id)
+        try? await bot.deleteGuildRole(
+            guildId: testGuildId,
+            roleId: created.id,
+            auditLogReason: "DiscordKit cleanup get guild role endpoint test"
+        )
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: GuildRoleLifecycleResult(created: created, fetched: fetched, modified: nil, deleted: true),
+            ephemeral: true
+        )
+
+    case "modify_guild_role":
+        let created = try await bot.createGuildRole(
+            guildId: testGuildId,
+            role: CreateGuildRole(name: tempRoleName(prefix: "api-mod-role"), mentionable: false),
+            auditLogReason: "DiscordKit setup modify guild role endpoint test"
+        )
+        let modified = try await bot.modifyGuildRole(
+            guildId: testGuildId,
+            roleId: created.id,
+            modify: ModifyGuildRole(name: "\(created.name)-updated", mentionable: true),
+            auditLogReason: "DiscordKit modify guild role endpoint test"
+        )
+        try? await bot.deleteGuildRole(
+            guildId: testGuildId,
+            roleId: created.id,
+            auditLogReason: "DiscordKit cleanup modify guild role endpoint test"
+        )
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: GuildRoleLifecycleResult(created: created, fetched: nil, modified: modified, deleted: true),
+            ephemeral: true
+        )
+
+    case "delete_guild_role":
+        let created = try await bot.createGuildRole(
+            guildId: testGuildId,
+            role: CreateGuildRole(name: tempRoleName(prefix: "api-del-role"), mentionable: false),
+            auditLogReason: "DiscordKit setup delete guild role endpoint test"
+        )
+        try await bot.deleteGuildRole(
+            guildId: testGuildId,
+            roleId: created.id,
+            auditLogReason: "DiscordKit delete guild role endpoint test"
+        )
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: GuildRoleLifecycleResult(created: created, fetched: nil, modified: nil, deleted: true),
             ephemeral: true
         )
 
@@ -982,6 +2876,26 @@ private func resolvePanelRoleId(bot: DiscordBot, guildId: String, preferredRoleI
 private func tempCommandName(prefix: String) -> String {
     let timestamp = Int(Date().timeIntervalSince1970)
     return "\(prefix)\(timestamp)"
+}
+
+private func tempChannelName(prefix: String) -> String {
+    let timestamp = Int(Date().timeIntervalSince1970)
+    return "\(prefix)-\(timestamp)"
+}
+
+private func tempThreadName(prefix: String) -> String {
+    let timestamp = Int(Date().timeIntervalSince1970)
+    return "\(prefix)-\(timestamp)"
+}
+
+private func tempWebhookName(prefix: String) -> String {
+    let timestamp = Int(Date().timeIntervalSince1970)
+    return "\(prefix)-\(timestamp)"
+}
+
+private func tempRoleName(prefix: String) -> String {
+    let timestamp = Int(Date().timeIntervalSince1970)
+    return "\(prefix)-\(timestamp)"
 }
 
 private func componentV2DemoData() -> (components: [ComponentV2Node], attachments: [DiscordFileUpload]) {

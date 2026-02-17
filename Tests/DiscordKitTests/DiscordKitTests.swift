@@ -307,6 +307,209 @@ final class JSONCoderTests: XCTestCase {
         XCTAssertEqual(member.permissions, "274877906944")
         XCTAssertEqual(member.avatarDecorationData?.skuId, "12345")
     }
+
+    func testGatewayInfoDecoding() throws {
+        let json = """
+        {
+            "url": "wss://gateway.discord.gg"
+        }
+        """.data(using: .utf8)!
+
+        let gateway = try JSONCoder.decode(GatewayInfo.self, from: json)
+        XCTAssertEqual(gateway.url, "wss://gateway.discord.gg")
+    }
+
+    func testInviteDecoding() throws {
+        let json = """
+        {
+            "type": 0,
+            "code": "abc123",
+            "guild": {
+                "id": "1",
+                "name": "Test Guild",
+                "features": ["COMMUNITY"]
+            },
+            "channel": {
+                "id": "2",
+                "name": "general",
+                "type": 0
+            },
+            "inviter": {
+                "id": "3",
+                "username": "Tester",
+                "discriminator": "0",
+                "global_name": "Tester",
+                "avatar": null
+            },
+            "target_type": 1,
+            "uses": 2,
+            "max_uses": 5,
+            "max_age": 3600,
+            "temporary": false,
+            "created_at": "2024-01-01T00:00:00.000Z",
+            "expires_at": "2024-01-01T01:00:00.000Z",
+            "approximate_member_count": 10,
+            "approximate_presence_count": 4
+        }
+        """.data(using: .utf8)!
+
+        let invite = try JSONCoder.decode(Invite.self, from: json)
+        XCTAssertEqual(invite.code, "abc123")
+        XCTAssertEqual(invite.guild?.id, "1")
+        XCTAssertEqual(invite.channel?.id, "2")
+        XCTAssertEqual(invite.inviter?.id, "3")
+        XCTAssertEqual(invite.uses, 2)
+        XCTAssertEqual(invite.maxUses, 5)
+        XCTAssertEqual(invite.maxAge, 3600)
+        XCTAssertEqual(invite.approximateMemberCount, 10)
+    }
+
+    func testMessagePinsPageDecoding() throws {
+        let json = """
+        {
+            "items": [
+                {
+                    "pinned_at": "2024-01-01T00:01:00.000Z",
+                    "message": {
+                        "id": "100",
+                        "channel_id": "200",
+                        "guild_id": "300",
+                        "author": {
+                            "id": "400",
+                            "username": "Author",
+                            "discriminator": "0",
+                            "global_name": null,
+                            "avatar": null
+                        },
+                        "content": "Pinned message",
+                        "timestamp": "2024-01-01T00:00:00.000Z",
+                        "edited_timestamp": null,
+                        "tts": false,
+                        "mention_everyone": false,
+                        "mentions": [],
+                        "attachments": [],
+                        "embeds": [],
+                        "pinned": true,
+                        "type": 0
+                    }
+                }
+            ],
+            "has_more": false
+        }
+        """.data(using: .utf8)!
+
+        let pins = try JSONCoder.decode(MessagePinsPage.self, from: json)
+        XCTAssertEqual(pins.items.count, 1)
+        XCTAssertEqual(pins.items.first?.message.id, "100")
+        XCTAssertEqual(pins.items.first?.pinnedAt, "2024-01-01T00:01:00.000Z")
+        XCTAssertEqual(pins.hasMore, false)
+    }
+
+    func testArchivedThreadsResponseDecoding() throws {
+        let json = """
+        {
+            "threads": [
+                {
+                    "id": "10",
+                    "type": 11,
+                    "guild_id": "300",
+                    "name": "thread-a",
+                    "owner_id": "500"
+                }
+            ],
+            "members": [
+                {
+                    "id": "10",
+                    "user_id": "500",
+                    "join_timestamp": "2024-01-01T00:00:00.000Z",
+                    "flags": 0
+                }
+            ],
+            "has_more": true
+        }
+        """.data(using: .utf8)!
+
+        let archived = try JSONCoder.decode(ArchivedThreadsResponse.self, from: json)
+        XCTAssertEqual(archived.threads.count, 1)
+        XCTAssertEqual(archived.members.count, 1)
+        XCTAssertEqual(archived.threads.first?.id, "10")
+        XCTAssertEqual(archived.members.first?.userId, "500")
+        XCTAssertEqual(archived.hasMore, true)
+    }
+
+    func testThreadMemberDecodingWithGuildMember() throws {
+        let json = """
+        {
+            "id": "10",
+            "user_id": "500",
+            "join_timestamp": "2024-01-01T00:00:00.000Z",
+            "flags": 1,
+            "member": {
+                "roles": ["1"],
+                "joined_at": "2024-01-01T00:00:00.000Z"
+            }
+        }
+        """.data(using: .utf8)!
+
+        let member = try JSONCoder.decode(ChannelThreadMember.self, from: json)
+        XCTAssertEqual(member.id, "10")
+        XCTAssertEqual(member.userId, "500")
+        XCTAssertEqual(member.flags, 1)
+        XCTAssertEqual(member.member?.roles, ["1"])
+    }
+
+    func testWebhookDecoding() throws {
+        let json = """
+        {
+            "id": "1000",
+            "type": 1,
+            "guild_id": "2000",
+            "channel_id": "3000",
+            "user": {
+                "id": "4000",
+                "username": "WebhookOwner",
+                "discriminator": "0",
+                "global_name": "WebhookOwner",
+                "avatar": null
+            },
+            "name": "Test Hook",
+            "avatar": null,
+            "token": "webhook_token",
+            "application_id": null,
+            "url": "https://discord.com/api/webhooks/1000/webhook_token"
+        }
+        """.data(using: .utf8)!
+
+        let webhook = try JSONCoder.decode(Webhook.self, from: json)
+        XCTAssertEqual(webhook.id, "1000")
+        XCTAssertEqual(webhook.type, .incoming)
+        XCTAssertEqual(webhook.guildId, "2000")
+        XCTAssertEqual(webhook.channelId, "3000")
+        XCTAssertEqual(webhook.user?.id, "4000")
+        XCTAssertEqual(webhook.name, "Test Hook")
+        XCTAssertEqual(webhook.token, "webhook_token")
+    }
+
+    func testRolePayloadEncoding() throws {
+        let create = CreateGuildRole(
+            name: "RoleA",
+            permissions: "8",
+            color: 0xFF0000,
+            hoist: true,
+            mentionable: true
+        )
+        let createData = try JSONCoder.encode(create)
+        let createJSON = try JSONSerialization.jsonObject(with: createData) as? [String: Any]
+        XCTAssertEqual(createJSON?["name"] as? String, "RoleA")
+        XCTAssertEqual(createJSON?["permissions"] as? String, "8")
+        XCTAssertEqual(createJSON?["hoist"] as? Bool, true)
+
+        let modify = ModifyGuildRole(name: "RoleB", mentionable: false)
+        let modifyData = try JSONCoder.encode(modify)
+        let modifyJSON = try JSONSerialization.jsonObject(with: modifyData) as? [String: Any]
+        XCTAssertEqual(modifyJSON?["name"] as? String, "RoleB")
+        XCTAssertEqual(modifyJSON?["mentionable"] as? Bool, false)
+    }
 }
 
 
@@ -433,7 +636,9 @@ final class ApplicationCommandModelTests: XCTestCase {
             "application_id": "2000",
             "guild_id": "3000",
             "name": "ping",
+            "name_localized": "Ping",
             "description": "Ping command",
+            "description_localized": "Ping description",
             "type": 1,
             "default_member_permissions": "0",
             "dm_permission": true,
@@ -445,7 +650,9 @@ final class ApplicationCommandModelTests: XCTestCase {
                 {
                     "type": 3,
                     "name": "text",
+                    "name_localized": "Text",
                     "description": "Text option",
+                    "description_localized": "Text option localized",
                     "required": false,
                     "autocomplete": true,
                     "min_length": 1,
@@ -458,7 +665,11 @@ final class ApplicationCommandModelTests: XCTestCase {
         let command = try JSONCoder.decode(ApplicationCommand.self, from: json)
         XCTAssertEqual(command.id, "1000")
         XCTAssertEqual(command.guildId, "3000")
+        XCTAssertEqual(command.nameLocalized, "Ping")
+        XCTAssertEqual(command.descriptionLocalized, "Ping description")
         XCTAssertEqual(command.options?.first?.name, "text")
+        XCTAssertEqual(command.options?.first?.nameLocalized, "Text")
+        XCTAssertEqual(command.options?.first?.descriptionLocalized, "Text option localized")
         XCTAssertEqual(command.options?.first?.autocomplete, true)
         XCTAssertEqual(command.options?.first?.minLength, 1)
         XCTAssertEqual(command.contexts, [0, 1])
@@ -819,6 +1030,98 @@ final class RouteCoverageTests: XCTestCase {
         XCTAssertEqual(
             Routes.guildCommand("app", guildId: "g1", commandId: "c1"),
             "\(Routes.baseURL)/applications/app/guilds/g1/commands/c1"
+        )
+        XCTAssertEqual(
+            Routes.gateway,
+            "\(Routes.baseURL)/gateway"
+        )
+        XCTAssertEqual(
+            Routes.channelInvites("123"),
+            "\(Routes.baseURL)/channels/123/invites"
+        )
+        XCTAssertEqual(
+            Routes.typing("123"),
+            "\(Routes.baseURL)/channels/123/typing"
+        )
+        XCTAssertEqual(
+            Routes.messagePins("123"),
+            "\(Routes.baseURL)/channels/123/messages/pins"
+        )
+        XCTAssertEqual(
+            Routes.messagePin("123", messageId: "m1"),
+            "\(Routes.baseURL)/channels/123/messages/pins/m1"
+        )
+        XCTAssertEqual(
+            Routes.messageThread("123", messageId: "m1"),
+            "\(Routes.baseURL)/channels/123/messages/m1/threads"
+        )
+        XCTAssertEqual(
+            Routes.channelThreads("123"),
+            "\(Routes.baseURL)/channels/123/threads"
+        )
+        XCTAssertEqual(
+            Routes.channelArchivedPublicThreads("123"),
+            "\(Routes.baseURL)/channels/123/threads/archived/public"
+        )
+        XCTAssertEqual(
+            Routes.channelArchivedPrivateThreads("123"),
+            "\(Routes.baseURL)/channels/123/threads/archived/private"
+        )
+        XCTAssertEqual(
+            Routes.channelJoinedPrivateArchivedThreads("123"),
+            "\(Routes.baseURL)/channels/123/users/@me/threads/archived/private"
+        )
+        XCTAssertEqual(
+            Routes.threadMembers("123"),
+            "\(Routes.baseURL)/channels/123/thread-members"
+        )
+        XCTAssertEqual(
+            Routes.threadMember("123", userId: "u1"),
+            "\(Routes.baseURL)/channels/123/thread-members/u1"
+        )
+        XCTAssertEqual(
+            Routes.threadMemberMe("123"),
+            "\(Routes.baseURL)/channels/123/thread-members/@me"
+        )
+        XCTAssertEqual(
+            Routes.guildInvites("456"),
+            "\(Routes.baseURL)/guilds/456/invites"
+        )
+        XCTAssertEqual(
+            Routes.invite("abc"),
+            "\(Routes.baseURL)/invites/abc"
+        )
+        XCTAssertEqual(
+            Routes.channelWebhooks("123"),
+            "\(Routes.baseURL)/channels/123/webhooks"
+        )
+        XCTAssertEqual(
+            Routes.guildWebhooks("456"),
+            "\(Routes.baseURL)/guilds/456/webhooks"
+        )
+        XCTAssertEqual(
+            Routes.webhook("w1"),
+            "\(Routes.baseURL)/webhooks/w1"
+        )
+        XCTAssertEqual(
+            Routes.webhook("w1", token: "tok"),
+            "\(Routes.baseURL)/webhooks/w1/tok"
+        )
+        XCTAssertEqual(
+            Routes.webhookMessage("w1", token: "tok", messageId: "m1"),
+            "\(Routes.baseURL)/webhooks/w1/tok/messages/m1"
+        )
+        XCTAssertEqual(
+            Routes.guildRole("456", roleId: "r1"),
+            "\(Routes.baseURL)/guilds/456/roles/r1"
+        )
+        XCTAssertEqual(
+            Routes.pins("123"),
+            "\(Routes.baseURL)/channels/123/pins"
+        )
+        XCTAssertEqual(
+            Routes.pin("123", messageId: "m1"),
+            "\(Routes.baseURL)/channels/123/pins/m1"
         )
     }
 }

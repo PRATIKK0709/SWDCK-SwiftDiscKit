@@ -85,6 +85,10 @@ public struct ChannelThreadMember: Codable, Sendable {
     public let userId: String?
     public let joinTimestamp: String?
     public let flags: Int?
+    public let member: GuildMember?
+    public let presence: JSONValue?
+    public let muteConfig: JSONValue?
+    public let muted: Bool?
 }
 
 public struct ChannelForumTag: Codable, Sendable, Identifiable {
