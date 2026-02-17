@@ -35,6 +35,21 @@ public struct Interaction: Codable, Sendable, Identifiable {
     enum CodingKeys: String, CodingKey {
         case id, applicationId, type, data, guildId, channelId, member, user, token, version
     }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try container.decodeStringLossy(forKey: .id)
+        self.applicationId = try container.decodeStringLossy(forKey: .applicationId)
+        self.type = (try? container.decode(InteractionType.self, forKey: .type)) ?? .unknown
+        self.data = try? container.decodeIfPresent(InteractionData.self, forKey: .data)
+        self.guildId = container.decodeStringLossyIfPresent(forKey: .guildId)
+        self.channelId = container.decodeStringLossyIfPresent(forKey: .channelId)
+        self.member = try? container.decodeIfPresent(GuildMember.self, forKey: .member)
+        self.user = try? container.decodeIfPresent(DiscordUser.self, forKey: .user)
+        self.token = try container.decodeStringLossy(forKey: .token)
+        self.version = container.decodeIntLossyIfPresent(forKey: .version) ?? 1
+        self._rest = nil
+    }
 }
 
 public struct InteractionData: Codable, Sendable {
@@ -48,6 +63,24 @@ public struct InteractionData: Codable, Sendable {
     public let value: InteractionOptionValue?
     public let components: [InteractionSubmittedContainer]?
     public let resolved: InteractionResolvedData?
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, type, options, customId, componentType, values, value, components, resolved
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = container.decodeStringLossyIfPresent(forKey: .id)
+        self.name = try? container.decodeIfPresent(String.self, forKey: .name)
+        self.type = container.decodeIntLossyIfPresent(forKey: .type)
+        self.options = try? container.decodeIfPresent([InteractionOption].self, forKey: .options)
+        self.customId = container.decodeStringLossyIfPresent(forKey: .customId)
+        self.componentType = container.decodeIntLossyIfPresent(forKey: .componentType)
+        self.values = container.decodeStringArrayLossyIfPresent(forKey: .values)
+        self.value = try? container.decodeIfPresent(InteractionOptionValue.self, forKey: .value)
+        self.components = try? container.decodeIfPresent([InteractionSubmittedContainer].self, forKey: .components)
+        self.resolved = try? container.decodeIfPresent(InteractionResolvedData.self, forKey: .resolved)
+    }
 
     public var submittedComponents: [InteractionSubmittedComponent] {
         components?.compactMap(\.component) ?? []
@@ -83,6 +116,17 @@ public struct InteractionSubmittedContainer: Codable, Sendable {
     public let id: Int?
     public let type: Int?
     public let component: InteractionSubmittedComponent?
+
+    enum CodingKeys: String, CodingKey {
+        case id, type, component
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = container.decodeIntLossyIfPresent(forKey: .id)
+        self.type = container.decodeIntLossyIfPresent(forKey: .type)
+        self.component = try? container.decodeIfPresent(InteractionSubmittedComponent.self, forKey: .component)
+    }
 }
 
 public struct InteractionSubmittedComponent: Codable, Sendable {
@@ -91,6 +135,19 @@ public struct InteractionSubmittedComponent: Codable, Sendable {
     public let customId: String?
     public let values: [String]?
     public let value: InteractionOptionValue?
+
+    enum CodingKeys: String, CodingKey {
+        case id, type, customId, values, value
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = container.decodeIntLossyIfPresent(forKey: .id)
+        self.type = container.decodeIntLossyIfPresent(forKey: .type)
+        self.customId = container.decodeStringLossyIfPresent(forKey: .customId)
+        self.values = container.decodeStringArrayLossyIfPresent(forKey: .values)
+        self.value = try? container.decodeIfPresent(InteractionOptionValue.self, forKey: .value)
+    }
 }
 
 public struct InteractionResolvedData: Codable, Sendable {
@@ -130,10 +187,78 @@ public struct InteractionOption: Codable, Sendable {
     public let value: InteractionOptionValue?
     public let options: [InteractionOption]?
 
+    enum CodingKeys: String, CodingKey {
+        case name, type, value, options
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.name = (try? container.decodeStringLossy(forKey: .name)) ?? "unknown"
+        self.type = container.decodeIntLossyIfPresent(forKey: .type) ?? 0
+        self.value = try? container.decodeIfPresent(InteractionOptionValue.self, forKey: .value)
+        self.options = try? container.decodeIfPresent([InteractionOption].self, forKey: .options)
+    }
+
     public var stringValue: String? { value?.stringValue }
     public var intValue: Int? { value?.intValue }
     public var boolValue: Bool? { value?.boolValue }
     public var doubleValue: Double? { value?.doubleValue }
+}
+
+private extension KeyedDecodingContainer {
+    func decodeStringLossy(forKey key: Key) throws -> String {
+        if let stringValue = try? decode(String.self, forKey: key) {
+            return stringValue
+        }
+        if let intValue = try? decode(Int.self, forKey: key) {
+            return String(intValue)
+        }
+        if let doubleValue = try? decode(Double.self, forKey: key) {
+            return String(doubleValue)
+        }
+        if let boolValue = try? decode(Bool.self, forKey: key) {
+            return boolValue ? "true" : "false"
+        }
+        throw DecodingError.dataCorruptedError(
+            forKey: key,
+            in: self,
+            debugDescription: "Expected string-compatible value"
+        )
+    }
+
+    func decodeStringLossyIfPresent(forKey key: Key) -> String? {
+        guard contains(key) else { return nil }
+        return try? decodeStringLossy(forKey: key)
+    }
+
+    func decodeIntLossyIfPresent(forKey key: Key) -> Int? {
+        if let intValue = try? decodeIfPresent(Int.self, forKey: key) {
+            return intValue
+        }
+        if let stringValue = try? decodeIfPresent(String.self, forKey: key) {
+            return Int(stringValue)
+        }
+        if let doubleValue = try? decodeIfPresent(Double.self, forKey: key) {
+            return Int(doubleValue)
+        }
+        return nil
+    }
+
+    func decodeStringArrayLossyIfPresent(forKey key: Key) -> [String]? {
+        if let stringValues = try? decodeIfPresent([String].self, forKey: key) {
+            return stringValues
+        }
+        if let intValues = try? decodeIfPresent([Int].self, forKey: key) {
+            return intValues.map(String.init)
+        }
+        if let doubleValues = try? decodeIfPresent([Double].self, forKey: key) {
+            return doubleValues.map { String($0) }
+        }
+        if let boolValues = try? decodeIfPresent([Bool].self, forKey: key) {
+            return boolValues.map { $0 ? "true" : "false" }
+        }
+        return nil
+    }
 }
 
 public enum InteractionOptionValue: Codable, Sendable {

@@ -157,6 +157,10 @@ public struct GatewayBot: Codable, Sendable {
     public let sessionStartLimit: SessionStartLimit
 }
 
+public struct GatewayInfo: Codable, Sendable {
+    public let url: String
+}
+
 public struct SessionStartLimit: Codable, Sendable {
     public let total: Int
     public let remaining: Int

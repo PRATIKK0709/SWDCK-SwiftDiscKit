@@ -100,12 +100,175 @@ public final class DiscordBot: Sendable {
         try await rest.getChannel(channelId: channelId)
     }
 
+    public func modifyChannel(
+        channelId: String,
+        modify: ModifyChannel,
+        auditLogReason: String? = nil
+    ) async throws -> Channel {
+        try await rest.modifyChannel(
+            channelId: channelId,
+            modify: modify,
+            auditLogReason: auditLogReason
+        )
+    }
+
+    public func deleteChannel(channelId: String, auditLogReason: String? = nil) async throws -> Channel {
+        try await rest.deleteChannel(channelId: channelId, auditLogReason: auditLogReason)
+    }
+
+    public func getGateway() async throws -> GatewayInfo {
+        try await rest.getGateway()
+    }
+
     public func getGatewayBot() async throws -> GatewayBot {
         try await rest.getGatewayBot()
     }
 
+    public func getChannelInvites(_ channelId: String) async throws -> [Invite] {
+        try await rest.getChannelInvites(channelId: channelId)
+    }
+
+    public func createChannelInvite(
+        channelId: String,
+        invite: CreateChannelInvite = CreateChannelInvite(),
+        auditLogReason: String? = nil
+    ) async throws -> Invite {
+        try await rest.createChannelInvite(
+            channelId: channelId,
+            invite: invite,
+            auditLogReason: auditLogReason
+        )
+    }
+
+    public func triggerTyping(in channelId: String) async throws {
+        try await rest.triggerTyping(channelId: channelId)
+    }
+
+    public func startThreadFromMessage(
+        channelId: String,
+        messageId: String,
+        payload: StartThreadFromMessage,
+        auditLogReason: String? = nil
+    ) async throws -> Channel {
+        try await rest.startThreadFromMessage(
+            channelId: channelId,
+            messageId: messageId,
+            payload: payload,
+            auditLogReason: auditLogReason
+        )
+    }
+
+    public func startThreadWithoutMessage(
+        channelId: String,
+        payload: StartThreadWithoutMessage,
+        auditLogReason: String? = nil
+    ) async throws -> Channel {
+        try await rest.startThreadWithoutMessage(
+            channelId: channelId,
+            payload: payload,
+            auditLogReason: auditLogReason
+        )
+    }
+
+    public func getPublicArchivedThreads(
+        channelId: String,
+        query: ArchivedThreadsQuery = ArchivedThreadsQuery()
+    ) async throws -> ArchivedThreadsResponse {
+        try await rest.getPublicArchivedThreads(channelId: channelId, query: query)
+    }
+
+    public func getPrivateArchivedThreads(
+        channelId: String,
+        query: ArchivedThreadsQuery = ArchivedThreadsQuery()
+    ) async throws -> ArchivedThreadsResponse {
+        try await rest.getPrivateArchivedThreads(channelId: channelId, query: query)
+    }
+
+    public func getJoinedPrivateArchivedThreads(
+        channelId: String,
+        query: ArchivedThreadsQuery = ArchivedThreadsQuery()
+    ) async throws -> ArchivedThreadsResponse {
+        try await rest.getJoinedPrivateArchivedThreads(channelId: channelId, query: query)
+    }
+
+    public func getThreadMembers(
+        channelId: String,
+        query: ThreadMembersQuery = ThreadMembersQuery()
+    ) async throws -> [ChannelThreadMember] {
+        try await rest.getThreadMembers(channelId: channelId, query: query)
+    }
+
+    public func getThreadMember(channelId: String, userId: String, withMember: Bool? = nil) async throws -> ChannelThreadMember {
+        try await rest.getThreadMember(channelId: channelId, userId: userId, withMember: withMember)
+    }
+
+    public func joinThread(channelId: String) async throws {
+        try await rest.joinThread(channelId: channelId)
+    }
+
+    public func leaveThread(channelId: String) async throws {
+        try await rest.leaveThread(channelId: channelId)
+    }
+
+    public func getMessagePins(channelId: String, query: MessagePinsQuery = MessagePinsQuery()) async throws -> MessagePinsPage {
+        try await rest.getMessagePins(channelId: channelId, query: query)
+    }
+
+    public func pinMessage(channelId: String, messageId: String, auditLogReason: String? = nil) async throws {
+        try await rest.pinMessage(channelId: channelId, messageId: messageId, auditLogReason: auditLogReason)
+    }
+
+    public func unpinMessage(channelId: String, messageId: String, auditLogReason: String? = nil) async throws {
+        try await rest.unpinMessage(channelId: channelId, messageId: messageId, auditLogReason: auditLogReason)
+    }
+
+    public func createReaction(channelId: String, messageId: String, emoji: String) async throws {
+        try await rest.createReaction(channelId: channelId, messageId: messageId, emoji: emoji)
+    }
+
+    public func deleteOwnReaction(channelId: String, messageId: String, emoji: String) async throws {
+        try await rest.deleteOwnReaction(channelId: channelId, messageId: messageId, emoji: emoji)
+    }
+
+    public func getReactions(
+        channelId: String,
+        messageId: String,
+        emoji: String,
+        query: ReactionUsersQuery = ReactionUsersQuery()
+    ) async throws -> [DiscordUser] {
+        try await rest.getReactions(channelId: channelId, messageId: messageId, emoji: emoji, query: query)
+    }
+
+    public func deleteUserReaction(channelId: String, messageId: String, emoji: String, userId: String) async throws {
+        try await rest.deleteUserReaction(channelId: channelId, messageId: messageId, emoji: emoji, userId: userId)
+    }
+
+    public func deleteAllReactionsForEmoji(channelId: String, messageId: String, emoji: String) async throws {
+        try await rest.deleteAllReactionsForEmoji(channelId: channelId, messageId: messageId, emoji: emoji)
+    }
+
+    public func deleteAllReactions(channelId: String, messageId: String) async throws {
+        try await rest.deleteAllReactions(channelId: channelId, messageId: messageId)
+    }
+
     public func getGuild(_ guildId: String) async throws -> Guild {
         try await rest.getGuild(guildId: guildId)
+    }
+
+    public func createGuildChannel(
+        guildId: String,
+        channel: CreateGuildChannel,
+        auditLogReason: String? = nil
+    ) async throws -> Channel {
+        try await rest.createGuildChannel(
+            guildId: guildId,
+            channel: channel,
+            auditLogReason: auditLogReason
+        )
+    }
+
+    public func getGuildInvites(_ guildId: String) async throws -> [Invite] {
+        try await rest.getGuildInvites(guildId: guildId)
     }
 
     public func getGuildChannels(_ guildId: String) async throws -> [Channel] {
@@ -168,6 +331,14 @@ public final class DiscordBot: Sendable {
 
     public func getGuildRoles(_ guildId: String) async throws -> [GuildRole] {
         try await rest.getGuildRoles(guildId: guildId)
+    }
+
+    public func deleteInvite(code: String, auditLogReason: String? = nil) async throws -> Invite {
+        try await rest.deleteInvite(code: code, auditLogReason: auditLogReason)
+    }
+
+    public func getInvite(code: String, query: GetInviteQuery = GetInviteQuery()) async throws -> Invite {
+        try await rest.getInvite(code: code, query: query)
     }
 
     public func getUser(_ userId: String) async throws -> DiscordUser {
@@ -257,6 +428,14 @@ public final class DiscordBot: Sendable {
             return try await rest.getGuildCommands(applicationId: applicationId, guildId: guildId)
         }
         return try await rest.getGlobalCommands(applicationId: applicationId)
+    }
+
+    public func getSlashCommand(commandId: String, guildId: String? = nil) async throws -> ApplicationCommand {
+        let applicationId = try await resolveApplicationId()
+        if let guildId {
+            return try await rest.getGuildCommand(applicationId: applicationId, guildId: guildId, commandId: commandId)
+        }
+        return try await rest.getGlobalCommand(applicationId: applicationId, commandId: commandId)
     }
 
     public func editSlashCommand(
@@ -372,10 +551,17 @@ public final class DiscordBot: Sendable {
     }
 
     private func handleInteractionCreate(_ rawJSON: RawJSON) async {
-        guard var interaction = try? rawJSON.decode(Interaction.self) else {
-            logger.warning("Failed to decode INTERACTION_CREATE")
+        let decodedInteraction: Interaction
+        do {
+            decodedInteraction = try rawJSON.decode(Interaction.self)
+        } catch {
+            let payload = String(data: rawJSON.data, encoding: .utf8) ?? "<unprintable>"
+            let preview = payload.count > 1200 ? String(payload.prefix(1200)) + "…" : payload
+            logger.warning("Failed to decode INTERACTION_CREATE: \(error). payload=\(preview)")
             return
         }
+
+        var interaction = decodedInteraction
         interaction._rest = rest
 
         if interaction.type == .applicationCommand {
