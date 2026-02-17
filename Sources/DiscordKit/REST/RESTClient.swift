@@ -198,6 +198,130 @@ public final class RESTClient: Sendable {
         )
     }
 
+    func createWebhook(
+        channelId: String,
+        webhook: CreateWebhook,
+        auditLogReason: String? = nil
+    ) async throws -> Webhook {
+        try await request(
+            method: "POST",
+            url: Routes.channelWebhooks(channelId),
+            body: webhook,
+            headers: auditLogHeaders(reason: auditLogReason),
+            decodeAs: Webhook.self
+        )
+    }
+
+    func getChannelWebhooks(channelId: String) async throws -> [Webhook] {
+        try await request(
+            method: "GET",
+            url: Routes.channelWebhooks(channelId),
+            decodeAs: [Webhook].self
+        )
+    }
+
+    func getWebhook(webhookId: String) async throws -> Webhook {
+        try await request(method: "GET", url: Routes.webhook(webhookId), decodeAs: Webhook.self)
+    }
+
+    func getWebhook(webhookId: String, token: String) async throws -> Webhook {
+        try await request(method: "GET", url: Routes.webhook(webhookId, token: token), decodeAs: Webhook.self)
+    }
+
+    func modifyWebhook(
+        webhookId: String,
+        modify: ModifyWebhook,
+        auditLogReason: String? = nil
+    ) async throws -> Webhook {
+        try await request(
+            method: "PATCH",
+            url: Routes.webhook(webhookId),
+            body: modify,
+            headers: auditLogHeaders(reason: auditLogReason),
+            decodeAs: Webhook.self
+        )
+    }
+
+    func modifyWebhook(
+        webhookId: String,
+        token: String,
+        modify: ModifyWebhook
+    ) async throws -> Webhook {
+        try await request(
+            method: "PATCH",
+            url: Routes.webhook(webhookId, token: token),
+            body: modify,
+            decodeAs: Webhook.self
+        )
+    }
+
+    func deleteWebhook(webhookId: String, auditLogReason: String? = nil) async throws {
+        try await requestVoid(
+            method: "DELETE",
+            url: Routes.webhook(webhookId),
+            headers: auditLogHeaders(reason: auditLogReason)
+        )
+    }
+
+    func deleteWebhook(webhookId: String, token: String) async throws {
+        try await requestVoid(
+            method: "DELETE",
+            url: Routes.webhook(webhookId, token: token)
+        )
+    }
+
+    @discardableResult
+    func executeWebhook(
+        webhookId: String,
+        token: String,
+        execute: ExecuteWebhook,
+        query: ExecuteWebhookQuery = ExecuteWebhookQuery()
+    ) async throws -> Message? {
+        let url = buildExecuteWebhookURL(webhookId: webhookId, token: token, query: query)
+        let data = try await rawRequest(method: "POST", url: url, body: execute, headers: [:])
+        guard query.wait == true, !data.isEmpty else { return nil }
+        var message = try JSONCoder.decode(Message.self, from: data)
+        message._rest = self
+        return message
+    }
+
+    @discardableResult
+    func getWebhookMessage(
+        webhookId: String,
+        token: String,
+        messageId: String,
+        query: WebhookMessageQuery = WebhookMessageQuery()
+    ) async throws -> Message {
+        let url = buildWebhookMessageURL(webhookId: webhookId, token: token, messageId: messageId, query: query)
+        var message = try await request(method: "GET", url: url, decodeAs: Message.self)
+        message._rest = self
+        return message
+    }
+
+    @discardableResult
+    func editWebhookMessage(
+        webhookId: String,
+        token: String,
+        messageId: String,
+        edit: EditWebhookMessage,
+        query: WebhookMessageQuery = WebhookMessageQuery()
+    ) async throws -> Message {
+        let url = buildWebhookMessageURL(webhookId: webhookId, token: token, messageId: messageId, query: query)
+        var message = try await request(method: "PATCH", url: url, body: edit, decodeAs: Message.self)
+        message._rest = self
+        return message
+    }
+
+    func deleteWebhookMessage(
+        webhookId: String,
+        token: String,
+        messageId: String,
+        query: WebhookMessageQuery = WebhookMessageQuery()
+    ) async throws {
+        let url = buildWebhookMessageURL(webhookId: webhookId, token: token, messageId: messageId, query: query)
+        try await requestVoid(method: "DELETE", url: url)
+    }
+
     func getChannelInvites(channelId: String) async throws -> [Invite] {
         try await request(method: "GET", url: Routes.channelInvites(channelId), decodeAs: [Invite].self)
     }
@@ -322,6 +446,18 @@ public final class RESTClient: Sendable {
         return page
     }
 
+    func getPins(channelId: String) async throws -> [Message] {
+        var messages = try await request(
+            method: "GET",
+            url: Routes.pins(channelId),
+            decodeAs: [Message].self
+        )
+        for index in messages.indices {
+            messages[index]._rest = self
+        }
+        return messages
+    }
+
     func pinMessage(channelId: String, messageId: String, auditLogReason: String? = nil) async throws {
         try await requestVoid(
             method: "PUT",
@@ -330,10 +466,26 @@ public final class RESTClient: Sendable {
         )
     }
 
+    func pin(channelId: String, messageId: String, auditLogReason: String? = nil) async throws {
+        try await requestVoid(
+            method: "PUT",
+            url: Routes.pin(channelId, messageId: messageId),
+            headers: auditLogHeaders(reason: auditLogReason)
+        )
+    }
+
     func unpinMessage(channelId: String, messageId: String, auditLogReason: String? = nil) async throws {
         try await requestVoid(
             method: "DELETE",
             url: Routes.messagePin(channelId, messageId: messageId),
+            headers: auditLogHeaders(reason: auditLogReason)
+        )
+    }
+
+    func unpin(channelId: String, messageId: String, auditLogReason: String? = nil) async throws {
+        try await requestVoid(
+            method: "DELETE",
+            url: Routes.pin(channelId, messageId: messageId),
             headers: auditLogHeaders(reason: auditLogReason)
         )
     }
@@ -406,6 +558,14 @@ public final class RESTClient: Sendable {
         )
     }
 
+    func getGuildWebhooks(guildId: String) async throws -> [Webhook] {
+        try await request(
+            method: "GET",
+            url: Routes.guildWebhooks(guildId),
+            decodeAs: [Webhook].self
+        )
+    }
+
     func getGuildInvites(guildId: String) async throws -> [Invite] {
         try await request(method: "GET", url: Routes.guildInvites(guildId), decodeAs: [Invite].self)
     }
@@ -471,6 +631,51 @@ public final class RESTClient: Sendable {
 
     func getGuildRoles(guildId: String) async throws -> [GuildRole] {
         try await request(method: "GET", url: Routes.guildRoles(guildId), decodeAs: [GuildRole].self)
+    }
+
+    func createGuildRole(
+        guildId: String,
+        role: CreateGuildRole,
+        auditLogReason: String? = nil
+    ) async throws -> GuildRole {
+        try await request(
+            method: "POST",
+            url: Routes.guildRoles(guildId),
+            body: role,
+            headers: auditLogHeaders(reason: auditLogReason),
+            decodeAs: GuildRole.self
+        )
+    }
+
+    func getGuildRole(guildId: String, roleId: String) async throws -> GuildRole {
+        try await request(
+            method: "GET",
+            url: Routes.guildRole(guildId, roleId: roleId),
+            decodeAs: GuildRole.self
+        )
+    }
+
+    func modifyGuildRole(
+        guildId: String,
+        roleId: String,
+        modify: ModifyGuildRole,
+        auditLogReason: String? = nil
+    ) async throws -> GuildRole {
+        try await request(
+            method: "PATCH",
+            url: Routes.guildRole(guildId, roleId: roleId),
+            body: modify,
+            headers: auditLogHeaders(reason: auditLogReason),
+            decodeAs: GuildRole.self
+        )
+    }
+
+    func deleteGuildRole(guildId: String, roleId: String, auditLogReason: String? = nil) async throws {
+        try await requestVoid(
+            method: "DELETE",
+            url: Routes.guildRole(guildId, roleId: roleId),
+            headers: auditLogHeaders(reason: auditLogReason)
+        )
     }
 
     func getInvite(code: String, query: GetInviteQuery = GetInviteQuery()) async throws -> Invite {
@@ -1083,6 +1288,31 @@ private extension RESTClient {
 
         components.queryItems = items.isEmpty ? nil : items
         return components.url?.absoluteString ?? Routes.invite(code)
+    }
+
+    func buildExecuteWebhookURL(webhookId: String, token: String, query: ExecuteWebhookQuery) -> String {
+        guard var components = URLComponents(string: Routes.webhook(webhookId, token: token)) else {
+            return Routes.webhook(webhookId, token: token)
+        }
+
+        var items: [URLQueryItem] = []
+        if let wait = query.wait { items.append(URLQueryItem(name: "wait", value: wait ? "true" : "false")) }
+        if let threadId = query.threadId { items.append(URLQueryItem(name: "thread_id", value: threadId)) }
+
+        components.queryItems = items.isEmpty ? nil : items
+        return components.url?.absoluteString ?? Routes.webhook(webhookId, token: token)
+    }
+
+    func buildWebhookMessageURL(webhookId: String, token: String, messageId: String, query: WebhookMessageQuery) -> String {
+        guard var components = URLComponents(string: Routes.webhookMessage(webhookId, token: token, messageId: messageId)) else {
+            return Routes.webhookMessage(webhookId, token: token, messageId: messageId)
+        }
+
+        var items: [URLQueryItem] = []
+        if let threadId = query.threadId { items.append(URLQueryItem(name: "thread_id", value: threadId)) }
+
+        components.queryItems = items.isEmpty ? nil : items
+        return components.url?.absoluteString ?? Routes.webhookMessage(webhookId, token: token, messageId: messageId)
     }
 
     func headerValue(_ name: String, from headers: [AnyHashable: Any]) -> String? {

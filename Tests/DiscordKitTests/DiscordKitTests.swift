@@ -457,6 +457,59 @@ final class JSONCoderTests: XCTestCase {
         XCTAssertEqual(member.flags, 1)
         XCTAssertEqual(member.member?.roles, ["1"])
     }
+
+    func testWebhookDecoding() throws {
+        let json = """
+        {
+            "id": "1000",
+            "type": 1,
+            "guild_id": "2000",
+            "channel_id": "3000",
+            "user": {
+                "id": "4000",
+                "username": "WebhookOwner",
+                "discriminator": "0",
+                "global_name": "WebhookOwner",
+                "avatar": null
+            },
+            "name": "Test Hook",
+            "avatar": null,
+            "token": "webhook_token",
+            "application_id": null,
+            "url": "https://discord.com/api/webhooks/1000/webhook_token"
+        }
+        """.data(using: .utf8)!
+
+        let webhook = try JSONCoder.decode(Webhook.self, from: json)
+        XCTAssertEqual(webhook.id, "1000")
+        XCTAssertEqual(webhook.type, .incoming)
+        XCTAssertEqual(webhook.guildId, "2000")
+        XCTAssertEqual(webhook.channelId, "3000")
+        XCTAssertEqual(webhook.user?.id, "4000")
+        XCTAssertEqual(webhook.name, "Test Hook")
+        XCTAssertEqual(webhook.token, "webhook_token")
+    }
+
+    func testRolePayloadEncoding() throws {
+        let create = CreateGuildRole(
+            name: "RoleA",
+            permissions: "8",
+            color: 0xFF0000,
+            hoist: true,
+            mentionable: true
+        )
+        let createData = try JSONCoder.encode(create)
+        let createJSON = try JSONSerialization.jsonObject(with: createData) as? [String: Any]
+        XCTAssertEqual(createJSON?["name"] as? String, "RoleA")
+        XCTAssertEqual(createJSON?["permissions"] as? String, "8")
+        XCTAssertEqual(createJSON?["hoist"] as? Bool, true)
+
+        let modify = ModifyGuildRole(name: "RoleB", mentionable: false)
+        let modifyData = try JSONCoder.encode(modify)
+        let modifyJSON = try JSONSerialization.jsonObject(with: modifyData) as? [String: Any]
+        XCTAssertEqual(modifyJSON?["name"] as? String, "RoleB")
+        XCTAssertEqual(modifyJSON?["mentionable"] as? Bool, false)
+    }
 }
 
 
@@ -1037,6 +1090,38 @@ final class RouteCoverageTests: XCTestCase {
         XCTAssertEqual(
             Routes.invite("abc"),
             "\(Routes.baseURL)/invites/abc"
+        )
+        XCTAssertEqual(
+            Routes.channelWebhooks("123"),
+            "\(Routes.baseURL)/channels/123/webhooks"
+        )
+        XCTAssertEqual(
+            Routes.guildWebhooks("456"),
+            "\(Routes.baseURL)/guilds/456/webhooks"
+        )
+        XCTAssertEqual(
+            Routes.webhook("w1"),
+            "\(Routes.baseURL)/webhooks/w1"
+        )
+        XCTAssertEqual(
+            Routes.webhook("w1", token: "tok"),
+            "\(Routes.baseURL)/webhooks/w1/tok"
+        )
+        XCTAssertEqual(
+            Routes.webhookMessage("w1", token: "tok", messageId: "m1"),
+            "\(Routes.baseURL)/webhooks/w1/tok/messages/m1"
+        )
+        XCTAssertEqual(
+            Routes.guildRole("456", roleId: "r1"),
+            "\(Routes.baseURL)/guilds/456/roles/r1"
+        )
+        XCTAssertEqual(
+            Routes.pins("123"),
+            "\(Routes.baseURL)/channels/123/pins"
+        )
+        XCTAssertEqual(
+            Routes.pin("123", messageId: "m1"),
+            "\(Routes.baseURL)/channels/123/pins/m1"
         )
     }
 }

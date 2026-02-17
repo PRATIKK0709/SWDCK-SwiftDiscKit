@@ -116,6 +116,113 @@ public final class DiscordBot: Sendable {
         try await rest.deleteChannel(channelId: channelId, auditLogReason: auditLogReason)
     }
 
+    public func createWebhook(
+        channelId: String,
+        webhook: CreateWebhook,
+        auditLogReason: String? = nil
+    ) async throws -> Webhook {
+        try await rest.createWebhook(
+            channelId: channelId,
+            webhook: webhook,
+            auditLogReason: auditLogReason
+        )
+    }
+
+    public func getChannelWebhooks(_ channelId: String) async throws -> [Webhook] {
+        try await rest.getChannelWebhooks(channelId: channelId)
+    }
+
+    public func getWebhook(_ webhookId: String) async throws -> Webhook {
+        try await rest.getWebhook(webhookId: webhookId)
+    }
+
+    public func getWebhook(_ webhookId: String, token: String) async throws -> Webhook {
+        try await rest.getWebhook(webhookId: webhookId, token: token)
+    }
+
+    public func modifyWebhook(
+        webhookId: String,
+        modify: ModifyWebhook,
+        auditLogReason: String? = nil
+    ) async throws -> Webhook {
+        try await rest.modifyWebhook(
+            webhookId: webhookId,
+            modify: modify,
+            auditLogReason: auditLogReason
+        )
+    }
+
+    public func modifyWebhook(webhookId: String, token: String, modify: ModifyWebhook) async throws -> Webhook {
+        try await rest.modifyWebhook(webhookId: webhookId, token: token, modify: modify)
+    }
+
+    public func deleteWebhook(webhookId: String, auditLogReason: String? = nil) async throws {
+        try await rest.deleteWebhook(webhookId: webhookId, auditLogReason: auditLogReason)
+    }
+
+    public func deleteWebhook(webhookId: String, token: String) async throws {
+        try await rest.deleteWebhook(webhookId: webhookId, token: token)
+    }
+
+    @discardableResult
+    public func executeWebhook(
+        webhookId: String,
+        token: String,
+        execute: ExecuteWebhook,
+        query: ExecuteWebhookQuery = ExecuteWebhookQuery()
+    ) async throws -> Message? {
+        try await rest.executeWebhook(
+            webhookId: webhookId,
+            token: token,
+            execute: execute,
+            query: query
+        )
+    }
+
+    public func getWebhookMessage(
+        webhookId: String,
+        token: String,
+        messageId: String,
+        query: WebhookMessageQuery = WebhookMessageQuery()
+    ) async throws -> Message {
+        try await rest.getWebhookMessage(
+            webhookId: webhookId,
+            token: token,
+            messageId: messageId,
+            query: query
+        )
+    }
+
+    public func editWebhookMessage(
+        webhookId: String,
+        token: String,
+        messageId: String,
+        edit: EditWebhookMessage,
+        query: WebhookMessageQuery = WebhookMessageQuery()
+    ) async throws -> Message {
+        try await rest.editWebhookMessage(
+            webhookId: webhookId,
+            token: token,
+            messageId: messageId,
+            edit: edit,
+            query: query
+        )
+    }
+
+    public func deleteWebhookMessage(
+        webhookId: String,
+        token: String,
+        messageId: String,
+        query: WebhookMessageQuery = WebhookMessageQuery()
+    ) async throws {
+        try await rest.deleteWebhookMessage(
+            webhookId: webhookId,
+            token: token,
+            messageId: messageId,
+            query: query
+        )
+    }
+
     public func getGateway() async throws -> GatewayInfo {
         try await rest.getGateway()
     }
@@ -214,12 +321,24 @@ public final class DiscordBot: Sendable {
         try await rest.getMessagePins(channelId: channelId, query: query)
     }
 
+    public func getPins(_ channelId: String) async throws -> [Message] {
+        try await rest.getPins(channelId: channelId)
+    }
+
     public func pinMessage(channelId: String, messageId: String, auditLogReason: String? = nil) async throws {
         try await rest.pinMessage(channelId: channelId, messageId: messageId, auditLogReason: auditLogReason)
     }
 
+    public func pin(channelId: String, messageId: String, auditLogReason: String? = nil) async throws {
+        try await rest.pin(channelId: channelId, messageId: messageId, auditLogReason: auditLogReason)
+    }
+
     public func unpinMessage(channelId: String, messageId: String, auditLogReason: String? = nil) async throws {
         try await rest.unpinMessage(channelId: channelId, messageId: messageId, auditLogReason: auditLogReason)
+    }
+
+    public func unpin(channelId: String, messageId: String, auditLogReason: String? = nil) async throws {
+        try await rest.unpin(channelId: channelId, messageId: messageId, auditLogReason: auditLogReason)
     }
 
     public func createReaction(channelId: String, messageId: String, emoji: String) async throws {
@@ -265,6 +384,10 @@ public final class DiscordBot: Sendable {
             channel: channel,
             auditLogReason: auditLogReason
         )
+    }
+
+    public func getGuildWebhooks(_ guildId: String) async throws -> [Webhook] {
+        try await rest.getGuildWebhooks(guildId: guildId)
     }
 
     public func getGuildInvites(_ guildId: String) async throws -> [Invite] {
@@ -331,6 +454,36 @@ public final class DiscordBot: Sendable {
 
     public func getGuildRoles(_ guildId: String) async throws -> [GuildRole] {
         try await rest.getGuildRoles(guildId: guildId)
+    }
+
+    public func createGuildRole(
+        guildId: String,
+        role: CreateGuildRole,
+        auditLogReason: String? = nil
+    ) async throws -> GuildRole {
+        try await rest.createGuildRole(guildId: guildId, role: role, auditLogReason: auditLogReason)
+    }
+
+    public func getGuildRole(guildId: String, roleId: String) async throws -> GuildRole {
+        try await rest.getGuildRole(guildId: guildId, roleId: roleId)
+    }
+
+    public func modifyGuildRole(
+        guildId: String,
+        roleId: String,
+        modify: ModifyGuildRole,
+        auditLogReason: String? = nil
+    ) async throws -> GuildRole {
+        try await rest.modifyGuildRole(
+            guildId: guildId,
+            roleId: roleId,
+            modify: modify,
+            auditLogReason: auditLogReason
+        )
+    }
+
+    public func deleteGuildRole(guildId: String, roleId: String, auditLogReason: String? = nil) async throws {
+        try await rest.deleteGuildRole(guildId: guildId, roleId: roleId, auditLogReason: auditLogReason)
     }
 
     public func deleteInvite(code: String, auditLogReason: String? = nil) async throws -> Invite {

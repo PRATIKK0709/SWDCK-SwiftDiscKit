@@ -9,6 +9,10 @@ enum Routes {
         "\(baseURL)/channels/\(channelId)"
     }
 
+    static func channelWebhooks(_ channelId: String) -> String {
+        "\(baseURL)/channels/\(channelId)/webhooks"
+    }
+
     static func messages(_ channelId: String) -> String {
         "\(baseURL)/channels/\(channelId)/messages"
     }
@@ -25,8 +29,16 @@ enum Routes {
         "\(baseURL)/channels/\(channelId)/messages/pins"
     }
 
+    static func pins(_ channelId: String) -> String {
+        "\(baseURL)/channels/\(channelId)/pins"
+    }
+
     static func messagePin(_ channelId: String, messageId: String) -> String {
         "\(baseURL)/channels/\(channelId)/messages/pins/\(messageId)"
+    }
+
+    static func pin(_ channelId: String, messageId: String) -> String {
+        "\(baseURL)/channels/\(channelId)/pins/\(messageId)"
     }
 
     static func message(_ channelId: String, messageId: String) -> String {
@@ -89,6 +101,10 @@ enum Routes {
         "\(baseURL)/guilds/\(guildId)"
     }
 
+    static func guildWebhooks(_ guildId: String) -> String {
+        "\(baseURL)/guilds/\(guildId)/webhooks"
+    }
+
     static func guildInvites(_ guildId: String) -> String {
         "\(baseURL)/guilds/\(guildId)/invites"
     }
@@ -109,6 +125,10 @@ enum Routes {
         "\(baseURL)/guilds/\(guildId)/roles"
     }
 
+    static func guildRole(_ guildId: String, roleId: String) -> String {
+        "\(baseURL)/guilds/\(guildId)/roles/\(roleId)"
+    }
+
     static func guildChannels(_ guildId: String) -> String {
         "\(baseURL)/guilds/\(guildId)/channels"
     }
@@ -119,6 +139,18 @@ enum Routes {
 
     static func invite(_ code: String) -> String {
         "\(baseURL)/invites/\(code)"
+    }
+
+    static func webhook(_ webhookId: String) -> String {
+        "\(baseURL)/webhooks/\(webhookId)"
+    }
+
+    static func webhook(_ webhookId: String, token: String) -> String {
+        "\(baseURL)/webhooks/\(webhookId)/\(token)"
+    }
+
+    static func webhookMessage(_ webhookId: String, token: String, messageId: String) -> String {
+        "\(baseURL)/webhooks/\(webhookId)/\(token)/messages/\(messageId)"
     }
 
     static func globalCommands(_ applicationId: String) -> String {
