@@ -34,13 +34,14 @@ public final class DiscordBot: Sendable {
 
     public init(
         token: String,
+        authPrefix: String = "Bot",
         intents: GatewayIntents = .default,
         commandSyncMode: CommandSyncMode = .global
     ) {
         self.token = token
         self.intents = intents
         self.commandSyncMode = commandSyncMode
-        self.rest = RESTClient(token: token)
+        self.rest = RESTClient(token: token, authPrefix: authPrefix)
         self.gateway = GatewayClient(token: token, intents: intents)
         self.commandRegistry = CommandRegistry()
     }

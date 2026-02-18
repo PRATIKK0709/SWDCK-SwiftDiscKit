@@ -9,16 +9,30 @@ public final class RESTClient: Sendable {
     private let maxRetries = 3
 
     private let applicationIdCache = ApplicationIDCache()
-
-    public init(token: String, authPrefix: String = "Bot") {
-        self.token = token
-        self.authPrefix = authPrefix
-        self.rateLimiter = RateLimiter()
+    public convenience init(token: String, authPrefix: String = "Bot") {
         let config = URLSessionConfiguration.default
         config.httpAdditionalHeaders = [
             "User-Agent": "DiscordBot (DiscordKit, 1.0.0)"
         ]
-        self.session = URLSession(configuration: config)
+        let session = URLSession(configuration: config)
+        self.init(
+            token: token,
+            authPrefix: authPrefix,
+            session: session,
+            rateLimiter: RateLimiter()
+        )
+    }
+
+    init(
+        token: String,
+        authPrefix: String = "Bot",
+        session: URLSession,
+        rateLimiter: RateLimiter
+    ) {
+        self.token = token
+        self.authPrefix = authPrefix
+        self.session = session
+        self.rateLimiter = rateLimiter
     }
 
 
@@ -1939,7 +1953,37 @@ public final class RESTClient: Sendable {
     }
 
     func normalizedRateLimitPath(from path: String) -> String {
-        path.replacingOccurrences(of: #"/\d+"#, with: "/:id", options: .regularExpression)
+        let segments = path.split(separator: "/", omittingEmptySubsequences: true).map(String.init)
+        guard !segments.isEmpty else { return path }
+
+        var normalized = segments
+        for index in segments.indices where isSnowflake(segments[index]) {
+            if isMajorParameter(at: index, segments: segments) {
+                continue
+            }
+            normalized[index] = ":id"
+        }
+
+        return "/" + normalized.joined(separator: "/")
+    }
+
+    func isMajorParameter(at index: Int, segments: [String]) -> Bool {
+        guard index > 0 else { return false }
+
+        let previous = segments[index - 1]
+        if previous == "channels" || previous == "guilds" || previous == "webhooks" {
+            return true
+        }
+
+        if index == 2, segments.first == "webhooks" {
+            return true
+        }
+
+        return false
+    }
+
+    func isSnowflake(_ value: String) -> Bool {
+        !value.isEmpty && value.allSatisfy(\.isNumber)
     }
 
     func deleteInvite(code: String, auditLogReason: String? = nil) async throws -> Invite {

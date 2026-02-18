@@ -23,6 +23,7 @@ actor GatewayClient {
     private var lastSequence: Int?
     private var reconnectAttempts = 0
     private let maxReconnectDelay: Double = 60
+    private static let defaultGatewayURL = "wss://gateway.discord.gg/?v=10&encoding=json"
 
     private var onDispatch: (@Sendable (String, RawJSON) async -> Void)?
     private var onReady: (@Sendable (ReadyData) async -> Void)?
@@ -238,13 +239,25 @@ actor GatewayClient {
         try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
 
         do {
-            let url = (canResume ? resumeGatewayURL : nil) ?? initialGatewayURL ?? "wss://gateway.discord.gg/?v=10&encoding=json"
+            let url = Self.resolvedReconnectURL(
+                canResume: canResume,
+                resumeGatewayURL: resumeGatewayURL,
+                initialGatewayURL: initialGatewayURL
+            )
             state = .connecting
             try await openWebSocket(to: url)
         } catch {
             logger.error("Reconnect failed: \(error)")
             await scheduleReconnect(canResume: false)
         }
+    }
+
+    static func resolvedReconnectURL(
+        canResume: Bool,
+        resumeGatewayURL: String?,
+        initialGatewayURL: String?
+    ) -> String {
+        (canResume ? resumeGatewayURL : nil) ?? initialGatewayURL ?? defaultGatewayURL
     }
 
 
