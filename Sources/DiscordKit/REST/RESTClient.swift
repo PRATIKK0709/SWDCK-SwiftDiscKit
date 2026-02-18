@@ -3,12 +3,16 @@ import Foundation
 public final class RESTClient: Sendable {
 
     private let token: String
+    private let authPrefix: String
     private let session: URLSession
     private let rateLimiter: RateLimiter
     private let maxRetries = 3
 
-    init(token: String) {
+    private let applicationIdCache = ApplicationIDCache()
+
+    public init(token: String, authPrefix: String = "Bot") {
         self.token = token
+        self.authPrefix = authPrefix
         self.rateLimiter = RateLimiter()
         let config = URLSessionConfiguration.default
         config.httpAdditionalHeaders = [
@@ -51,7 +55,7 @@ public final class RESTClient: Sendable {
 
         var request = URLRequest(url: url)
         request.httpMethod = method
-        request.setValue("Bot \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("\(authPrefix) \(token)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         for (key, value) in headers {
             request.setValue(value, forHTTPHeaderField: key)
@@ -61,7 +65,8 @@ public final class RESTClient: Sendable {
             request.httpBody = try JSONCoder.encode(body)
         }
 
-        let routeKey = "\(method):\(url.path)"
+        let normalizedPath = normalizedRateLimitPath(from: url.path)
+        let routeKey = "\(method):\(normalizedPath)"
 
         for attempt in 1...maxRetries {
             if attempt > 1 {
@@ -166,7 +171,7 @@ public final class RESTClient: Sendable {
 
         var request = URLRequest(url: url)
         request.httpMethod = method
-        request.setValue("Bot \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("\(authPrefix) \(token)", forHTTPHeaderField: "Authorization")
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
         request.httpBody = body
 
@@ -174,7 +179,8 @@ public final class RESTClient: Sendable {
             request.setValue(value, forHTTPHeaderField: key)
         }
 
-        let routeKey = "\(method):\(url.path)"
+        let normalizedPath = normalizedRateLimitPath(from: url.path)
+        let routeKey = "\(method):\(normalizedPath)"
 
         for attempt in 1...maxRetries {
             await rateLimiter.waitIfNeeded(for: routeKey)
@@ -202,10 +208,30 @@ public final class RESTClient: Sendable {
             case 401:
                 throw DiscordError.invalidToken
             case 429:
-                let retryAfter = headerDouble("Retry-After", from: httpResponse.allHeaderFields) ?? 1.0
-                try? await Task.sleep(nanoseconds: UInt64(retryAfter * 1_000_000_000))
+                let retryResponse = try? JSONCoder.decode(RateLimitResponse.self, from: data)
+                let retryAfter = retryResponse?.retryAfter
+                    ?? headerDouble("Retry-After", from: httpResponse.allHeaderFields)
+                    ?? 1.0
+                let isGlobal = retryResponse?.global
+                    ?? headerBool("X-RateLimit-Global", from: httpResponse.allHeaderFields)
+                    ?? false
+
+                logger.warning("Rate limited on multipart \(method) \(url.path). Retry after \(retryAfter)s. Global=\(isGlobal)")
+
+                if isGlobal {
+                    await rateLimiter.handleGlobalRateLimit(retryAfter: retryAfter)
+                } else {
+                    try? await Task.sleep(nanoseconds: UInt64(retryAfter * 1_000_000_000))
+                }
+
                 if attempt < maxRetries { continue }
                 throw DiscordError.rateLimited(retryAfter: retryAfter)
+
+            case 400...599:
+                 // Reuse standard error logic
+                 let bodyStr = String(data: data, encoding: .utf8) ?? "<binary>"
+                 throw DiscordError.httpError(statusCode: httpResponse.statusCode, body: bodyStr)
+
             default:
                 let bodyStr = String(data: data, encoding: .utf8) ?? "<binary>"
                 throw DiscordError.httpError(statusCode: httpResponse.statusCode, body: bodyStr)
@@ -1901,15 +1927,19 @@ public final class RESTClient: Sendable {
     }
 
 
-    private nonisolated(unsafe) var cachedApplicationId: String?
 
     func getApplicationId() async throws -> String {
-        if let cached = cachedApplicationId {
+        if let cached = await applicationIdCache.get() {
             return cached
         }
         let user = try await getCurrentUser()
-        cachedApplicationId = user.id
-        return user.id
+        let appId = user.id
+        await applicationIdCache.set(appId)
+        return appId
+    }
+
+    func normalizedRateLimitPath(from path: String) -> String {
+        path.replacingOccurrences(of: #"/\d+"#, with: "/:id", options: .regularExpression)
     }
 
     func deleteInvite(code: String, auditLogReason: String? = nil) async throws -> Invite {
@@ -2735,6 +2765,18 @@ private struct RateLimitResponse: Decodable {
 
 private struct DiscordAPIErrorPayload: Decodable {
     let message: String?
+}
+
+private actor ApplicationIDCache {
+    private var value: String?
+
+    func get() -> String? {
+        value
+    }
+
+    func set(_ id: String) {
+        value = id
+    }
 }
 
 

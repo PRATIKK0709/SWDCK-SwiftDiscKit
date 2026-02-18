@@ -1455,7 +1455,22 @@ public final class DiscordBot: Sendable {
             }
         )
 
-        try await gateway.connect()
+        let gatewayBot = try await rest.getGatewayBot()
+        let shardInfo = gatewayBot.shards.map(String.init) ?? "unspecified"
+        logger.info("Gateway recommendation: \(shardInfo) shards, url: \(gatewayBot.url)")
+
+        var components = URLComponents(string: gatewayBot.url)
+        var queryItems = components?.queryItems ?? []
+        if !queryItems.contains(where: { $0.name == "v" }) {
+            queryItems.append(URLQueryItem(name: "v", value: "10"))
+        }
+        if !queryItems.contains(where: { $0.name == "encoding" }) {
+            queryItems.append(URLQueryItem(name: "encoding", value: "json"))
+        }
+        components?.queryItems = queryItems.isEmpty ? nil : queryItems
+        let url = components?.url?.absoluteString ?? "\(gatewayBot.url)?v=10&encoding=json"
+
+        try await gateway.connect(with: url)
     }
 
     public func stop() async {

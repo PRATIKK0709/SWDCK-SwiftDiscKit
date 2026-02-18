@@ -129,7 +129,7 @@ Full authoritative status for all 219 endpoints is in the matrix below.
 | Status | Method | Endpoint | Source | SwiftDiscKit Mapping |
 |---|---|---|---|---|
 | Implemented | `GET` | `/gateway` | `developers/events/gateway.mdx` | RESTClient.getGateway |
-| Implemented | `GET` | `/gateway/bot` | `developers/events/gateway.mdx` | RESTClient.getGatewayBot |
+| Implemented | `GET` | `/gateway/bot` | `developers/events/gateway.mdx` | RESTClient.getGatewayBot (Used in DiscordBot.start) |
 | Implemented | `DELETE` | `/applications/{application.id}/commands/{command.id}` | `developers/interactions/application-commands.mdx` | RESTClient.deleteGlobalCommand |
 | Implemented | `DELETE` | `/applications/{application.id}/guilds/{guild.id}/commands/{command.id}` | `developers/interactions/application-commands.mdx` | RESTClient.deleteGuildCommand |
 | Implemented | `GET` | `/applications/{application.id}/commands` | `developers/interactions/application-commands.mdx` | RESTClient.getGlobalCommands |
