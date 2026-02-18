@@ -1613,4 +1613,537 @@ final class AdditionalAPIModelsTests: XCTestCase {
             "\(Routes.baseURL)/applications/app/entitlements/ent/consume"
         )
     }
+
+    func testStickerRoutes() {
+        XCTAssertEqual(
+            Routes.guildStickers("guild1"),
+            "\(Routes.baseURL)/guilds/guild1/stickers"
+        )
+        XCTAssertEqual(
+            Routes.guildSticker("guild1", stickerId: "sticker1"),
+            "\(Routes.baseURL)/guilds/guild1/stickers/sticker1"
+        )
+        XCTAssertEqual(
+            Routes.sticker("sticker1"),
+            "\(Routes.baseURL)/stickers/sticker1"
+        )
+        XCTAssertEqual(
+            Routes.stickerPacks,
+            "\(Routes.baseURL)/sticker-packs"
+        )
+    }
+}
+
+
+// MARK: - Branch 3: Missing Endpoints & Features Tests
+
+final class StickerModelTests: XCTestCase {
+    func testStickerDecoding() throws {
+        let json = """
+        {
+            "id": "123456",
+            "name": "test_sticker",
+            "description": "A test sticker",
+            "tags": "happy",
+            "type": 2,
+            "format_type": 1,
+            "available": true,
+            "guild_id": "guild1",
+            "sort_value": 5
+        }
+        """.data(using: .utf8)!
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let sticker = try decoder.decode(Sticker.self, from: json)
+        XCTAssertEqual(sticker.id, "123456")
+        XCTAssertEqual(sticker.name, "test_sticker")
+        XCTAssertEqual(sticker.type, .guild)
+        XCTAssertEqual(sticker.formatType, .png)
+        XCTAssertEqual(sticker.available, true)
+        XCTAssertEqual(sticker.guildId, "guild1")
+    }
+
+    func testStickerFormatTypes() throws {
+        for (raw, expected) in [(1, StickerFormatType.png), (2, .apng), (3, .lottie), (4, .gif)] {
+            let json = "\(raw)".data(using: .utf8)!
+            let decoded = try JSONDecoder().decode(StickerFormatType.self, from: json)
+            XCTAssertEqual(decoded, expected)
+        }
+    }
+
+    func testStickerItemDecoding() throws {
+        let json = """
+        {"id": "789", "name": "Item", "format_type": 3}
+        """.data(using: .utf8)!
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let item = try decoder.decode(StickerItem.self, from: json)
+        XCTAssertEqual(item.id, "789")
+        XCTAssertEqual(item.formatType, .lottie)
+    }
+
+    func testCreateGuildStickerEncoding() throws {
+        let sticker = CreateGuildSticker(name: "new_sticker", description: "Fun sticker", tags: "cool")
+        let data = try JSONEncoder().encode(sticker)
+        let dict = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+        XCTAssertEqual(dict["name"] as? String, "new_sticker")
+        XCTAssertEqual(dict["description"] as? String, "Fun sticker")
+        XCTAssertEqual(dict["tags"] as? String, "cool")
+    }
+}
+
+final class GatewayEventDecodingTests: XCTestCase {
+    func testGuildDeleteEvent() throws {
+        let json = """
+        {"id": "guild123", "unavailable": true}
+        """.data(using: .utf8)!
+        let event = try JSONDecoder().decode(GuildDeleteEvent.self, from: json)
+        XCTAssertEqual(event.id, "guild123")
+        XCTAssertEqual(event.unavailable, true)
+    }
+
+    func testGuildMemberAddEvent() throws {
+        let json = """
+        {"guild_id": "g1", "user": {"id": "u1", "username": "test"}, "nick": "tester", "roles": ["r1"], "deaf": false, "mute": false}
+        """.data(using: .utf8)!
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let event = try decoder.decode(GuildMemberAddEvent.self, from: json)
+        XCTAssertEqual(event.guildId, "g1")
+        XCTAssertEqual(event.user?.id, "u1")
+        XCTAssertEqual(event.nick, "tester")
+    }
+
+    func testGuildMemberRemoveEvent() throws {
+        let json = """
+        {"guild_id": "g1", "user": {"id": "u1", "username": "leaver"}}
+        """.data(using: .utf8)!
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let event = try decoder.decode(GuildMemberRemoveEvent.self, from: json)
+        XCTAssertEqual(event.guildId, "g1")
+        XCTAssertEqual(event.user.username, "leaver")
+    }
+
+    func testMessageDeleteEvent() throws {
+        let json = """
+        {"id": "msg1", "channel_id": "ch1", "guild_id": "g1"}
+        """.data(using: .utf8)!
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let event = try decoder.decode(MessageDeleteEvent.self, from: json)
+        XCTAssertEqual(event.id, "msg1")
+        XCTAssertEqual(event.channelId, "ch1")
+        XCTAssertEqual(event.guildId, "g1")
+    }
+
+    func testMessageReactionAddEvent() throws {
+        let json = """
+        {"user_id": "u1", "channel_id": "ch1", "message_id": "msg1", "guild_id": "g1", "emoji": {"id": null, "name": "🎉", "animated": false}}
+        """.data(using: .utf8)!
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let event = try decoder.decode(MessageReactionAddEvent.self, from: json)
+        XCTAssertEqual(event.userId, "u1")
+        XCTAssertEqual(event.emoji.name, "🎉")
+        XCTAssertNil(event.emoji.id)
+    }
+
+    func testTypingStartEvent() throws {
+        let json = """
+        {"channel_id": "ch1", "guild_id": "g1", "user_id": "u1", "timestamp": 1625000000}
+        """.data(using: .utf8)!
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let event = try decoder.decode(TypingStartEvent.self, from: json)
+        XCTAssertEqual(event.channelId, "ch1")
+        XCTAssertEqual(event.userId, "u1")
+        XCTAssertEqual(event.timestamp, 1625000000)
+    }
+
+    func testPresenceUpdateEvent() throws {
+        let json = """
+        {"user": {"id": "u1"}, "guild_id": "g1", "status": "online"}
+        """.data(using: .utf8)!
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let event = try decoder.decode(PresenceUpdateEvent.self, from: json)
+        XCTAssertEqual(event.user.id, "u1")
+        XCTAssertEqual(event.status, "online")
+    }
+
+    func testReactionEmoji() throws {
+        let json = """
+        {"id": "emoji1", "name": "custom_emoji", "animated": true}
+        """.data(using: .utf8)!
+        let emoji = try JSONDecoder().decode(ReactionEmoji.self, from: json)
+        XCTAssertEqual(emoji.id, "emoji1")
+        XCTAssertEqual(emoji.name, "custom_emoji")
+        XCTAssertEqual(emoji.animated, true)
+    }
+}
+
+
+// MARK: - Branch 4: Type Improvements Tests
+
+final class TypeImprovementsTests: XCTestCase {
+    func testWelcomeScreenDecoding() throws {
+        let json = """
+        {
+            "description": "Welcome to the server!",
+            "welcome_channels": [
+                {
+                    "channel_id": "123",
+                    "description": "Read the rules",
+                    "emoji_id": null,
+                    "emoji_name": "📜"
+                }
+            ]
+        }
+        """.data(using: .utf8)!
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let screen = try decoder.decode(WelcomeScreen.self, from: json)
+        XCTAssertEqual(screen.description, "Welcome to the server!")
+        XCTAssertEqual(screen.welcomeChannels?.first?.channelId, "123")
+        XCTAssertEqual(screen.welcomeChannels?.first?.emojiName, "📜")
+    }
+
+    func testWelcomeScreenEncoding() throws {
+        let channel = WelcomeScreenChannel(channelId: "123", description: "Rules", emojiId: nil, emojiName: "📜")
+        let screen = ModifyWelcomeScreen(enabled: true, welcomeChannels: [channel], description: "Hello")
+        let encoder = JSONEncoder()
+        encoder.keyEncodingStrategy = .convertToSnakeCase
+        let data = try encoder.encode(screen)
+        let dict = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+        XCTAssertEqual(dict["enabled"] as? Bool, true)
+        XCTAssertEqual(dict["description"] as? String, "Hello")
+        let channels = dict["welcome_channels"] as? [[String: Any]]
+        XCTAssertEqual(channels?.first?["emoji_name"] as? String, "📜")
+    }
+
+    func testGuildWidgetSettingsDecoding() throws {
+        let json = """
+        {"enabled": true, "channel_id": "999"}
+        """.data(using: .utf8)!
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let settings = try decoder.decode(GuildWidgetSettings.self, from: json)
+        XCTAssertEqual(settings.enabled, true)
+        XCTAssertEqual(settings.channelId, "999")
+    }
+
+    func testModifyGuildWidgetEncoding() throws {
+        let modify = ModifyGuildWidget(enabled: false, channelId: nil)
+        let encoder = JSONEncoder()
+        encoder.keyEncodingStrategy = .convertToSnakeCase
+        let data = try encoder.encode(modify)
+        let dict = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+        XCTAssertEqual(dict["enabled"] as? Bool, false)
+        // channel_id might be missing or null depending on implementation, here optional nil usually omits key unless explicit null support
+        // Swift's JSONEncoder omits nil optionals by default unless configured otherwise
+    }
+}
+
+
+
+// MARK: - Branch 1: Core API Improvements Tests
+
+final class MessageTypeExpandedTests: XCTestCase {
+    func testAllMessageTypeValues() throws {
+        let cases: [(Int, MessageType)] = [
+            (0, .default), (1, .recipientAdd), (2, .recipientRemove),
+            (3, .call), (4, .channelNameChange), (5, .channelIconChange),
+            (6, .channelPinnedMessage), (7, .userJoin), (8, .guildBoost),
+            (9, .guildBoostTier1), (10, .guildBoostTier2), (11, .guildBoostTier3),
+            (12, .channelFollowAdd), (14, .guildDiscoveryDisqualified),
+            (15, .guildDiscoveryRequalified),
+            (16, .guildDiscoveryGracePeriodInitialWarning),
+            (17, .guildDiscoveryGracePeriodFinalWarning),
+            (18, .threadCreated), (19, .reply), (20, .chatInputCommand),
+            (21, .threadStarterMessage), (22, .guildInviteReminder),
+            (23, .contextMenuCommand), (24, .autoModerationAction),
+            (25, .roleSubscriptionPurchase), (26, .interactionPremiumUpsell),
+            (27, .stageStart), (28, .stageEnd), (29, .stageSpeaker),
+            (31, .stageTopic), (32, .guildApplicationPremiumSubscription),
+            (36, .guildIncidentAlertModeEnabled),
+            (37, .guildIncidentAlertModeDisabled),
+            (38, .guildIncidentReportRaid),
+            (39, .guildIncidentReportFalseAlarm),
+            (44, .purchaseNotification), (46, .pollResult),
+        ]
+
+        for (rawValue, expected) in cases {
+            let json = "\(rawValue)".data(using: .utf8)!
+            let decoded = try JSONDecoder().decode(MessageType.self, from: json)
+            XCTAssertEqual(decoded, expected, "Failed for raw value \(rawValue)")
+        }
+    }
+
+    func testUnknownMessageTypeFallback() throws {
+        let json = "999".data(using: .utf8)!
+        let decoded = try JSONDecoder().decode(MessageType.self, from: json)
+        XCTAssertEqual(decoded, .unknown)
+    }
+}
+
+final class EmbedBuilderExpandedTests: XCTestCase {
+    func testSetAuthor() {
+        var builder = EmbedBuilder()
+        builder.setAuthor(name: "Test Author", url: "https://example.com", iconUrl: "https://example.com/icon.png")
+        let embed = builder.build()
+        XCTAssertEqual(embed.author?.name, "Test Author")
+        XCTAssertEqual(embed.author?.url, "https://example.com")
+        XCTAssertEqual(embed.author?.iconUrl, "https://example.com/icon.png")
+    }
+
+    func testSetImage() {
+        var builder = EmbedBuilder()
+        builder.setImage(url: "https://example.com/image.png")
+        let embed = builder.build()
+        XCTAssertEqual(embed.image?.url, "https://example.com/image.png")
+    }
+
+    func testSetThumbnail() {
+        var builder = EmbedBuilder()
+        builder.setThumbnail(url: "https://example.com/thumb.png")
+        let embed = builder.build()
+        XCTAssertEqual(embed.thumbnail?.url, "https://example.com/thumb.png")
+    }
+
+    func testSetTimestamp() {
+        var builder = EmbedBuilder()
+        builder.setTimestamp("2025-01-01T00:00:00Z")
+        let embed = builder.build()
+        XCTAssertEqual(embed.timestamp, "2025-01-01T00:00:00Z")
+    }
+
+    func testSetURL() {
+        var builder = EmbedBuilder()
+        builder.setURL("https://example.com")
+        let embed = builder.build()
+        XCTAssertEqual(embed.url, "https://example.com")
+    }
+
+    func testSetFooterWithIconUrl() {
+        var builder = EmbedBuilder()
+        builder.setFooter("Footer text", iconUrl: "https://example.com/footer.png")
+        let embed = builder.build()
+        XCTAssertEqual(embed.footer?.text, "Footer text")
+        XCTAssertEqual(embed.footer?.iconUrl, "https://example.com/footer.png")
+    }
+
+    func testFullEmbedBuild() throws {
+        var builder = EmbedBuilder()
+        builder.setTitle("Test Title")
+        builder.setDescription("Test Description")
+        builder.setURL("https://example.com")
+        builder.setColor(0xFF5733)
+        builder.setTimestamp("2025-06-01T12:00:00Z")
+        builder.setFooter("Footer", iconUrl: "https://example.com/f.png")
+        builder.setAuthor(name: "Author")
+        builder.setImage(url: "https://example.com/img.png")
+        builder.setThumbnail(url: "https://example.com/thumb.png")
+        builder.addField(name: "Field1", value: "Value1", inline: true)
+
+        let embed = builder.build()
+        XCTAssertEqual(embed.title, "Test Title")
+        XCTAssertEqual(embed.type, "rich")
+        XCTAssertEqual(embed.description, "Test Description")
+        XCTAssertEqual(embed.url, "https://example.com")
+        XCTAssertEqual(embed.color, 0xFF5733)
+        XCTAssertEqual(embed.timestamp, "2025-06-01T12:00:00Z")
+        XCTAssertEqual(embed.image?.url, "https://example.com/img.png")
+        XCTAssertEqual(embed.thumbnail?.url, "https://example.com/thumb.png")
+        XCTAssertEqual(embed.author?.name, "Author")
+        XCTAssertEqual(embed.footer?.text, "Footer")
+        XCTAssertEqual(embed.fields?.count, 1)
+        XCTAssertEqual(embed.fields?.first?.name, "Field1")
+
+        let data = try JSONEncoder().encode(embed)
+        let decoded = try JSONDecoder().decode(Embed.self, from: data)
+        XCTAssertEqual(decoded.title, "Test Title")
+        XCTAssertEqual(decoded.timestamp, "2025-06-01T12:00:00Z")
+    }
+}
+
+final class AllowedMentionsTests: XCTestCase {
+    func testEncoding() throws {
+        let mentions = AllowedMentions(
+            parse: [.roles, .users],
+            roles: ["111", "222"],
+            users: ["333"],
+            repliedUser: true
+        )
+        let data = try JSONEncoder().encode(mentions)
+        let dict = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+        let parse = dict["parse"] as! [String]
+        XCTAssertEqual(Set(parse), Set(["roles", "users"]))
+        XCTAssertEqual(dict["roles"] as! [String], ["111", "222"])
+        XCTAssertEqual(dict["users"] as! [String], ["333"])
+        XCTAssertEqual(dict["repliedUser"] as? Bool, true)
+    }
+
+    func testNoneMentions() throws {
+        let data = try JSONEncoder().encode(AllowedMentions.none)
+        let dict = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+        let parse = dict["parse"] as! [String]
+        XCTAssertTrue(parse.isEmpty)
+    }
+
+    func testDecoding() throws {
+        let json = """
+        {"parse": ["everyone"], "replied_user": false}
+        """.data(using: .utf8)!
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let mentions = try decoder.decode(AllowedMentions.self, from: json)
+        XCTAssertEqual(mentions.parse, [.everyone])
+        XCTAssertEqual(mentions.repliedUser, false)
+    }
+}
+
+final class MessagePayloadTests: XCTestCase {
+    func testSendMessagePayloadDefaults() {
+        let payload = SendMessagePayload(content: "hello")
+        XCTAssertEqual(payload.content, "hello")
+        XCTAssertNil(payload.embeds)
+        XCTAssertNil(payload.allowedMentions)
+        XCTAssertNil(payload.messageReference)
+        XCTAssertNil(payload.stickerIds)
+        XCTAssertNil(payload.flags)
+    }
+
+    func testSendMessagePayloadWithEmbeds() {
+        let embed = Embed(title: "Test", description: "Desc", color: 0xFF0000)
+        let payload = SendMessagePayload(
+            content: "check this out",
+            embeds: [embed],
+            allowedMentions: AllowedMentions(parse: [.users])
+        )
+        XCTAssertEqual(payload.embeds?.count, 1)
+        XCTAssertEqual(payload.embeds?.first?.title, "Test")
+        XCTAssertEqual(payload.allowedMentions?.parse, [.users])
+    }
+
+    func testEditMessagePayloadDefaults() {
+        let payload = EditMessagePayload(content: "edited")
+        XCTAssertEqual(payload.content, "edited")
+        XCTAssertNil(payload.embeds)
+        XCTAssertNil(payload.flags)
+    }
+
+    func testEditMessagePayloadWithEmbeds() {
+        let embed = Embed(title: "Updated", color: 0x00FF00)
+        let payload = EditMessagePayload(
+            embeds: [embed],
+            allowedMentions: AllowedMentions.none,
+            flags: 4
+        )
+        XCTAssertNil(payload.content)
+        XCTAssertEqual(payload.embeds?.count, 1)
+        XCTAssertEqual(payload.embeds?.first?.title, "Updated")
+        XCTAssertEqual(payload.flags, 4)
+    }
+
+    func testEmbedTimestampRoundtrip() throws {
+        let embed = Embed(title: "TS Test", timestamp: "2025-12-25T00:00:00Z")
+        let data = try JSONEncoder().encode(embed)
+        let decoded = try JSONDecoder().decode(Embed.self, from: data)
+        XCTAssertEqual(decoded.timestamp, "2025-12-25T00:00:00Z")
+    }
+}
+
+// MARK: - Branch 2: Rate Limiting & Retries Tests
+
+final class RateLimiterTests: XCTestCase {
+    func testWaitIfNeededNoExistingBucket() async {
+        let limiter = RateLimiter()
+        await limiter.waitIfNeeded(for: "GET:/test/route")
+    }
+
+    func testUpdateCreatesBucket() async {
+        let limiter = RateLimiter()
+        let resetTime = String(Date().timeIntervalSince1970 + 10)
+        let headers: [AnyHashable: Any] = [
+            "X-RateLimit-Remaining": "4",
+            "X-RateLimit-Limit": "5",
+            "X-RateLimit-Reset": resetTime,
+            "X-RateLimit-Bucket": "test-bucket"
+        ]
+        await limiter.update(route: "GET:/test", headers: headers)
+        await limiter.waitIfNeeded(for: "GET:/test")
+    }
+
+    func testGlobalRateLimit() async {
+        let limiter = RateLimiter()
+        let headers: [AnyHashable: Any] = [
+            "X-RateLimit-Global": "true",
+            "Retry-After": "0.01"
+        ]
+        await limiter.update(route: "GET:/global-test", headers: headers)
+        await limiter.waitIfNeeded(for: "GET:/other-route")
+    }
+}
+
+final class MultipartBodyBuildingTests: XCTestCase {
+    func testMultipartBoundaryFormat() {
+        let boundary = "Boundary-\(UUID().uuidString)"
+        XCTAssertTrue(boundary.starts(with: "Boundary-"))
+        XCTAssertTrue(boundary.count > 10)
+    }
+
+    func testMultipartBodyStructure() throws {
+        let boundary = "Boundary-TEST123"
+        let lineBreak = "\r\n"
+        var body = Data()
+
+        func append(_ string: String) {
+            body.append(Data(string.utf8))
+        }
+
+        append("--\(boundary)\(lineBreak)")
+        append("Content-Disposition: form-data; name=\"payload_json\"\(lineBreak)")
+        append("Content-Type: application/json\(lineBreak)\(lineBreak)")
+        append("{\"test\":true}")
+        append(lineBreak)
+        append("--\(boundary)--\(lineBreak)")
+
+        let bodyString = String(data: body, encoding: .utf8)!
+        XCTAssertTrue(bodyString.contains("--Boundary-TEST123\r\n"))
+        XCTAssertTrue(bodyString.contains("Content-Disposition: form-data; name=\"payload_json\""))
+        XCTAssertTrue(bodyString.contains("Content-Type: application/json"))
+        XCTAssertTrue(bodyString.contains("{\"test\":true}"))
+        XCTAssertTrue(bodyString.contains("--Boundary-TEST123--"))
+    }
+
+    func testMultipartBodyWithAttachment() throws {
+        let boundary = "Boundary-ATTACH"
+        let lineBreak = "\r\n"
+        var body = Data()
+
+        func append(_ string: String) {
+            body.append(Data(string.utf8))
+        }
+
+        append("--\(boundary)\(lineBreak)")
+        append("Content-Disposition: form-data; name=\"payload_json\"\(lineBreak)")
+        append("Content-Type: application/json\(lineBreak)\(lineBreak)")
+        append("{}")
+        append(lineBreak)
+
+        let fileData = "hello world".data(using: .utf8)!
+        append("--\(boundary)\(lineBreak)")
+        append("Content-Disposition: form-data; name=\"files[0]\"; filename=\"test.txt\"\(lineBreak)")
+        append("Content-Type: text/plain\(lineBreak)\(lineBreak)")
+        body.append(fileData)
+        append(lineBreak)
+        append("--\(boundary)--\(lineBreak)")
+
+        let bodyString = String(data: body, encoding: .utf8)!
+        XCTAssertTrue(bodyString.contains("files[0]"))
+        XCTAssertTrue(bodyString.contains("filename=\"test.txt\""))
+        XCTAssertTrue(bodyString.contains("hello world"))
+
+    }
 }

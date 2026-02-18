@@ -153,6 +153,67 @@ public final class RESTClient: Sendable {
         throw DiscordError.connectionFailed(reason: "Max retries exceeded for \(method) \(urlString)")
     }
 
+    func requestMultipart<T: Decodable>(
+        method: String,
+        url urlString: String,
+        body: Data,
+        boundary: String,
+        extraHeaders: [String: String]
+    ) async throws -> T {
+        guard let url = URL(string: urlString) else {
+            throw DiscordError.connectionFailed(reason: "Invalid URL: \(urlString)")
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = method
+        request.setValue("Bot \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        request.httpBody = body
+
+        for (key, value) in extraHeaders {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+
+        let routeKey = "\(method):\(url.path)"
+
+        for attempt in 1...maxRetries {
+            await rateLimiter.waitIfNeeded(for: routeKey)
+
+            let (data, response): (Data, URLResponse)
+            do {
+                (data, response) = try await session.data(for: request)
+            } catch {
+                if attempt < maxRetries {
+                    try? await Task.sleep(nanoseconds: UInt64(attempt) * 1_000_000_000)
+                    continue
+                }
+                throw DiscordError.connectionFailed(reason: error.localizedDescription)
+            }
+
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw DiscordError.connectionFailed(reason: "Non-HTTP response")
+            }
+
+            await rateLimiter.update(route: routeKey, headers: httpResponse.allHeaderFields)
+
+            switch httpResponse.statusCode {
+            case 200...299:
+                return try JSONCoder.decode(T.self, from: data)
+            case 401:
+                throw DiscordError.invalidToken
+            case 429:
+                let retryAfter = headerDouble("Retry-After", from: httpResponse.allHeaderFields) ?? 1.0
+                try? await Task.sleep(nanoseconds: UInt64(retryAfter * 1_000_000_000))
+                if attempt < maxRetries { continue }
+                throw DiscordError.rateLimited(retryAfter: retryAfter)
+            default:
+                let bodyStr = String(data: data, encoding: .utf8) ?? "<binary>"
+                throw DiscordError.httpError(statusCode: httpResponse.statusCode, body: bodyStr)
+            }
+        }
+
+        throw DiscordError.connectionFailed(reason: "Max retries exceeded for multipart \(method) \(urlString)")
+    }
 
     func getCurrentUser() async throws -> DiscordUser {
         try await request(method: "GET", url: Routes.currentUser, decodeAs: DiscordUser.self)
@@ -880,8 +941,8 @@ public final class RESTClient: Sendable {
         )
     }
 
-    func getGuildPreview(guildId: String) async throws -> JSONValue {
-        try await request(method: "GET", url: Routes.guildPreview(guildId), decodeAs: JSONValue.self)
+    func getGuildPreview(guildId: String) async throws -> GuildPreview {
+        try await request(method: "GET", url: Routes.guildPreview(guildId), decodeAs: GuildPreview.self)
     }
 
     func modifyGuild(
@@ -918,21 +979,21 @@ public final class RESTClient: Sendable {
         )
     }
 
-    func getGuildOnboarding(guildId: String) async throws -> JSONValue {
-        try await request(method: "GET", url: Routes.guildOnboarding(guildId), decodeAs: JSONValue.self)
+    func getGuildOnboarding(guildId: String) async throws -> GuildOnboarding {
+        try await request(method: "GET", url: Routes.guildOnboarding(guildId), decodeAs: GuildOnboarding.self)
     }
 
     func modifyGuildOnboarding(
         guildId: String,
-        payload: JSONValue,
+        payload: ModifyGuildOnboarding,
         auditLogReason: String? = nil
-    ) async throws -> JSONValue {
+    ) async throws -> GuildOnboarding {
         try await request(
             method: "PUT",
             url: Routes.guildOnboarding(guildId),
             body: payload,
             headers: auditLogHeaders(reason: auditLogReason),
-            decodeAs: JSONValue.self
+            decodeAs: GuildOnboarding.self
         )
     }
 
@@ -944,48 +1005,48 @@ public final class RESTClient: Sendable {
         try await request(method: "GET", url: Routes.guildRoleMemberCounts(guildId), decodeAs: [String: Int].self)
     }
 
-    func getGuildVanityURL(guildId: String) async throws -> JSONValue {
-        try await request(method: "GET", url: Routes.guildVanityURL(guildId), decodeAs: JSONValue.self)
+    func getGuildVanityURL(guildId: String) async throws -> GuildVanityURL {
+        try await request(method: "GET", url: Routes.guildVanityURL(guildId), decodeAs: GuildVanityURL.self)
     }
 
-    func getGuildWelcomeScreen(guildId: String) async throws -> JSONValue {
-        try await request(method: "GET", url: Routes.guildWelcomeScreen(guildId), decodeAs: JSONValue.self)
+    func getGuildWelcomeScreen(guildId: String) async throws -> WelcomeScreen {
+        try await request(method: "GET", url: Routes.guildWelcomeScreen(guildId), decodeAs: WelcomeScreen.self)
     }
 
     func modifyGuildWelcomeScreen(
         guildId: String,
-        payload: JSONValue,
+        payload: ModifyWelcomeScreen,
         auditLogReason: String? = nil
-    ) async throws -> JSONValue {
+    ) async throws -> WelcomeScreen {
         try await request(
             method: "PATCH",
             url: Routes.guildWelcomeScreen(guildId),
             body: payload,
             headers: auditLogHeaders(reason: auditLogReason),
-            decodeAs: JSONValue.self
+            decodeAs: WelcomeScreen.self
         )
     }
 
-    func getGuildWidgetSettings(guildId: String) async throws -> JSONValue {
-        try await request(method: "GET", url: Routes.guildWidget(guildId), decodeAs: JSONValue.self)
+    func getGuildWidgetSettings(guildId: String) async throws -> GuildWidgetSettings {
+        try await request(method: "GET", url: Routes.guildWidget(guildId), decodeAs: GuildWidgetSettings.self)
     }
 
     func modifyGuildWidget(
         guildId: String,
-        payload: JSONValue,
+        payload: ModifyGuildWidget,
         auditLogReason: String? = nil
-    ) async throws -> JSONValue {
+    ) async throws -> GuildWidgetSettings {
         try await request(
             method: "PATCH",
             url: Routes.guildWidget(guildId),
             body: payload,
             headers: auditLogHeaders(reason: auditLogReason),
-            decodeAs: JSONValue.self
+            decodeAs: GuildWidgetSettings.self
         )
     }
 
-    func getGuildWidget(guildId: String) async throws -> JSONValue {
-        try await request(method: "GET", url: Routes.guildWidgetJSON(guildId), decodeAs: JSONValue.self)
+    func getGuildWidget(guildId: String) async throws -> GuildWidget {
+        try await request(method: "GET", url: Routes.guildWidgetJSON(guildId), decodeAs: GuildWidget.self)
     }
 
     func getGuildWidgetImage(guildId: String, style: String? = nil) async throws -> Data {
@@ -1152,6 +1213,65 @@ public final class RESTClient: Sendable {
             url: Routes.guildEmoji(guildId, emojiId: emojiId),
             headers: auditLogHeaders(reason: auditLogReason)
         )
+    }
+
+    // MARK: - Sticker CRUD
+
+    func getGuildStickers(guildId: String) async throws -> [Sticker] {
+        try await request(method: "GET", url: Routes.guildStickers(guildId), decodeAs: [Sticker].self)
+    }
+
+    func getGuildSticker(guildId: String, stickerId: String) async throws -> Sticker {
+        try await request(
+            method: "GET",
+            url: Routes.guildSticker(guildId, stickerId: stickerId),
+            decodeAs: Sticker.self
+        )
+    }
+
+    func createGuildSticker(
+        guildId: String,
+        sticker: CreateGuildSticker,
+        auditLogReason: String? = nil
+    ) async throws -> Sticker {
+        try await request(
+            method: "POST",
+            url: Routes.guildStickers(guildId),
+            body: sticker,
+            headers: auditLogHeaders(reason: auditLogReason),
+            decodeAs: Sticker.self
+        )
+    }
+
+    func modifyGuildSticker(
+        guildId: String,
+        stickerId: String,
+        modify: ModifyGuildSticker,
+        auditLogReason: String? = nil
+    ) async throws -> Sticker {
+        try await request(
+            method: "PATCH",
+            url: Routes.guildSticker(guildId, stickerId: stickerId),
+            body: modify,
+            headers: auditLogHeaders(reason: auditLogReason),
+            decodeAs: Sticker.self
+        )
+    }
+
+    func deleteGuildSticker(guildId: String, stickerId: String, auditLogReason: String? = nil) async throws {
+        try await requestVoid(
+            method: "DELETE",
+            url: Routes.guildSticker(guildId, stickerId: stickerId),
+            headers: auditLogHeaders(reason: auditLogReason)
+        )
+    }
+
+    func getSticker(stickerId: String) async throws -> Sticker {
+        try await request(method: "GET", url: Routes.sticker(stickerId), decodeAs: Sticker.self)
+    }
+
+    func listStickerPacks() async throws -> StickerPacksResponse {
+        try await request(method: "GET", url: Routes.stickerPacks, decodeAs: StickerPacksResponse.self)
     }
 
     func getGuildTemplate(code: String) async throws -> GuildTemplate {
@@ -1593,6 +1713,29 @@ public final class RESTClient: Sendable {
     }
 
     @discardableResult
+    func sendMessage(
+        channelId: String,
+        payload: SendMessagePayload
+    ) async throws -> Message {
+        let body = RichSendMessageBody(
+            content: payload.content,
+            embeds: payload.embeds,
+            allowedMentions: payload.allowedMentions,
+            messageReference: payload.messageReference,
+            stickerIds: payload.stickerIds,
+            flags: payload.flags
+        )
+        var msg = try await request(
+            method: "POST",
+            url: Routes.messages(channelId),
+            body: body,
+            decodeAs: Message.self
+        )
+        msg._rest = self
+        return msg
+    }
+
+    @discardableResult
     func executeGitHubWebhook(
         webhookId: String,
         token: String,
@@ -1629,6 +1772,28 @@ public final class RESTClient: Sendable {
     @discardableResult
     func editMessage(channelId: String, messageId: String, content: String) async throws -> Message {
         let body = EditMessageBody(content: content)
+        var message = try await request(
+            method: "PATCH",
+            url: Routes.message(channelId, messageId: messageId),
+            body: body,
+            decodeAs: Message.self
+        )
+        message._rest = self
+        return message
+    }
+
+    @discardableResult
+    func editMessage(
+        channelId: String,
+        messageId: String,
+        payload: EditMessagePayload
+    ) async throws -> Message {
+        let body = RichEditMessageBody(
+            content: payload.content,
+            embeds: payload.embeds,
+            allowedMentions: payload.allowedMentions,
+            flags: payload.flags
+        )
         var message = try await request(
             method: "PATCH",
             url: Routes.message(channelId, messageId: messageId),
@@ -1676,9 +1841,6 @@ public final class RESTClient: Sendable {
         messageReference: MessageReference? = nil
     ) async throws -> Message {
         try validateComponentLimit(components)
-        guard let url = URL(string: Routes.messages(channelId)) else {
-            throw DiscordError.connectionFailed(reason: "Invalid URL: \(Routes.messages(channelId))")
-        }
 
         let attachmentMetadata = attachments.enumerated().map { index, file in
             UploadAttachmentMetadata(id: index, filename: file.filename, description: file.description)
@@ -1691,59 +1853,22 @@ public final class RESTClient: Sendable {
             attachments: attachmentMetadata
         )
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("Bot \(token)", forHTTPHeaderField: "Authorization")
-
         let boundary = "Boundary-\(UUID().uuidString)"
-        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try buildMultipartBody(
+        let body = try buildMultipartBody(
             boundary: boundary,
             payload: payload,
             attachments: attachments
         )
 
-        let routeKey = "POST:\(url.path)"
-
-        for attempt in 1...maxRetries {
-            await rateLimiter.waitIfNeeded(for: routeKey)
-
-            let (data, response): (Data, URLResponse)
-            do {
-                (data, response) = try await session.data(for: request)
-            } catch {
-                if attempt < maxRetries {
-                    try? await Task.sleep(nanoseconds: UInt64(attempt) * 1_000_000_000)
-                    continue
-                }
-                throw DiscordError.connectionFailed(reason: error.localizedDescription)
-            }
-
-            guard let httpResponse = response as? HTTPURLResponse else {
-                throw DiscordError.connectionFailed(reason: "Non-HTTP response")
-            }
-
-            await rateLimiter.update(route: routeKey, headers: httpResponse.allHeaderFields)
-
-            switch httpResponse.statusCode {
-            case 200...299:
-                var message = try JSONCoder.decode(Message.self, from: data)
-                message._rest = self
-                return message
-            case 401:
-                throw DiscordError.invalidToken
-            case 429:
-                let retryAfter = headerDouble("Retry-After", from: httpResponse.allHeaderFields) ?? 1.0
-                try? await Task.sleep(nanoseconds: UInt64(retryAfter * 1_000_000_000))
-                if attempt < maxRetries { continue }
-                throw DiscordError.rateLimited(retryAfter: retryAfter)
-            default:
-                let body = String(data: data, encoding: .utf8) ?? "<binary>"
-                throw DiscordError.httpError(statusCode: httpResponse.statusCode, body: body)
-            }
-        }
-
-        throw DiscordError.connectionFailed(reason: "Max retries exceeded for multipart request")
+        var message: Message = try await requestMultipart(
+            method: "POST",
+            url: Routes.messages(channelId),
+            body: body,
+            boundary: boundary,
+            extraHeaders: [:]
+        )
+        message._rest = self
+        return message
     }
 
     @discardableResult
@@ -1754,65 +1879,21 @@ public final class RESTClient: Sendable {
         targetUsersFilename: String,
         headers: [String: String]
     ) async throws -> Invite {
-        guard let url = URL(string: Routes.channelInvites(channelId)) else {
-            throw DiscordError.connectionFailed(reason: "Invalid URL: \(Routes.channelInvites(channelId))")
-        }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("Bot \(token)", forHTTPHeaderField: "Authorization")
-        for (key, value) in headers {
-            request.setValue(value, forHTTPHeaderField: key)
-        }
-
         let boundary = "Boundary-\(UUID().uuidString)"
-        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try buildInviteMultipartBody(
+        let body = try buildInviteMultipartBody(
             boundary: boundary,
             payload: payload,
             targetUsersFileData: targetUsersFileData,
             targetUsersFilename: targetUsersFilename
         )
 
-        let routeKey = "POST:\(url.path)"
-
-        for attempt in 1...maxRetries {
-            await rateLimiter.waitIfNeeded(for: routeKey)
-
-            let (data, response): (Data, URLResponse)
-            do {
-                (data, response) = try await session.data(for: request)
-            } catch {
-                if attempt < maxRetries {
-                    try? await Task.sleep(nanoseconds: UInt64(attempt) * 1_000_000_000)
-                    continue
-                }
-                throw DiscordError.connectionFailed(reason: error.localizedDescription)
-            }
-
-            guard let httpResponse = response as? HTTPURLResponse else {
-                throw DiscordError.connectionFailed(reason: "Non-HTTP response")
-            }
-
-            await rateLimiter.update(route: routeKey, headers: httpResponse.allHeaderFields)
-
-            switch httpResponse.statusCode {
-            case 200...299:
-                return try JSONCoder.decode(Invite.self, from: data)
-            case 401:
-                throw DiscordError.invalidToken
-            case 429:
-                let retryAfter = headerDouble("Retry-After", from: httpResponse.allHeaderFields) ?? 1.0
-                try? await Task.sleep(nanoseconds: UInt64(retryAfter * 1_000_000_000))
-                if attempt < maxRetries { continue }
-                throw DiscordError.rateLimited(retryAfter: retryAfter)
-            default:
-                let body = String(data: data, encoding: .utf8) ?? "<binary>"
-                throw DiscordError.httpError(statusCode: httpResponse.statusCode, body: body)
-            }
-        }
-
-        throw DiscordError.connectionFailed(reason: "Max retries exceeded for multipart invite request")
+        return try await requestMultipart(
+            method: "POST",
+            url: Routes.channelInvites(channelId),
+            body: body,
+            boundary: boundary,
+            extraHeaders: headers
+        )
     }
 
     func deleteMessage(channelId: String, messageId: String) async throws {
@@ -1820,8 +1901,14 @@ public final class RESTClient: Sendable {
     }
 
 
+    private nonisolated(unsafe) var cachedApplicationId: String?
+
     func getApplicationId() async throws -> String {
+        if let cached = cachedApplicationId {
+            return cached
+        }
         let user = try await getCurrentUser()
+        cachedApplicationId = user.id
         return user.id
     }
 
@@ -2594,6 +2681,15 @@ private struct SendMessageBody: Encodable {
     let messageReference: MessageReference?
 }
 
+private struct RichSendMessageBody: Encodable {
+    let content: String?
+    let embeds: [Embed]?
+    let allowedMentions: AllowedMentions?
+    let messageReference: MessageReference?
+    let stickerIds: [String]?
+    let flags: Int?
+}
+
 private struct SendComponentsV2MessageBody: Encodable {
     let flags: Int
     let components: [ComponentV2Node]
@@ -2613,6 +2709,13 @@ private struct EditInteractionBody: Encodable {
 
 private struct EditMessageBody: Encodable {
     let content: String
+}
+
+private struct RichEditMessageBody: Encodable {
+    let content: String?
+    let embeds: [Embed]?
+    let allowedMentions: AllowedMentions?
+    let flags: Int?
 }
 
 private struct BulkDeleteMessagesBody: Encodable {

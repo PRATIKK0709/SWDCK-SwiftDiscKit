@@ -81,8 +81,34 @@ public enum MessageType: Int, Codable, Sendable {
     case channelPinnedMessage = 6
     case userJoin = 7
     case guildBoost = 8
+    case guildBoostTier1 = 9
+    case guildBoostTier2 = 10
+    case guildBoostTier3 = 11
+    case channelFollowAdd = 12
+    case guildDiscoveryDisqualified = 14
+    case guildDiscoveryRequalified = 15
+    case guildDiscoveryGracePeriodInitialWarning = 16
+    case guildDiscoveryGracePeriodFinalWarning = 17
+    case threadCreated = 18
     case reply = 19
     case chatInputCommand = 20
+    case threadStarterMessage = 21
+    case guildInviteReminder = 22
+    case contextMenuCommand = 23
+    case autoModerationAction = 24
+    case roleSubscriptionPurchase = 25
+    case interactionPremiumUpsell = 26
+    case stageStart = 27
+    case stageEnd = 28
+    case stageSpeaker = 29
+    case stageTopic = 31
+    case guildApplicationPremiumSubscription = 32
+    case guildIncidentAlertModeEnabled = 36
+    case guildIncidentAlertModeDisabled = 37
+    case guildIncidentReportRaid = 38
+    case guildIncidentReportFalseAlarm = 39
+    case purchaseNotification = 44
+    case pollResult = 46
     case unknown = -1
 
     public init(from decoder: Decoder) throws {
@@ -231,6 +257,33 @@ public struct Embed: Codable, Sendable {
     public let thumbnail: EmbedMedia?
     public let author: EmbedAuthor?
     public let fields: [EmbedField]?
+    public let timestamp: String?
+
+    public init(
+        title: String? = nil,
+        type: String? = nil,
+        description: String? = nil,
+        url: String? = nil,
+        color: Int? = nil,
+        footer: EmbedFooter? = nil,
+        image: EmbedMedia? = nil,
+        thumbnail: EmbedMedia? = nil,
+        author: EmbedAuthor? = nil,
+        fields: [EmbedField]? = nil,
+        timestamp: String? = nil
+    ) {
+        self.title = title
+        self.type = type
+        self.description = description
+        self.url = url
+        self.color = color
+        self.footer = footer
+        self.image = image
+        self.thumbnail = thumbnail
+        self.author = author
+        self.fields = fields
+        self.timestamp = timestamp
+    }
 }
 
 public struct EmbedFooter: Codable, Sendable {
@@ -258,29 +311,47 @@ public struct EmbedField: Codable, Sendable {
 }
 
 
-public struct EmbedBuilder {
+public struct EmbedBuilder: Sendable {
     var title: String?
     var description: String?
+    var url: String?
     var color: Int?
+    var timestamp: String?
     var fields: [EmbedField] = []
     var footer: EmbedFooter?
     var author: EmbedAuthor?
+    var image: EmbedMedia?
+    var thumbnail: EmbedMedia?
 
     public init() {}
 
     public mutating func setTitle(_ title: String) { self.title = title }
     public mutating func setDescription(_ desc: String) { self.description = desc }
+    public mutating func setURL(_ url: String) { self.url = url }
     public mutating func setColor(_ hex: Int) { self.color = hex }
+    public mutating func setTimestamp(_ iso8601: String) { self.timestamp = iso8601 }
     public mutating func addField(name: String, value: String, inline: Bool = false) {
         fields.append(EmbedField(name: name, value: value, inline: inline))
     }
-    public mutating func setFooter(_ text: String) { footer = EmbedFooter(text: text, iconUrl: nil) }
+    public mutating func setFooter(_ text: String, iconUrl: String? = nil) {
+        footer = EmbedFooter(text: text, iconUrl: iconUrl)
+    }
+    public mutating func setAuthor(name: String, url: String? = nil, iconUrl: String? = nil) {
+        author = EmbedAuthor(name: name, url: url, iconUrl: iconUrl)
+    }
+    public mutating func setImage(url: String) {
+        image = EmbedMedia(url: url, proxyUrl: nil, height: nil, width: nil)
+    }
+    public mutating func setThumbnail(url: String) {
+        thumbnail = EmbedMedia(url: url, proxyUrl: nil, height: nil, width: nil)
+    }
 
-    func build() -> Embed {
+    public func build() -> Embed {
         Embed(
             title: title, type: "rich", description: description,
-            url: nil, color: color, footer: footer,
-            image: nil, thumbnail: nil, author: author, fields: fields
+            url: url, color: color, footer: footer,
+            image: image, thumbnail: thumbnail, author: author,
+            fields: fields, timestamp: timestamp
         )
     }
 }

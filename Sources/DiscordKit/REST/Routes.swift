@@ -245,6 +245,22 @@ enum Routes {
         "\(baseURL)/guilds/\(guildId)/emojis/\(emojiId)"
     }
 
+    static func guildStickers(_ guildId: String) -> String {
+        "\(baseURL)/guilds/\(guildId)/stickers"
+    }
+
+    static func guildSticker(_ guildId: String, stickerId: String) -> String {
+        "\(baseURL)/guilds/\(guildId)/stickers/\(stickerId)"
+    }
+
+    static func sticker(_ stickerId: String) -> String {
+        "\(baseURL)/stickers/\(stickerId)"
+    }
+
+    static var stickerPacks: String {
+        "\(baseURL)/sticker-packs"
+    }
+
     static func guildMember(_ guildId: String, userId: String) -> String {
         "\(baseURL)/guilds/\(guildId)/members/\(userId)"
     }
