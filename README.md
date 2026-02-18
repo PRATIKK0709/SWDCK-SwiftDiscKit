@@ -83,7 +83,8 @@ Implemented component primitives include:
 
 The repo contains a single-file runnable demo bot:
 
-- `/Users/pratikray/Desktop/Swift/SwiftDiscKit/Examples/Bot.swift`
+- `Examples/Bot.swift`
+- https://github.com/PRATIKK0709/SWDCK-SwiftDiscKit/blob/main/Examples/Bot.swift
 
 It includes:
 
@@ -107,7 +108,8 @@ swift run DiscordKitBot
 
 Current documented coverage is tracked in:
 
-- `/Users/pratikray/Desktop/Swift/SwiftDiscKit/docs/discord-api-endpoint-coverage.md`
+- `docs/discord-api-endpoint-coverage.md`
+- https://github.com/PRATIKK0709/SWDCK-SwiftDiscKit/blob/main/docs/discord-api-endpoint-coverage.md
 
 Latest audit in repo currently reports:
 - Documented endpoints in scope: `219`
