@@ -789,7 +789,7 @@ public final class DiscordBot: Sendable {
         try await rest.getGuildScheduledEventUsers(guildId: guildId, eventId: eventId, query: query)
     }
 
-    public func getGuildPreview(_ guildId: String) async throws -> JSONValue {
+    public func getGuildPreview(_ guildId: String) async throws -> GuildPreview {
         try await rest.getGuildPreview(guildId: guildId)
     }
 
@@ -805,15 +805,15 @@ public final class DiscordBot: Sendable {
         )
     }
 
-    public func getGuildOnboarding(_ guildId: String) async throws -> JSONValue {
+    public func getGuildOnboarding(_ guildId: String) async throws -> GuildOnboarding {
         try await rest.getGuildOnboarding(guildId: guildId)
     }
 
     public func modifyGuildOnboarding(
         guildId: String,
-        onboarding: JSONValue,
+        onboarding: ModifyGuildOnboarding,
         auditLogReason: String? = nil
-    ) async throws -> JSONValue {
+    ) async throws -> GuildOnboarding {
         try await rest.modifyGuildOnboarding(
             guildId: guildId,
             payload: onboarding,
@@ -829,19 +829,19 @@ public final class DiscordBot: Sendable {
         try await rest.getGuildRoleMemberCounts(guildId: guildId)
     }
 
-    public func getGuildVanityURL(_ guildId: String) async throws -> JSONValue {
+    public func getGuildVanityURL(_ guildId: String) async throws -> GuildVanityURL {
         try await rest.getGuildVanityURL(guildId: guildId)
     }
 
-    public func getGuildWelcomeScreen(_ guildId: String) async throws -> JSONValue {
+    public func getGuildWelcomeScreen(_ guildId: String) async throws -> WelcomeScreen {
         try await rest.getGuildWelcomeScreen(guildId: guildId)
     }
 
     public func modifyGuildWelcomeScreen(
         guildId: String,
-        welcomeScreen: JSONValue,
+        welcomeScreen: ModifyWelcomeScreen,
         auditLogReason: String? = nil
-    ) async throws -> JSONValue {
+    ) async throws -> WelcomeScreen {
         try await rest.modifyGuildWelcomeScreen(
             guildId: guildId,
             payload: welcomeScreen,
@@ -849,15 +849,15 @@ public final class DiscordBot: Sendable {
         )
     }
 
-    public func getGuildWidgetSettings(_ guildId: String) async throws -> JSONValue {
+    public func getGuildWidgetSettings(_ guildId: String) async throws -> GuildWidgetSettings {
         try await rest.getGuildWidgetSettings(guildId: guildId)
     }
 
-    public func modifyGuildWidget(guildId: String, widget: JSONValue, auditLogReason: String? = nil) async throws -> JSONValue {
+    public func modifyGuildWidget(guildId: String, widget: ModifyGuildWidget, auditLogReason: String? = nil) async throws -> GuildWidgetSettings {
         try await rest.modifyGuildWidget(guildId: guildId, payload: widget, auditLogReason: auditLogReason)
     }
 
-    public func getGuildWidget(_ guildId: String) async throws -> JSONValue {
+    public func getGuildWidget(_ guildId: String) async throws -> GuildWidget {
         try await rest.getGuildWidget(guildId: guildId)
     }
 

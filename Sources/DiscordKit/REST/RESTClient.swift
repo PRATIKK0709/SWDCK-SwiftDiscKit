@@ -880,8 +880,8 @@ public final class RESTClient: Sendable {
         )
     }
 
-    func getGuildPreview(guildId: String) async throws -> JSONValue {
-        try await request(method: "GET", url: Routes.guildPreview(guildId), decodeAs: JSONValue.self)
+    func getGuildPreview(guildId: String) async throws -> GuildPreview {
+        try await request(method: "GET", url: Routes.guildPreview(guildId), decodeAs: GuildPreview.self)
     }
 
     func modifyGuild(
@@ -918,21 +918,21 @@ public final class RESTClient: Sendable {
         )
     }
 
-    func getGuildOnboarding(guildId: String) async throws -> JSONValue {
-        try await request(method: "GET", url: Routes.guildOnboarding(guildId), decodeAs: JSONValue.self)
+    func getGuildOnboarding(guildId: String) async throws -> GuildOnboarding {
+        try await request(method: "GET", url: Routes.guildOnboarding(guildId), decodeAs: GuildOnboarding.self)
     }
 
     func modifyGuildOnboarding(
         guildId: String,
-        payload: JSONValue,
+        payload: ModifyGuildOnboarding,
         auditLogReason: String? = nil
-    ) async throws -> JSONValue {
+    ) async throws -> GuildOnboarding {
         try await request(
             method: "PUT",
             url: Routes.guildOnboarding(guildId),
             body: payload,
             headers: auditLogHeaders(reason: auditLogReason),
-            decodeAs: JSONValue.self
+            decodeAs: GuildOnboarding.self
         )
     }
 
@@ -944,48 +944,48 @@ public final class RESTClient: Sendable {
         try await request(method: "GET", url: Routes.guildRoleMemberCounts(guildId), decodeAs: [String: Int].self)
     }
 
-    func getGuildVanityURL(guildId: String) async throws -> JSONValue {
-        try await request(method: "GET", url: Routes.guildVanityURL(guildId), decodeAs: JSONValue.self)
+    func getGuildVanityURL(guildId: String) async throws -> GuildVanityURL {
+        try await request(method: "GET", url: Routes.guildVanityURL(guildId), decodeAs: GuildVanityURL.self)
     }
 
-    func getGuildWelcomeScreen(guildId: String) async throws -> JSONValue {
-        try await request(method: "GET", url: Routes.guildWelcomeScreen(guildId), decodeAs: JSONValue.self)
+    func getGuildWelcomeScreen(guildId: String) async throws -> WelcomeScreen {
+        try await request(method: "GET", url: Routes.guildWelcomeScreen(guildId), decodeAs: WelcomeScreen.self)
     }
 
     func modifyGuildWelcomeScreen(
         guildId: String,
-        payload: JSONValue,
+        payload: ModifyWelcomeScreen,
         auditLogReason: String? = nil
-    ) async throws -> JSONValue {
+    ) async throws -> WelcomeScreen {
         try await request(
             method: "PATCH",
             url: Routes.guildWelcomeScreen(guildId),
             body: payload,
             headers: auditLogHeaders(reason: auditLogReason),
-            decodeAs: JSONValue.self
+            decodeAs: WelcomeScreen.self
         )
     }
 
-    func getGuildWidgetSettings(guildId: String) async throws -> JSONValue {
-        try await request(method: "GET", url: Routes.guildWidget(guildId), decodeAs: JSONValue.self)
+    func getGuildWidgetSettings(guildId: String) async throws -> GuildWidgetSettings {
+        try await request(method: "GET", url: Routes.guildWidget(guildId), decodeAs: GuildWidgetSettings.self)
     }
 
     func modifyGuildWidget(
         guildId: String,
-        payload: JSONValue,
+        payload: ModifyGuildWidget,
         auditLogReason: String? = nil
-    ) async throws -> JSONValue {
+    ) async throws -> GuildWidgetSettings {
         try await request(
             method: "PATCH",
             url: Routes.guildWidget(guildId),
             body: payload,
             headers: auditLogHeaders(reason: auditLogReason),
-            decodeAs: JSONValue.self
+            decodeAs: GuildWidgetSettings.self
         )
     }
 
-    func getGuildWidget(guildId: String) async throws -> JSONValue {
-        try await request(method: "GET", url: Routes.guildWidgetJSON(guildId), decodeAs: JSONValue.self)
+    func getGuildWidget(guildId: String) async throws -> GuildWidget {
+        try await request(method: "GET", url: Routes.guildWidgetJSON(guildId), decodeAs: GuildWidget.self)
     }
 
     func getGuildWidgetImage(guildId: String, style: String? = nil) async throws -> Data {
