@@ -1844,9 +1844,6 @@ final class TypeImprovementsTests: XCTestCase {
         // Swift's JSONEncoder omits nil optionals by default unless configured otherwise
     }
 }
-        XCTAssertEqual(emoji.animated, true)
-    }
-}
 
 
 
@@ -2054,6 +2051,8 @@ final class MessagePayloadTests: XCTestCase {
         let data = try JSONEncoder().encode(embed)
         let decoded = try JSONDecoder().decode(Embed.self, from: data)
         XCTAssertEqual(decoded.timestamp, "2025-12-25T00:00:00Z")
+    }
+}
 
 // MARK: - Branch 2: Rate Limiting & Retries Tests
 
