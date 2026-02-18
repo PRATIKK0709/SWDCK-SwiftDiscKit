@@ -42,9 +42,12 @@ actor GatewayClient {
     }
 
 
+    private var initialGatewayURL: String?
+
     func connect(with gatewayURL: String) async throws {
         state = .connecting
         reconnectAttempts = 0
+        initialGatewayURL = gatewayURL
         try await openWebSocket(to: gatewayURL)
     }
 
@@ -235,7 +238,7 @@ actor GatewayClient {
         try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
 
         do {
-            let url = (canResume ? resumeGatewayURL : nil) ?? "wss://gateway.discord.gg/?v=10&encoding=json"
+            let url = (canResume ? resumeGatewayURL : nil) ?? initialGatewayURL ?? "wss://gateway.discord.gg/?v=10&encoding=json"
             state = .connecting
             try await openWebSocket(to: url)
         } catch {
