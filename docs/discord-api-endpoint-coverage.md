@@ -12,8 +12,8 @@ This file lists Discord HTTP endpoints from the official docs and tracks SwiftDi
 ## Summary
 
 - Total documented endpoints in scope: **219**
-- Implemented in SwiftDiscKit: **186**
-- Remaining: **33**
+- Implemented in SwiftDiscKit: **193**
+- Remaining: **26**
 
 ## Implemented Endpoints (Highlights)
 
@@ -305,14 +305,14 @@ Full authoritative status for all 219 endpoints is in the matrix below.
 | Implemented | `GET` | `/stage-instances/{channel.id}` | `developers/resources/stage-instance.mdx` | RESTClient.getStageInstance |
 | Implemented | `PATCH` | `/stage-instances/{channel.id}` | `developers/resources/stage-instance.mdx` | RESTClient.modifyStageInstance |
 | Implemented | `POST` | `/stage-instances` | `developers/resources/stage-instance.mdx` | RESTClient.createStageInstance |
-| Remaining | `DELETE` | `/guilds/{guild.id}/stickers/{sticker.id}` | `developers/resources/sticker.mdx` | - |
-| Remaining | `GET` | `/guilds/{guild.id}/stickers` | `developers/resources/sticker.mdx` | - |
-| Remaining | `GET` | `/guilds/{guild.id}/stickers/{sticker.id}` | `developers/resources/sticker.mdx` | - |
-| Remaining | `GET` | `/sticker-packs` | `developers/resources/sticker.mdx` | - |
+| Implemented | `DELETE` | `/guilds/{guild.id}/stickers/{sticker.id}` | `developers/resources/sticker.mdx` | RESTClient.deleteGuildSticker |
+| Implemented | `GET` | `/guilds/{guild.id}/stickers` | `developers/resources/sticker.mdx` | RESTClient.getGuildStickers |
+| Implemented | `GET` | `/guilds/{guild.id}/stickers/{sticker.id}` | `developers/resources/sticker.mdx` | RESTClient.getGuildSticker |
+| Implemented | `GET` | `/sticker-packs` | `developers/resources/sticker.mdx` | RESTClient.listStickerPacks |
 | Remaining | `GET` | `/sticker-packs/{pack.id}` | `developers/resources/sticker.mdx` | - |
-| Remaining | `GET` | `/stickers/{sticker.id}` | `developers/resources/sticker.mdx` | - |
-| Remaining | `PATCH` | `/guilds/{guild.id}/stickers/{sticker.id}` | `developers/resources/sticker.mdx` | - |
-| Remaining | `POST` | `/guilds/{guild.id}/stickers` | `developers/resources/sticker.mdx` | - |
+| Implemented | `GET` | `/stickers/{sticker.id}` | `developers/resources/sticker.mdx` | RESTClient.getSticker |
+| Implemented | `PATCH` | `/guilds/{guild.id}/stickers/{sticker.id}` | `developers/resources/sticker.mdx` | RESTClient.modifyGuildSticker |
+| Implemented | `POST` | `/guilds/{guild.id}/stickers` | `developers/resources/sticker.mdx` | RESTClient.createGuildSticker |
 | Remaining | `GET` | `/skus/{sku.id}/subscriptions` | `developers/resources/subscription.mdx` | - |
 | Remaining | `GET` | `/skus/{sku.id}/subscriptions/{subscription.id}` | `developers/resources/subscription.mdx` | - |
 | Implemented | `DELETE` | `/users/@me/guilds/{guild.id}` | `developers/resources/user.mdx` | RESTClient.leaveGuild |

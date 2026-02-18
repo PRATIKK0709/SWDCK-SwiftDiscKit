@@ -59,6 +59,7 @@ try await bot.start()
 - Commands: create/list/get/edit/delete global + guild commands, bulk overwrite, sync/clear helpers
 - Interactions: respond/defer/edit/get/delete original response + followups
 - Components V2: send component messages, multipart attachments, modal submit helpers
+- Stickers: get/list/create/modify/delete guild stickers, list sticker packs
 
 ## Components V2
 
@@ -113,8 +114,8 @@ Current documented coverage is tracked in:
 
 Latest audit in repo currently reports:
 - Documented endpoints in scope: `219`
-- Implemented: `87`
-- Remaining: `132`
+- Implemented: `193`
+- Remaining: `26`
 
 ## Development
 
