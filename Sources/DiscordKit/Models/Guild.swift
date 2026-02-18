@@ -18,7 +18,7 @@ public struct Guild: Codable, Sendable, Identifiable {
     public let defaultMessageNotifications: Int?
     public let explicitContentFilter: Int?
     public let roles: [GuildRole]?
-    public let emojis: [JSONValue]?
+    public let emojis: [GuildEmoji]?
     public let features: [String]?
     public let mfaLevel: Int?
     public let applicationId: String?
@@ -39,9 +39,9 @@ public struct Guild: Codable, Sendable, Identifiable {
     public let maxStageVideoChannelUsers: Int?
     public let approximateMemberCount: Int?
     public let approximatePresenceCount: Int?
-    public let welcomeScreen: JSONValue?
+    public let welcomeScreen: WelcomeScreen?
     public let nsfwLevel: Int?
-    public let stickers: [JSONValue]?
+    public let stickers: [Sticker]?
     public let premiumProgressBarEnabled: Bool?
     public let safetyAlertsChannelId: String?
     public let unavailable: Bool?

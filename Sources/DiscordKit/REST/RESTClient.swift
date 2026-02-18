@@ -941,8 +941,8 @@ public final class RESTClient: Sendable {
         )
     }
 
-    func getGuildPreview(guildId: String) async throws -> JSONValue {
-        try await request(method: "GET", url: Routes.guildPreview(guildId), decodeAs: JSONValue.self)
+    func getGuildPreview(guildId: String) async throws -> GuildPreview {
+        try await request(method: "GET", url: Routes.guildPreview(guildId), decodeAs: GuildPreview.self)
     }
 
     func modifyGuild(
@@ -979,21 +979,21 @@ public final class RESTClient: Sendable {
         )
     }
 
-    func getGuildOnboarding(guildId: String) async throws -> JSONValue {
-        try await request(method: "GET", url: Routes.guildOnboarding(guildId), decodeAs: JSONValue.self)
+    func getGuildOnboarding(guildId: String) async throws -> GuildOnboarding {
+        try await request(method: "GET", url: Routes.guildOnboarding(guildId), decodeAs: GuildOnboarding.self)
     }
 
     func modifyGuildOnboarding(
         guildId: String,
-        payload: JSONValue,
+        payload: ModifyGuildOnboarding,
         auditLogReason: String? = nil
-    ) async throws -> JSONValue {
+    ) async throws -> GuildOnboarding {
         try await request(
             method: "PUT",
             url: Routes.guildOnboarding(guildId),
             body: payload,
             headers: auditLogHeaders(reason: auditLogReason),
-            decodeAs: JSONValue.self
+            decodeAs: GuildOnboarding.self
         )
     }
 
@@ -1005,48 +1005,48 @@ public final class RESTClient: Sendable {
         try await request(method: "GET", url: Routes.guildRoleMemberCounts(guildId), decodeAs: [String: Int].self)
     }
 
-    func getGuildVanityURL(guildId: String) async throws -> JSONValue {
-        try await request(method: "GET", url: Routes.guildVanityURL(guildId), decodeAs: JSONValue.self)
+    func getGuildVanityURL(guildId: String) async throws -> GuildVanityURL {
+        try await request(method: "GET", url: Routes.guildVanityURL(guildId), decodeAs: GuildVanityURL.self)
     }
 
-    func getGuildWelcomeScreen(guildId: String) async throws -> JSONValue {
-        try await request(method: "GET", url: Routes.guildWelcomeScreen(guildId), decodeAs: JSONValue.self)
+    func getGuildWelcomeScreen(guildId: String) async throws -> WelcomeScreen {
+        try await request(method: "GET", url: Routes.guildWelcomeScreen(guildId), decodeAs: WelcomeScreen.self)
     }
 
     func modifyGuildWelcomeScreen(
         guildId: String,
-        payload: JSONValue,
+        payload: ModifyWelcomeScreen,
         auditLogReason: String? = nil
-    ) async throws -> JSONValue {
+    ) async throws -> WelcomeScreen {
         try await request(
             method: "PATCH",
             url: Routes.guildWelcomeScreen(guildId),
             body: payload,
             headers: auditLogHeaders(reason: auditLogReason),
-            decodeAs: JSONValue.self
+            decodeAs: WelcomeScreen.self
         )
     }
 
-    func getGuildWidgetSettings(guildId: String) async throws -> JSONValue {
-        try await request(method: "GET", url: Routes.guildWidget(guildId), decodeAs: JSONValue.self)
+    func getGuildWidgetSettings(guildId: String) async throws -> GuildWidgetSettings {
+        try await request(method: "GET", url: Routes.guildWidget(guildId), decodeAs: GuildWidgetSettings.self)
     }
 
     func modifyGuildWidget(
         guildId: String,
-        payload: JSONValue,
+        payload: ModifyGuildWidget,
         auditLogReason: String? = nil
-    ) async throws -> JSONValue {
+    ) async throws -> GuildWidgetSettings {
         try await request(
             method: "PATCH",
             url: Routes.guildWidget(guildId),
             body: payload,
             headers: auditLogHeaders(reason: auditLogReason),
-            decodeAs: JSONValue.self
+            decodeAs: GuildWidgetSettings.self
         )
     }
 
-    func getGuildWidget(guildId: String) async throws -> JSONValue {
-        try await request(method: "GET", url: Routes.guildWidgetJSON(guildId), decodeAs: JSONValue.self)
+    func getGuildWidget(guildId: String) async throws -> GuildWidget {
+        try await request(method: "GET", url: Routes.guildWidgetJSON(guildId), decodeAs: GuildWidget.self)
     }
 
     func getGuildWidgetImage(guildId: String, style: String? = nil) async throws -> Data {
@@ -1213,6 +1213,65 @@ public final class RESTClient: Sendable {
             url: Routes.guildEmoji(guildId, emojiId: emojiId),
             headers: auditLogHeaders(reason: auditLogReason)
         )
+    }
+
+    // MARK: - Sticker CRUD
+
+    func getGuildStickers(guildId: String) async throws -> [Sticker] {
+        try await request(method: "GET", url: Routes.guildStickers(guildId), decodeAs: [Sticker].self)
+    }
+
+    func getGuildSticker(guildId: String, stickerId: String) async throws -> Sticker {
+        try await request(
+            method: "GET",
+            url: Routes.guildSticker(guildId, stickerId: stickerId),
+            decodeAs: Sticker.self
+        )
+    }
+
+    func createGuildSticker(
+        guildId: String,
+        sticker: CreateGuildSticker,
+        auditLogReason: String? = nil
+    ) async throws -> Sticker {
+        try await request(
+            method: "POST",
+            url: Routes.guildStickers(guildId),
+            body: sticker,
+            headers: auditLogHeaders(reason: auditLogReason),
+            decodeAs: Sticker.self
+        )
+    }
+
+    func modifyGuildSticker(
+        guildId: String,
+        stickerId: String,
+        modify: ModifyGuildSticker,
+        auditLogReason: String? = nil
+    ) async throws -> Sticker {
+        try await request(
+            method: "PATCH",
+            url: Routes.guildSticker(guildId, stickerId: stickerId),
+            body: modify,
+            headers: auditLogHeaders(reason: auditLogReason),
+            decodeAs: Sticker.self
+        )
+    }
+
+    func deleteGuildSticker(guildId: String, stickerId: String, auditLogReason: String? = nil) async throws {
+        try await requestVoid(
+            method: "DELETE",
+            url: Routes.guildSticker(guildId, stickerId: stickerId),
+            headers: auditLogHeaders(reason: auditLogReason)
+        )
+    }
+
+    func getSticker(stickerId: String) async throws -> Sticker {
+        try await request(method: "GET", url: Routes.sticker(stickerId), decodeAs: Sticker.self)
+    }
+
+    func listStickerPacks() async throws -> StickerPacksResponse {
+        try await request(method: "GET", url: Routes.stickerPacks, decodeAs: StickerPacksResponse.self)
     }
 
     func getGuildTemplate(code: String) async throws -> GuildTemplate {

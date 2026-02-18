@@ -66,6 +66,66 @@ public final class DiscordBot: Sendable {
         Task { await eventState.setVoiceServerUpdateHandler(handler) }
     }
 
+    public func onGuildCreate(_ handler: @escaping GuildHandler) {
+        Task { await eventState.setGuildCreateHandler(handler) }
+    }
+
+    public func onGuildUpdate(_ handler: @escaping GuildHandler) {
+        Task { await eventState.setGuildUpdateHandler(handler) }
+    }
+
+    public func onGuildDelete(_ handler: @escaping GuildDeleteHandler) {
+        Task { await eventState.setGuildDeleteHandler(handler) }
+    }
+
+    public func onChannelCreate(_ handler: @escaping ChannelHandler) {
+        Task { await eventState.setChannelCreateHandler(handler) }
+    }
+
+    public func onChannelUpdate(_ handler: @escaping ChannelHandler) {
+        Task { await eventState.setChannelUpdateHandler(handler) }
+    }
+
+    public func onChannelDelete(_ handler: @escaping ChannelHandler) {
+        Task { await eventState.setChannelDeleteHandler(handler) }
+    }
+
+    public func onGuildMemberAdd(_ handler: @escaping GuildMemberAddHandler) {
+        Task { await eventState.setGuildMemberAddHandler(handler) }
+    }
+
+    public func onGuildMemberRemove(_ handler: @escaping GuildMemberRemoveHandler) {
+        Task { await eventState.setGuildMemberRemoveHandler(handler) }
+    }
+
+    public func onGuildMemberUpdate(_ handler: @escaping GuildMemberUpdateHandler) {
+        Task { await eventState.setGuildMemberUpdateHandler(handler) }
+    }
+
+    public func onMessageUpdate(_ handler: @escaping MessageUpdateHandler) {
+        Task { await eventState.setMessageUpdateHandler(handler) }
+    }
+
+    public func onMessageDelete(_ handler: @escaping MessageDeleteHandler) {
+        Task { await eventState.setMessageDeleteHandler(handler) }
+    }
+
+    public func onMessageReactionAdd(_ handler: @escaping MessageReactionAddHandler) {
+        Task { await eventState.setMessageReactionAddHandler(handler) }
+    }
+
+    public func onMessageReactionRemove(_ handler: @escaping MessageReactionRemoveHandler) {
+        Task { await eventState.setMessageReactionRemoveHandler(handler) }
+    }
+
+    public func onTypingStart(_ handler: @escaping TypingStartHandler) {
+        Task { await eventState.setTypingStartHandler(handler) }
+    }
+
+    public func onPresenceUpdate(_ handler: @escaping PresenceUpdateHandler) {
+        Task { await eventState.setPresenceUpdateHandler(handler) }
+    }
+
 
     public func slashCommand(
         _ name: String,
@@ -804,7 +864,7 @@ public final class DiscordBot: Sendable {
         try await rest.getGuildScheduledEventUsers(guildId: guildId, eventId: eventId, query: query)
     }
 
-    public func getGuildPreview(_ guildId: String) async throws -> JSONValue {
+    public func getGuildPreview(_ guildId: String) async throws -> GuildPreview {
         try await rest.getGuildPreview(guildId: guildId)
     }
 
@@ -820,15 +880,15 @@ public final class DiscordBot: Sendable {
         )
     }
 
-    public func getGuildOnboarding(_ guildId: String) async throws -> JSONValue {
+    public func getGuildOnboarding(_ guildId: String) async throws -> GuildOnboarding {
         try await rest.getGuildOnboarding(guildId: guildId)
     }
 
     public func modifyGuildOnboarding(
         guildId: String,
-        onboarding: JSONValue,
+        onboarding: ModifyGuildOnboarding,
         auditLogReason: String? = nil
-    ) async throws -> JSONValue {
+    ) async throws -> GuildOnboarding {
         try await rest.modifyGuildOnboarding(
             guildId: guildId,
             payload: onboarding,
@@ -844,19 +904,19 @@ public final class DiscordBot: Sendable {
         try await rest.getGuildRoleMemberCounts(guildId: guildId)
     }
 
-    public func getGuildVanityURL(_ guildId: String) async throws -> JSONValue {
+    public func getGuildVanityURL(_ guildId: String) async throws -> GuildVanityURL {
         try await rest.getGuildVanityURL(guildId: guildId)
     }
 
-    public func getGuildWelcomeScreen(_ guildId: String) async throws -> JSONValue {
+    public func getGuildWelcomeScreen(_ guildId: String) async throws -> WelcomeScreen {
         try await rest.getGuildWelcomeScreen(guildId: guildId)
     }
 
     public func modifyGuildWelcomeScreen(
         guildId: String,
-        welcomeScreen: JSONValue,
+        welcomeScreen: ModifyWelcomeScreen,
         auditLogReason: String? = nil
-    ) async throws -> JSONValue {
+    ) async throws -> WelcomeScreen {
         try await rest.modifyGuildWelcomeScreen(
             guildId: guildId,
             payload: welcomeScreen,
@@ -864,15 +924,15 @@ public final class DiscordBot: Sendable {
         )
     }
 
-    public func getGuildWidgetSettings(_ guildId: String) async throws -> JSONValue {
+    public func getGuildWidgetSettings(_ guildId: String) async throws -> GuildWidgetSettings {
         try await rest.getGuildWidgetSettings(guildId: guildId)
     }
 
-    public func modifyGuildWidget(guildId: String, widget: JSONValue, auditLogReason: String? = nil) async throws -> JSONValue {
+    public func modifyGuildWidget(guildId: String, widget: ModifyGuildWidget, auditLogReason: String? = nil) async throws -> GuildWidgetSettings {
         try await rest.modifyGuildWidget(guildId: guildId, payload: widget, auditLogReason: auditLogReason)
     }
 
-    public func getGuildWidget(_ guildId: String) async throws -> JSONValue {
+    public func getGuildWidget(_ guildId: String) async throws -> GuildWidget {
         try await rest.getGuildWidget(guildId: guildId)
     }
 
@@ -1437,6 +1497,36 @@ public final class DiscordBot: Sendable {
             await handleVoiceStateUpdate(rawJSON)
         case "VOICE_SERVER_UPDATE":
             await handleVoiceServerUpdate(rawJSON)
+        case "GUILD_CREATE":
+            await handleEvent(rawJSON, type: Guild.self, handler: { await self.eventState.guildCreateHandler }, name: "GUILD_CREATE")
+        case "GUILD_UPDATE":
+            await handleEvent(rawJSON, type: Guild.self, handler: { await self.eventState.guildUpdateHandler }, name: "GUILD_UPDATE")
+        case "GUILD_DELETE":
+            await handleEvent(rawJSON, type: GuildDeleteEvent.self, handler: { await self.eventState.guildDeleteHandler }, name: "GUILD_DELETE")
+        case "CHANNEL_CREATE":
+            await handleEvent(rawJSON, type: Channel.self, handler: { await self.eventState.channelCreateHandler }, name: "CHANNEL_CREATE")
+        case "CHANNEL_UPDATE":
+            await handleEvent(rawJSON, type: Channel.self, handler: { await self.eventState.channelUpdateHandler }, name: "CHANNEL_UPDATE")
+        case "CHANNEL_DELETE":
+            await handleEvent(rawJSON, type: Channel.self, handler: { await self.eventState.channelDeleteHandler }, name: "CHANNEL_DELETE")
+        case "GUILD_MEMBER_ADD":
+            await handleEvent(rawJSON, type: GuildMemberAddEvent.self, handler: { await self.eventState.guildMemberAddHandler }, name: "GUILD_MEMBER_ADD")
+        case "GUILD_MEMBER_REMOVE":
+            await handleEvent(rawJSON, type: GuildMemberRemoveEvent.self, handler: { await self.eventState.guildMemberRemoveHandler }, name: "GUILD_MEMBER_REMOVE")
+        case "GUILD_MEMBER_UPDATE":
+            await handleEvent(rawJSON, type: GuildMemberUpdateEvent.self, handler: { await self.eventState.guildMemberUpdateHandler }, name: "GUILD_MEMBER_UPDATE")
+        case "MESSAGE_UPDATE":
+            await handleMessageUpdate(rawJSON)
+        case "MESSAGE_DELETE":
+            await handleEvent(rawJSON, type: MessageDeleteEvent.self, handler: { await self.eventState.messageDeleteHandler }, name: "MESSAGE_DELETE")
+        case "MESSAGE_REACTION_ADD":
+            await handleEvent(rawJSON, type: MessageReactionAddEvent.self, handler: { await self.eventState.messageReactionAddHandler }, name: "MESSAGE_REACTION_ADD")
+        case "MESSAGE_REACTION_REMOVE":
+            await handleEvent(rawJSON, type: MessageReactionRemoveEvent.self, handler: { await self.eventState.messageReactionRemoveHandler }, name: "MESSAGE_REACTION_REMOVE")
+        case "TYPING_START":
+            await handleEvent(rawJSON, type: TypingStartEvent.self, handler: { await self.eventState.typingStartHandler }, name: "TYPING_START")
+        case "PRESENCE_UPDATE":
+            await handleEvent(rawJSON, type: PresenceUpdateEvent.self, handler: { await self.eventState.presenceUpdateHandler }, name: "PRESENCE_UPDATE")
         default:
             logger.debug("Unhandled dispatch: \(eventName)")
         }
@@ -1538,6 +1628,84 @@ public final class DiscordBot: Sendable {
         }
         return try await rest.getApplicationId()
     }
+
+    // MARK: - Generic Event Handler
+
+    private func handleEvent<T: Decodable & Sendable>(
+        _ rawJSON: RawJSON,
+        type: T.Type,
+        handler getHandler: @Sendable () async -> (@Sendable (T) async throws -> Void)?,
+        name: String
+    ) async {
+        guard let handler = await getHandler() else { return }
+        let event: T
+        do {
+            event = try rawJSON.decode(T.self)
+        } catch {
+            logger.warning("Failed to decode \(name): \(error)")
+            return
+        }
+        do {
+            try await handler(event)
+        } catch {
+            logger.error("on\(name) handler threw: \(error)")
+        }
+    }
+
+    private func handleMessageUpdate(_ rawJSON: RawJSON) async {
+        guard let handler = await eventState.messageUpdateHandler else { return }
+        guard var message = try? rawJSON.decode(Message.self) else {
+            logger.warning("Failed to decode MESSAGE_UPDATE")
+            return
+        }
+        message._rest = rest
+        do {
+            try await handler(message)
+        } catch {
+            logger.error("onMessageUpdate handler threw: \(error)")
+        }
+    }
+
+    // MARK: - Public Sticker API
+
+    public func getGuildStickers(guildId: String) async throws -> [Sticker] {
+        try await rest.getGuildStickers(guildId: guildId)
+    }
+
+    public func getGuildSticker(guildId: String, stickerId: String) async throws -> Sticker {
+        try await rest.getGuildSticker(guildId: guildId, stickerId: stickerId)
+    }
+
+    @discardableResult
+    public func createGuildSticker(
+        guildId: String,
+        sticker: CreateGuildSticker,
+        auditLogReason: String? = nil
+    ) async throws -> Sticker {
+        try await rest.createGuildSticker(guildId: guildId, sticker: sticker, auditLogReason: auditLogReason)
+    }
+
+    @discardableResult
+    public func modifyGuildSticker(
+        guildId: String,
+        stickerId: String,
+        modify: ModifyGuildSticker,
+        auditLogReason: String? = nil
+    ) async throws -> Sticker {
+        try await rest.modifyGuildSticker(guildId: guildId, stickerId: stickerId, modify: modify, auditLogReason: auditLogReason)
+    }
+
+    public func deleteGuildSticker(guildId: String, stickerId: String, auditLogReason: String? = nil) async throws {
+        try await rest.deleteGuildSticker(guildId: guildId, stickerId: stickerId, auditLogReason: auditLogReason)
+    }
+
+    public func getSticker(stickerId: String) async throws -> Sticker {
+        try await rest.getSticker(stickerId: stickerId)
+    }
+
+    public func listStickerPacks() async throws -> StickerPacksResponse {
+        try await rest.listStickerPacks()
+    }
 }
 
 
@@ -1547,12 +1715,42 @@ private actor EventState {
     var interactionHandler: InteractionHandler?
     var voiceStateUpdateHandler: VoiceStateUpdateHandler?
     var voiceServerUpdateHandler: VoiceServerUpdateHandler?
+    var guildCreateHandler: GuildHandler?
+    var guildUpdateHandler: GuildHandler?
+    var guildDeleteHandler: GuildDeleteHandler?
+    var channelCreateHandler: ChannelHandler?
+    var channelUpdateHandler: ChannelHandler?
+    var channelDeleteHandler: ChannelHandler?
+    var guildMemberAddHandler: GuildMemberAddHandler?
+    var guildMemberRemoveHandler: GuildMemberRemoveHandler?
+    var guildMemberUpdateHandler: GuildMemberUpdateHandler?
+    var messageUpdateHandler: MessageUpdateHandler?
+    var messageDeleteHandler: MessageDeleteHandler?
+    var messageReactionAddHandler: MessageReactionAddHandler?
+    var messageReactionRemoveHandler: MessageReactionRemoveHandler?
+    var typingStartHandler: TypingStartHandler?
+    var presenceUpdateHandler: PresenceUpdateHandler?
 
     func setMessageHandler(_ h: @escaping MessageHandler)     { messageHandler = h }
     func setReadyHandler(_ h: @escaping ReadyHandler)         { readyHandler = h }
     func setInteractionHandler(_ h: @escaping InteractionHandler) { interactionHandler = h }
     func setVoiceStateUpdateHandler(_ h: @escaping VoiceStateUpdateHandler) { voiceStateUpdateHandler = h }
     func setVoiceServerUpdateHandler(_ h: @escaping VoiceServerUpdateHandler) { voiceServerUpdateHandler = h }
+    func setGuildCreateHandler(_ h: @escaping GuildHandler) { guildCreateHandler = h }
+    func setGuildUpdateHandler(_ h: @escaping GuildHandler) { guildUpdateHandler = h }
+    func setGuildDeleteHandler(_ h: @escaping GuildDeleteHandler) { guildDeleteHandler = h }
+    func setChannelCreateHandler(_ h: @escaping ChannelHandler) { channelCreateHandler = h }
+    func setChannelUpdateHandler(_ h: @escaping ChannelHandler) { channelUpdateHandler = h }
+    func setChannelDeleteHandler(_ h: @escaping ChannelHandler) { channelDeleteHandler = h }
+    func setGuildMemberAddHandler(_ h: @escaping GuildMemberAddHandler) { guildMemberAddHandler = h }
+    func setGuildMemberRemoveHandler(_ h: @escaping GuildMemberRemoveHandler) { guildMemberRemoveHandler = h }
+    func setGuildMemberUpdateHandler(_ h: @escaping GuildMemberUpdateHandler) { guildMemberUpdateHandler = h }
+    func setMessageUpdateHandler(_ h: @escaping MessageUpdateHandler) { messageUpdateHandler = h }
+    func setMessageDeleteHandler(_ h: @escaping MessageDeleteHandler) { messageDeleteHandler = h }
+    func setMessageReactionAddHandler(_ h: @escaping MessageReactionAddHandler) { messageReactionAddHandler = h }
+    func setMessageReactionRemoveHandler(_ h: @escaping MessageReactionRemoveHandler) { messageReactionRemoveHandler = h }
+    func setTypingStartHandler(_ h: @escaping TypingStartHandler) { typingStartHandler = h }
+    func setPresenceUpdateHandler(_ h: @escaping PresenceUpdateHandler) { presenceUpdateHandler = h }
 }
 
 private actor BotState {
