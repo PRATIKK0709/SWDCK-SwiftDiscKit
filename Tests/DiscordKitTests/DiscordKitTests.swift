@@ -1782,3 +1782,68 @@ final class GatewayEventDecodingTests: XCTestCase {
         XCTAssertEqual(emoji.animated, true)
     }
 }
+
+
+// MARK: - Branch 4: Type Improvements Tests
+
+final class TypeImprovementsTests: XCTestCase {
+    func testWelcomeScreenDecoding() throws {
+        let json = """
+        {
+            "description": "Welcome to the server!",
+            "welcome_channels": [
+                {
+                    "channel_id": "123",
+                    "description": "Read the rules",
+                    "emoji_id": null,
+                    "emoji_name": "📜"
+                }
+            ]
+        }
+        """.data(using: .utf8)!
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let screen = try decoder.decode(WelcomeScreen.self, from: json)
+        XCTAssertEqual(screen.description, "Welcome to the server!")
+        XCTAssertEqual(screen.welcomeChannels?.first?.channelId, "123")
+        XCTAssertEqual(screen.welcomeChannels?.first?.emojiName, "📜")
+    }
+
+    func testWelcomeScreenEncoding() throws {
+        let channel = WelcomeScreenChannel(channelId: "123", description: "Rules", emojiId: nil, emojiName: "📜")
+        let screen = ModifyWelcomeScreen(enabled: true, welcomeChannels: [channel], description: "Hello")
+        let encoder = JSONEncoder()
+        encoder.keyEncodingStrategy = .convertToSnakeCase
+        let data = try encoder.encode(screen)
+        let dict = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+        XCTAssertEqual(dict["enabled"] as? Bool, true)
+        XCTAssertEqual(dict["description"] as? String, "Hello")
+        let channels = dict["welcome_channels"] as? [[String: Any]]
+        XCTAssertEqual(channels?.first?["emoji_name"] as? String, "📜")
+    }
+
+    func testGuildWidgetSettingsDecoding() throws {
+        let json = """
+        {"enabled": true, "channel_id": "999"}
+        """.data(using: .utf8)!
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let settings = try decoder.decode(GuildWidgetSettings.self, from: json)
+        XCTAssertEqual(settings.enabled, true)
+        XCTAssertEqual(settings.channelId, "999")
+    }
+
+    func testModifyGuildWidgetEncoding() throws {
+        let modify = ModifyGuildWidget(enabled: false, channelId: nil)
+        let encoder = JSONEncoder()
+        encoder.keyEncodingStrategy = .convertToSnakeCase
+        let data = try encoder.encode(modify)
+        let dict = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+        XCTAssertEqual(dict["enabled"] as? Bool, false)
+        // channel_id might be missing or null depending on implementation, here optional nil usually omits key unless explicit null support
+        // Swift's JSONEncoder omits nil optionals by default unless configured otherwise
+    }
+}
+        XCTAssertEqual(emoji.animated, true)
+    }
+}
