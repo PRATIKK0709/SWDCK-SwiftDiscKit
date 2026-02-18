@@ -45,6 +45,10 @@ enum Routes {
         "\(baseURL)/channels/\(channelId)/messages/\(messageId)"
     }
 
+    static func messageCrosspost(_ channelId: String, messageId: String) -> String {
+        "\(baseURL)/channels/\(channelId)/messages/\(messageId)/crosspost"
+    }
+
     static func messageThread(_ channelId: String, messageId: String) -> String {
         "\(baseURL)/channels/\(channelId)/messages/\(messageId)/threads"
     }
@@ -73,6 +77,10 @@ enum Routes {
         "\(baseURL)/channels/\(channelId)/threads"
     }
 
+    static func channelPermission(_ channelId: String, overwriteId: String) -> String {
+        "\(baseURL)/channels/\(channelId)/permissions/\(overwriteId)"
+    }
+
     static func channelArchivedPublicThreads(_ channelId: String) -> String {
         "\(baseURL)/channels/\(channelId)/threads/archived/public"
     }
@@ -99,6 +107,18 @@ enum Routes {
 
     static func guild(_ guildId: String) -> String {
         "\(baseURL)/guilds/\(guildId)"
+    }
+
+    static func guildAuditLogs(_ guildId: String) -> String {
+        "\(baseURL)/guilds/\(guildId)/audit-logs"
+    }
+
+    static func guildBans(_ guildId: String) -> String {
+        "\(baseURL)/guilds/\(guildId)/bans"
+    }
+
+    static func guildBan(_ guildId: String, userId: String) -> String {
+        "\(baseURL)/guilds/\(guildId)/bans/\(userId)"
     }
 
     static func guildWebhooks(_ guildId: String) -> String {
@@ -131,6 +151,14 @@ enum Routes {
 
     static func guildChannels(_ guildId: String) -> String {
         "\(baseURL)/guilds/\(guildId)/channels"
+    }
+
+    static func guildPrune(_ guildId: String) -> String {
+        "\(baseURL)/guilds/\(guildId)/prune"
+    }
+
+    static func guildActiveThreads(_ guildId: String) -> String {
+        "\(baseURL)/guilds/\(guildId)/threads/active"
     }
 
     static func guildMemberRole(_ guildId: String, userId: String, roleId: String) -> String {

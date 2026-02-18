@@ -6,6 +6,12 @@ public struct ArchivedThreadsResponse: Codable, Sendable {
     public let hasMore: Bool
 }
 
+public struct ActiveGuildThreadsResponse: Codable, Sendable {
+    public let threads: [Channel]
+    public let members: [ChannelThreadMember]
+    public let hasMore: Bool?
+}
+
 public struct ArchivedThreadsQuery: Sendable {
     public let before: String?
     public let limit: Int?

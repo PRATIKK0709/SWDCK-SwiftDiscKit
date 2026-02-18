@@ -204,3 +204,214 @@ public struct ModifyGuildMember: Encodable, Sendable {
         self.flags = flags
     }
 }
+
+public struct GuildAuditLog: Codable, Sendable {
+    public let auditLogEntries: [GuildAuditLogEntry]
+    public let users: [DiscordUser]
+    public let webhooks: [Webhook]
+    public let integrations: [JSONValue]?
+    public let threads: [Channel]?
+    public let applicationCommands: [ApplicationCommand]?
+    public let autoModerationRules: [JSONValue]?
+    public let guildScheduledEvents: [JSONValue]?
+}
+
+public struct GuildAuditLogEntry: Codable, Sendable, Identifiable {
+    public let id: String
+    public let targetId: String?
+    public let changes: [GuildAuditLogChange]?
+    public let userId: String?
+    public let actionType: Int
+    public let options: GuildAuditLogEntryOptions?
+    public let reason: String?
+}
+
+public struct GuildAuditLogChange: Codable, Sendable {
+    public let newValue: JSONValue?
+    public let oldValue: JSONValue?
+    public let key: String
+}
+
+public struct GuildAuditLogEntryOptions: Codable, Sendable {
+    public let applicationId: String?
+    public let autoModerationRuleName: String?
+    public let autoModerationRuleTriggerType: String?
+    public let channelId: String?
+    public let count: String?
+    public let deleteMemberDays: String?
+    public let id: String?
+    public let membersRemoved: String?
+    public let messageId: String?
+    public let roleName: String?
+    public let type: String?
+    public let integrationType: String?
+}
+
+public struct GuildAuditLogQuery: Sendable {
+    public let userId: String?
+    public let actionType: Int?
+    public let before: String?
+    public let after: String?
+    public let limit: Int?
+
+    public init(
+        userId: String? = nil,
+        actionType: Int? = nil,
+        before: String? = nil,
+        after: String? = nil,
+        limit: Int? = nil
+    ) {
+        self.userId = userId
+        self.actionType = actionType
+        self.before = before
+        self.after = after
+        self.limit = limit
+    }
+}
+
+public struct GuildBan: Codable, Sendable {
+    public let reason: String?
+    public let user: DiscordUser
+}
+
+public struct GuildBansQuery: Sendable {
+    public let limit: Int?
+    public let before: String?
+    public let after: String?
+
+    public init(limit: Int? = nil, before: String? = nil, after: String? = nil) {
+        self.limit = limit
+        self.before = before
+        self.after = after
+    }
+}
+
+public struct CreateGuildBan: Encodable, Sendable {
+    public let deleteMessageSeconds: Int?
+
+    public init(deleteMessageSeconds: Int? = nil) {
+        self.deleteMessageSeconds = deleteMessageSeconds
+    }
+}
+
+public struct GuildPruneCountQuery: Sendable {
+    public let days: Int?
+    public let includeRoles: [String]?
+
+    public init(days: Int? = nil, includeRoles: [String]? = nil) {
+        self.days = days
+        self.includeRoles = includeRoles
+    }
+}
+
+public struct BeginGuildPrune: Encodable, Sendable {
+    public let days: Int?
+    public let computePruneCount: Bool?
+    public let includeRoles: [String]?
+
+    public init(days: Int? = nil, computePruneCount: Bool? = nil, includeRoles: [String]? = nil) {
+        self.days = days
+        self.computePruneCount = computePruneCount
+        self.includeRoles = includeRoles
+    }
+}
+
+public struct GuildPruneResult: Codable, Sendable {
+    public let pruned: Int?
+}
+
+public struct ModifyGuild: Encodable, Sendable {
+    public let name: String?
+    public let verificationLevel: Int?
+    public let defaultMessageNotifications: Int?
+    public let explicitContentFilter: Int?
+    public let afkChannelId: String?
+    public let afkTimeout: Int?
+    public let icon: String?
+    public let ownerId: String?
+    public let splash: String?
+    public let discoverySplash: String?
+    public let banner: String?
+    public let systemChannelId: String?
+    public let systemChannelFlags: Int?
+    public let rulesChannelId: String?
+    public let publicUpdatesChannelId: String?
+    public let preferredLocale: String?
+    public let features: [String]?
+    public let description: String?
+    public let premiumProgressBarEnabled: Bool?
+    public let safetyAlertsChannelId: String?
+
+    public init(
+        name: String? = nil,
+        verificationLevel: Int? = nil,
+        defaultMessageNotifications: Int? = nil,
+        explicitContentFilter: Int? = nil,
+        afkChannelId: String? = nil,
+        afkTimeout: Int? = nil,
+        icon: String? = nil,
+        ownerId: String? = nil,
+        splash: String? = nil,
+        discoverySplash: String? = nil,
+        banner: String? = nil,
+        systemChannelId: String? = nil,
+        systemChannelFlags: Int? = nil,
+        rulesChannelId: String? = nil,
+        publicUpdatesChannelId: String? = nil,
+        preferredLocale: String? = nil,
+        features: [String]? = nil,
+        description: String? = nil,
+        premiumProgressBarEnabled: Bool? = nil,
+        safetyAlertsChannelId: String? = nil
+    ) {
+        self.name = name
+        self.verificationLevel = verificationLevel
+        self.defaultMessageNotifications = defaultMessageNotifications
+        self.explicitContentFilter = explicitContentFilter
+        self.afkChannelId = afkChannelId
+        self.afkTimeout = afkTimeout
+        self.icon = icon
+        self.ownerId = ownerId
+        self.splash = splash
+        self.discoverySplash = discoverySplash
+        self.banner = banner
+        self.systemChannelId = systemChannelId
+        self.systemChannelFlags = systemChannelFlags
+        self.rulesChannelId = rulesChannelId
+        self.publicUpdatesChannelId = publicUpdatesChannelId
+        self.preferredLocale = preferredLocale
+        self.features = features
+        self.description = description
+        self.premiumProgressBarEnabled = premiumProgressBarEnabled
+        self.safetyAlertsChannelId = safetyAlertsChannelId
+    }
+}
+
+public struct ModifyGuildChannelPosition: Encodable, Sendable {
+    public let id: String
+    public let position: Int?
+    public let lockPermissions: Bool?
+    public let parentId: String?
+
+    public init(
+        id: String,
+        position: Int? = nil,
+        lockPermissions: Bool? = nil,
+        parentId: String? = nil
+    ) {
+        self.id = id
+        self.position = position
+        self.lockPermissions = lockPermissions
+        self.parentId = parentId
+    }
+}
+
+public struct ModifyGuildRolePosition: Encodable, Sendable {
+    public let id: String
+    public let position: Int?
+
+    public init(id: String, position: Int? = nil) {
+        self.id = id
+        self.position = position
+    }
+}

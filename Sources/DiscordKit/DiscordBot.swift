@@ -116,6 +116,32 @@ public final class DiscordBot: Sendable {
         try await rest.deleteChannel(channelId: channelId, auditLogReason: auditLogReason)
     }
 
+    public func editChannelPermission(
+        channelId: String,
+        overwriteId: String,
+        permission: EditChannelPermission,
+        auditLogReason: String? = nil
+    ) async throws {
+        try await rest.editChannelPermission(
+            channelId: channelId,
+            overwriteId: overwriteId,
+            permission: permission,
+            auditLogReason: auditLogReason
+        )
+    }
+
+    public func deleteChannelPermission(
+        channelId: String,
+        overwriteId: String,
+        auditLogReason: String? = nil
+    ) async throws {
+        try await rest.deleteChannelPermission(
+            channelId: channelId,
+            overwriteId: overwriteId,
+            auditLogReason: auditLogReason
+        )
+    }
+
     public func createWebhook(
         channelId: String,
         webhook: CreateWebhook,
@@ -309,12 +335,20 @@ public final class DiscordBot: Sendable {
         try await rest.getThreadMember(channelId: channelId, userId: userId, withMember: withMember)
     }
 
+    public func addThreadMember(channelId: String, userId: String) async throws {
+        try await rest.addThreadMember(channelId: channelId, userId: userId)
+    }
+
     public func joinThread(channelId: String) async throws {
         try await rest.joinThread(channelId: channelId)
     }
 
     public func leaveThread(channelId: String) async throws {
         try await rest.leaveThread(channelId: channelId)
+    }
+
+    public func getActiveGuildThreads(guildId: String) async throws -> ActiveGuildThreadsResponse {
+        try await rest.getActiveGuildThreads(guildId: guildId)
     }
 
     public func getMessagePins(channelId: String, query: MessagePinsQuery = MessagePinsQuery()) async throws -> MessagePinsPage {
@@ -374,6 +408,77 @@ public final class DiscordBot: Sendable {
         try await rest.getGuild(guildId: guildId)
     }
 
+    public func modifyGuild(
+        guildId: String,
+        modify: ModifyGuild,
+        auditLogReason: String? = nil
+    ) async throws -> Guild {
+        try await rest.modifyGuild(guildId: guildId, modify: modify, auditLogReason: auditLogReason)
+    }
+
+    public func getGuildAuditLog(
+        _ guildId: String,
+        query: GuildAuditLogQuery = GuildAuditLogQuery()
+    ) async throws -> GuildAuditLog {
+        try await rest.getGuildAuditLog(guildId: guildId, query: query)
+    }
+
+    public func getGuildBans(
+        _ guildId: String,
+        query: GuildBansQuery = GuildBansQuery()
+    ) async throws -> [GuildBan] {
+        try await rest.getGuildBans(guildId: guildId, query: query)
+    }
+
+    public func getGuildBan(guildId: String, userId: String) async throws -> GuildBan {
+        try await rest.getGuildBan(guildId: guildId, userId: userId)
+    }
+
+    public func createGuildBan(
+        guildId: String,
+        userId: String,
+        ban: CreateGuildBan = CreateGuildBan(),
+        auditLogReason: String? = nil
+    ) async throws {
+        try await rest.createGuildBan(
+            guildId: guildId,
+            userId: userId,
+            ban: ban,
+            auditLogReason: auditLogReason
+        )
+    }
+
+    public func deleteGuildBan(
+        guildId: String,
+        userId: String,
+        auditLogReason: String? = nil
+    ) async throws {
+        try await rest.deleteGuildBan(
+            guildId: guildId,
+            userId: userId,
+            auditLogReason: auditLogReason
+        )
+    }
+
+    public func getGuildPruneCount(
+        _ guildId: String,
+        query: GuildPruneCountQuery = GuildPruneCountQuery()
+    ) async throws -> GuildPruneResult {
+        try await rest.getGuildPruneCount(guildId: guildId, query: query)
+    }
+
+    public func beginGuildPrune(
+        _ guildId: String,
+        prune: BeginGuildPrune = BeginGuildPrune(),
+        auditLogReason: String? = nil
+    ) async throws -> GuildPruneResult {
+        try await rest.beginGuildPrune(
+            guildId: guildId,
+            prune: prune,
+            auditLogReason: auditLogReason
+        )
+    }
+
     public func createGuildChannel(
         guildId: String,
         channel: CreateGuildChannel,
@@ -382,6 +487,18 @@ public final class DiscordBot: Sendable {
         try await rest.createGuildChannel(
             guildId: guildId,
             channel: channel,
+            auditLogReason: auditLogReason
+        )
+    }
+
+    public func modifyGuildChannelPositions(
+        guildId: String,
+        positions: [ModifyGuildChannelPosition],
+        auditLogReason: String? = nil
+    ) async throws {
+        try await rest.modifyGuildChannelPositions(
+            guildId: guildId,
+            positions: positions,
             auditLogReason: auditLogReason
         )
     }
@@ -456,6 +573,18 @@ public final class DiscordBot: Sendable {
         try await rest.getGuildRoles(guildId: guildId)
     }
 
+    public func modifyGuildRolePositions(
+        guildId: String,
+        positions: [ModifyGuildRolePosition],
+        auditLogReason: String? = nil
+    ) async throws -> [GuildRole] {
+        try await rest.modifyGuildRolePositions(
+            guildId: guildId,
+            positions: positions,
+            auditLogReason: auditLogReason
+        )
+    }
+
     public func createGuildRole(
         guildId: String,
         role: CreateGuildRole,
@@ -500,6 +629,10 @@ public final class DiscordBot: Sendable {
 
     public func getMessage(channelId: String, messageId: String) async throws -> Message {
         try await rest.getMessage(channelId: channelId, messageId: messageId)
+    }
+
+    public func crosspostMessage(channelId: String, messageId: String) async throws -> Message {
+        try await rest.crosspostMessage(channelId: channelId, messageId: messageId)
     }
 
     public func getMessages(channelId: String, query: MessageHistoryQuery = MessageHistoryQuery()) async throws -> [Message] {

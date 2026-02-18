@@ -6,6 +6,8 @@ private enum LocalDefaults {
     static let guildId = "SET_TEST_GUILD_ID"
     static let channelId = "SET_TEST_CHANNEL_ID"
     static let roleId = "SET_TEST_ROLE_ID"
+    static let banUserId = "SET_TEST_BAN_USER_ID"
+    static let destructivePanelTests = "false"
 }
 
 private enum DemoImageURLs {
@@ -93,6 +95,14 @@ struct DiscordKitBotMain {
         let testRoleId = ProcessInfo.processInfo.environment["TEST_ROLE_ID"]?.nonEmpty
             ?? dotenv["TEST_ROLE_ID"]?.nonEmpty
             ?? (LocalDefaults.roleId == "SET_TEST_ROLE_ID" ? nil : LocalDefaults.roleId)
+        let testBanUserId = ProcessInfo.processInfo.environment["TEST_BAN_USER_ID"]?.nonEmpty
+            ?? dotenv["TEST_BAN_USER_ID"]?.nonEmpty
+            ?? (LocalDefaults.banUserId == "SET_TEST_BAN_USER_ID" ? nil : LocalDefaults.banUserId)
+        let destructivePanelTestsEnabled = (
+            ProcessInfo.processInfo.environment["ENABLE_DESTRUCTIVE_PANEL_TESTS"]?.nonEmpty
+            ?? dotenv["ENABLE_DESTRUCTIVE_PANEL_TESTS"]?.nonEmpty
+            ?? LocalDefaults.destructivePanelTests
+        ).lowercased() == "true"
 
         let bot = DiscordBot(
             token: token,
@@ -180,7 +190,9 @@ struct DiscordKitBotMain {
                         state: state,
                         testGuildId: testGuildId,
                         testChannelId: testChannelId,
-                        testRoleId: testRoleId
+                        testRoleId: testRoleId,
+                        testBanUserId: testBanUserId,
+                        destructivePanelTestsEnabled: destructivePanelTestsEnabled
                     )
                 } catch {
                     print("Component interaction response failed: \(error)")
@@ -745,6 +757,31 @@ private struct ThreadLifecycleResult: Encodable {
     let members: [ChannelThreadMember]?
 }
 
+private struct GuildBanLifecycleResult: Encodable {
+    let guildId: String
+    let userId: String
+    let createdBan: Bool
+    let fetchedBan: GuildBan?
+    let deletedBan: Bool
+}
+
+private struct GuildChannelPositionsResult: Encodable {
+    let guildId: String
+    let updatedChannelIds: [String]
+}
+
+private struct GuildRolePositionsResult: Encodable {
+    let guildId: String
+    let updatedRoles: [GuildRole]
+}
+
+private struct ChannelPermissionMutationResult: Encodable {
+    let channelId: String
+    let overwriteId: String
+    let action: String
+    let success: Bool
+}
+
 private struct WebhookLifecycleResult: Encodable {
     let created: Webhook
     let fetched: Webhook?
@@ -940,6 +977,76 @@ private func panelGuildEndpoints() -> [PanelEndpointDefinition] {
             route: "DELETE /guilds/{guild.id}/members/{user.id}/roles/{role.id}",
             category: "Guild Resources"
         ),
+        PanelEndpointDefinition(
+            id: "modify_guild",
+            label: "Modify Guild",
+            libraryMethod: "bot.modifyGuild(...)",
+            route: "PATCH /guilds/{guild.id}",
+            category: "Guild Resources"
+        ),
+        PanelEndpointDefinition(
+            id: "get_guild_audit_log",
+            label: "Get Guild Audit Log",
+            libraryMethod: "bot.getGuildAuditLog(_:query:)",
+            route: "GET /guilds/{guild.id}/audit-logs",
+            category: "Guild Resources"
+        ),
+        PanelEndpointDefinition(
+            id: "get_guild_bans",
+            label: "Get Guild Bans",
+            libraryMethod: "bot.getGuildBans(_:query:)",
+            route: "GET /guilds/{guild.id}/bans",
+            category: "Guild Resources"
+        ),
+        PanelEndpointDefinition(
+            id: "get_guild_ban",
+            label: "Get Guild Ban",
+            libraryMethod: "bot.getGuildBan(guildId:userId:)",
+            route: "GET /guilds/{guild.id}/bans/{user.id}",
+            category: "Guild Resources"
+        ),
+        PanelEndpointDefinition(
+            id: "create_guild_ban",
+            label: "Create Guild Ban",
+            libraryMethod: "bot.createGuildBan(guildId:userId:ban:)",
+            route: "PUT /guilds/{guild.id}/bans/{user.id}",
+            category: "Guild Resources"
+        ),
+        PanelEndpointDefinition(
+            id: "delete_guild_ban",
+            label: "Delete Guild Ban",
+            libraryMethod: "bot.deleteGuildBan(guildId:userId:)",
+            route: "DELETE /guilds/{guild.id}/bans/{user.id}",
+            category: "Guild Resources"
+        ),
+        PanelEndpointDefinition(
+            id: "get_guild_prune_count",
+            label: "Get Guild Prune Count",
+            libraryMethod: "bot.getGuildPruneCount(_:query:)",
+            route: "GET /guilds/{guild.id}/prune",
+            category: "Guild Resources"
+        ),
+        PanelEndpointDefinition(
+            id: "begin_guild_prune",
+            label: "Begin Guild Prune",
+            libraryMethod: "bot.beginGuildPrune(_:prune:)",
+            route: "POST /guilds/{guild.id}/prune",
+            category: "Guild Resources"
+        ),
+        PanelEndpointDefinition(
+            id: "modify_guild_channel_positions",
+            label: "Modify Guild Channel Positions",
+            libraryMethod: "bot.modifyGuildChannelPositions(...)",
+            route: "PATCH /guilds/{guild.id}/channels",
+            category: "Guild Resources"
+        ),
+        PanelEndpointDefinition(
+            id: "modify_guild_role_positions",
+            label: "Modify Guild Role Positions",
+            libraryMethod: "bot.modifyGuildRolePositions(...)",
+            route: "PATCH /guilds/{guild.id}/roles",
+            category: "Guild Resources"
+        ),
     ]
 }
 
@@ -1071,6 +1178,27 @@ private func panelChannelMessageEndpoints() -> [PanelEndpointDefinition] {
             route: "DELETE /channels/{channel.id}/messages/{message.id}/reactions",
             category: "Channel + Message"
         ),
+        PanelEndpointDefinition(
+            id: "edit_channel_permission",
+            label: "Edit Channel Permission",
+            libraryMethod: "bot.editChannelPermission(...)",
+            route: "PUT /channels/{channel.id}/permissions/{overwrite.id}",
+            category: "Channel + Message"
+        ),
+        PanelEndpointDefinition(
+            id: "delete_channel_permission",
+            label: "Delete Channel Permission",
+            libraryMethod: "bot.deleteChannelPermission(...)",
+            route: "DELETE /channels/{channel.id}/permissions/{overwrite.id}",
+            category: "Channel + Message"
+        ),
+        PanelEndpointDefinition(
+            id: "crosspost_message",
+            label: "Crosspost Message",
+            libraryMethod: "bot.crosspostMessage(channelId:messageId:)",
+            route: "POST /channels/{channel.id}/messages/{message.id}/crosspost",
+            category: "Channel + Message"
+        ),
     ]
 }
 
@@ -1158,6 +1286,20 @@ private func panelThreadLifecycleEndpoints() -> [PanelEndpointDefinition] {
             label: "Leave Thread (@me)",
             libraryMethod: "bot.leaveThread(channelId:)",
             route: "DELETE /channels/{channel.id}/thread-members/@me",
+            category: "Threads + Channel Lifecycle"
+        ),
+        PanelEndpointDefinition(
+            id: "add_thread_member",
+            label: "Add Thread Member",
+            libraryMethod: "bot.addThreadMember(channelId:userId:)",
+            route: "PUT /channels/{channel.id}/thread-members/{user.id}",
+            category: "Threads + Channel Lifecycle"
+        ),
+        PanelEndpointDefinition(
+            id: "get_active_guild_threads",
+            label: "Get Active Guild Threads",
+            libraryMethod: "bot.getActiveGuildThreads(guildId:)",
+            route: "GET /guilds/{guild.id}/threads/active",
             category: "Threads + Channel Lifecycle"
         ),
     ]
@@ -1382,7 +1524,7 @@ private func apiTestPanelData() -> [ComponentV2Node] {
         ),
         .separator(ComponentV2Separator(divider: true, spacing: 1)),
         .textDisplay(ComponentV2TextDisplay("### Guild Resources")),
-        .textDisplay(ComponentV2TextDisplay("Channels, members, member patching, and role mutation endpoints.")),
+        .textDisplay(ComponentV2TextDisplay("Guild metadata, audit logs, bans, prune, members, and role/channel position mutation endpoints.")),
         panelSelect(
             customId: "api_select_guild",
             placeholder: "Run guild resource endpoint test",
@@ -1398,7 +1540,7 @@ private func apiTestPanelData() -> [ComponentV2Node] {
         ),
         .separator(ComponentV2Separator(divider: true, spacing: 1)),
         .textDisplay(ComponentV2TextDisplay("### Threads + Channel Lifecycle")),
-        .textDisplay(ComponentV2TextDisplay("Channel create/update/delete and thread lifecycle endpoints.")),
+        .textDisplay(ComponentV2TextDisplay("Channel create/update/delete, active thread discovery, and thread membership lifecycle endpoints.")),
         panelSelect(
             customId: "api_select_thread_lifecycle",
             placeholder: "Run thread + channel lifecycle test",
@@ -1435,7 +1577,9 @@ private func handleMessageComponentInteraction(
     state: DemoState,
     testGuildId: String,
     testChannelId: String,
-    testRoleId: String?
+    testRoleId: String?,
+    testBanUserId: String?,
+    destructivePanelTestsEnabled: Bool
 ) async throws {
     let customId = interaction.data?.customId ?? ""
     let selectedValues = interaction.data?.values
@@ -1450,7 +1594,9 @@ private func handleMessageComponentInteraction(
                 interaction: interaction,
                 testGuildId: testGuildId,
                 testChannelId: testChannelId,
-                testRoleId: testRoleId
+                testRoleId: testRoleId,
+                testBanUserId: testBanUserId,
+                destructivePanelTestsEnabled: destructivePanelTestsEnabled
             )
         } catch {
             _ = try? await interaction.editResponse("Endpoint test failed: \(friendlyError(error))")
@@ -1479,6 +1625,7 @@ private func handleMessageComponentInteraction(
             - Pick one endpoint from a category menu
             - Wait for the ephemeral JSON result
             - Use Run Smoke Suite for fast sanity checks
+            - Set ENABLE_DESTRUCTIVE_PANEL_TESTS=true to run ban/prune mutation tests
             """,
             ephemeral: true
         )
@@ -1569,7 +1716,9 @@ private func runPanelTest(
     interaction: Interaction,
     testGuildId: String,
     testChannelId: String,
-    testRoleId: String?
+    testRoleId: String?,
+    testBanUserId: String?,
+    destructivePanelTestsEnabled: Bool
 ) async throws {
     let title = panelEndpointTitle(selected)
 
@@ -1789,6 +1938,167 @@ private func runPanelTest(
             interaction,
             title: title,
             value: RoleMutationResult(guildId: testGuildId, userId: targetUserId, roleId: roleId, action: "remove", success: true),
+            ephemeral: true
+        )
+
+    case "modify_guild":
+        let guild = try await bot.getGuild(testGuildId)
+        let modified = try await bot.modifyGuild(
+            guildId: testGuildId,
+            modify: ModifyGuild(
+                name: guild.name,
+                preferredLocale: guild.preferredLocale,
+                description: guild.description
+            ),
+            auditLogReason: "DiscordKit modify guild endpoint test"
+        )
+        try await sendDeferredInteractionDump(interaction, title: title, value: modified, ephemeral: true)
+
+    case "get_guild_audit_log":
+        let auditLog = try await bot.getGuildAuditLog(testGuildId, query: GuildAuditLogQuery(limit: 10))
+        try await sendDeferredInteractionDump(interaction, title: title, value: auditLog, ephemeral: true)
+
+    case "get_guild_bans":
+        let bans = try await bot.getGuildBans(testGuildId, query: GuildBansQuery(limit: 25))
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: EndpointCollectionDump(count: bans.count, items: bans),
+            ephemeral: true
+        )
+
+    case "get_guild_ban":
+        guard let targetUserId = testBanUserId else {
+            throw DiscordError.invalidRequest(
+                message: "Set TEST_BAN_USER_ID in your environment or .env for get_guild_ban."
+            )
+        }
+        let ban = try await bot.getGuildBan(guildId: testGuildId, userId: targetUserId)
+        try await sendDeferredInteractionDump(interaction, title: title, value: ban, ephemeral: true)
+
+    case "create_guild_ban":
+        guard destructivePanelTestsEnabled else {
+            throw DiscordError.invalidRequest(
+                message: "Enable destructive tests with ENABLE_DESTRUCTIVE_PANEL_TESTS=true before running create_guild_ban."
+            )
+        }
+        guard let targetUserId = testBanUserId else {
+            throw DiscordError.invalidRequest(
+                message: "Set TEST_BAN_USER_ID in your environment or .env for create_guild_ban."
+            )
+        }
+        try await bot.createGuildBan(
+            guildId: testGuildId,
+            userId: targetUserId,
+            ban: CreateGuildBan(deleteMessageSeconds: 0),
+            auditLogReason: "DiscordKit create guild ban endpoint test"
+        )
+        let fetched = try? await bot.getGuildBan(guildId: testGuildId, userId: targetUserId)
+        try? await bot.deleteGuildBan(
+            guildId: testGuildId,
+            userId: targetUserId,
+            auditLogReason: "DiscordKit cleanup create guild ban endpoint test"
+        )
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: GuildBanLifecycleResult(
+                guildId: testGuildId,
+                userId: targetUserId,
+                createdBan: true,
+                fetchedBan: fetched,
+                deletedBan: true
+            ),
+            ephemeral: true
+        )
+
+    case "delete_guild_ban":
+        guard destructivePanelTestsEnabled else {
+            throw DiscordError.invalidRequest(
+                message: "Enable destructive tests with ENABLE_DESTRUCTIVE_PANEL_TESTS=true before running delete_guild_ban."
+            )
+        }
+        guard let targetUserId = testBanUserId else {
+            throw DiscordError.invalidRequest(
+                message: "Set TEST_BAN_USER_ID in your environment or .env for delete_guild_ban."
+            )
+        }
+        try await bot.createGuildBan(
+            guildId: testGuildId,
+            userId: targetUserId,
+            ban: CreateGuildBan(deleteMessageSeconds: 0),
+            auditLogReason: "DiscordKit setup delete guild ban endpoint test"
+        )
+        try await bot.deleteGuildBan(
+            guildId: testGuildId,
+            userId: targetUserId,
+            auditLogReason: "DiscordKit delete guild ban endpoint test"
+        )
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: GuildBanLifecycleResult(
+                guildId: testGuildId,
+                userId: targetUserId,
+                createdBan: true,
+                fetchedBan: nil,
+                deletedBan: true
+            ),
+            ephemeral: true
+        )
+
+    case "get_guild_prune_count":
+        let prune = try await bot.getGuildPruneCount(
+            testGuildId,
+            query: GuildPruneCountQuery(days: 3650)
+        )
+        try await sendDeferredInteractionDump(interaction, title: title, value: prune, ephemeral: true)
+
+    case "begin_guild_prune":
+        guard destructivePanelTestsEnabled else {
+            throw DiscordError.invalidRequest(
+                message: "Enable destructive tests with ENABLE_DESTRUCTIVE_PANEL_TESTS=true before running begin_guild_prune."
+            )
+        }
+        let prune = try await bot.beginGuildPrune(
+            testGuildId,
+            prune: BeginGuildPrune(days: 3650, computePruneCount: true),
+            auditLogReason: "DiscordKit begin guild prune endpoint test"
+        )
+        try await sendDeferredInteractionDump(interaction, title: title, value: prune, ephemeral: true)
+
+    case "modify_guild_channel_positions":
+        let channels = try await bot.getGuildChannels(testGuildId)
+        guard let channel = channels.first(where: { $0.position != nil }) else {
+            throw DiscordError.resourceNotFound(endpoint: "No guild channel with position available for reorder test.")
+        }
+        let payload = [ModifyGuildChannelPosition(id: channel.id, position: channel.position, parentId: channel.parentId)]
+        try await bot.modifyGuildChannelPositions(
+            guildId: testGuildId,
+            positions: payload,
+            auditLogReason: "DiscordKit modify guild channel positions endpoint test"
+        )
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: GuildChannelPositionsResult(guildId: testGuildId, updatedChannelIds: payload.map(\.id)),
+            ephemeral: true
+        )
+
+    case "modify_guild_role_positions":
+        let roles = try await bot.getGuildRoles(testGuildId)
+        guard let targetRole = roles.first(where: { $0.name != "@everyone" }) else {
+            throw DiscordError.resourceNotFound(endpoint: "No guild role available for role position test.")
+        }
+        let updated = try await bot.modifyGuildRolePositions(
+            guildId: testGuildId,
+            positions: [ModifyGuildRolePosition(id: targetRole.id, position: targetRole.position)],
+            auditLogReason: "DiscordKit modify guild role positions endpoint test"
+        )
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: GuildRolePositionsResult(guildId: testGuildId, updatedRoles: updated),
             ephemeral: true
         )
 
@@ -2150,6 +2460,107 @@ private func runPanelTest(
             ephemeral: true
         )
 
+    case "edit_channel_permission":
+        let role = try await bot.createGuildRole(
+            guildId: testGuildId,
+            role: CreateGuildRole(name: tempRoleName(prefix: "api-perm-edit"), mentionable: false),
+            auditLogReason: "DiscordKit setup channel permission edit endpoint test"
+        )
+        do {
+            try await bot.editChannelPermission(
+                channelId: testChannelId,
+                overwriteId: role.id,
+                permission: EditChannelPermission(allow: "1024", deny: "0", type: 0),
+                auditLogReason: "DiscordKit edit channel permission endpoint test"
+            )
+        } catch {
+            try? await bot.deleteGuildRole(
+                guildId: testGuildId,
+                roleId: role.id,
+                auditLogReason: "DiscordKit cleanup role after failed permission edit test"
+            )
+            throw error
+        }
+        try? await bot.deleteGuildRole(
+            guildId: testGuildId,
+            roleId: role.id,
+            auditLogReason: "DiscordKit cleanup role after permission edit test"
+        )
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: ChannelPermissionMutationResult(
+                channelId: testChannelId,
+                overwriteId: role.id,
+                action: "edit",
+                success: true
+            ),
+            ephemeral: true
+        )
+
+    case "delete_channel_permission":
+        let role = try await bot.createGuildRole(
+            guildId: testGuildId,
+            role: CreateGuildRole(name: tempRoleName(prefix: "api-perm-delete"), mentionable: false),
+            auditLogReason: "DiscordKit setup channel permission delete endpoint test"
+        )
+        try await bot.editChannelPermission(
+            channelId: testChannelId,
+            overwriteId: role.id,
+            permission: EditChannelPermission(allow: "1024", deny: "0", type: 0),
+            auditLogReason: "DiscordKit setup overwrite for permission delete endpoint test"
+        )
+        try await bot.deleteChannelPermission(
+            channelId: testChannelId,
+            overwriteId: role.id,
+            auditLogReason: "DiscordKit delete channel permission endpoint test"
+        )
+        try? await bot.deleteGuildRole(
+            guildId: testGuildId,
+            roleId: role.id,
+            auditLogReason: "DiscordKit cleanup role after permission delete test"
+        )
+        try await sendDeferredInteractionDump(
+            interaction,
+            title: title,
+            value: ChannelPermissionMutationResult(
+                channelId: testChannelId,
+                overwriteId: role.id,
+                action: "delete",
+                success: true
+            ),
+            ephemeral: true
+        )
+
+    case "crosspost_message":
+        let announcement = try await bot.createGuildChannel(
+            guildId: testGuildId,
+            channel: CreateGuildChannel(
+                name: tempChannelName(prefix: "api-crosspost"),
+                type: ChannelType.guildAnnouncement.rawValue,
+                topic: "Crosspost endpoint test channel"
+            ),
+            auditLogReason: "DiscordKit setup announcement channel for crosspost endpoint test"
+        )
+        do {
+            let message = try await bot.sendMessage(
+                to: announcement.id,
+                content: "Crosspost endpoint test \(Int(Date().timeIntervalSince1970))"
+            )
+            let crossposted = try await bot.crosspostMessage(channelId: announcement.id, messageId: message.id)
+            try await sendDeferredInteractionDump(interaction, title: title, value: crossposted, ephemeral: true)
+        } catch {
+            _ = try? await bot.deleteChannel(
+                channelId: announcement.id,
+                auditLogReason: "DiscordKit cleanup announcement channel after failed crosspost test"
+            )
+            throw error
+        }
+        _ = try? await bot.deleteChannel(
+            channelId: announcement.id,
+            auditLogReason: "DiscordKit cleanup announcement channel after crosspost test"
+        )
+
     case "create_guild_channel":
         let created = try await bot.createGuildChannel(
             guildId: testGuildId,
@@ -2414,6 +2825,40 @@ private func runPanelTest(
             value: ThreadLifecycleResult(parentChannelId: testChannelId, thread: thread, archivedSnapshot: nil, members: members),
             ephemeral: true
         )
+
+    case "add_thread_member":
+        let thread = try await bot.startThreadWithoutMessage(
+            channelId: testChannelId,
+            payload: StartThreadWithoutMessage(
+                name: tempThreadName(prefix: "api-add-member"),
+                autoArchiveDuration: 60,
+                type: ChannelType.privateThread.rawValue,
+                invitable: true
+            ),
+            auditLogReason: "DiscordKit setup add thread member endpoint test"
+        )
+        guard let targetUserId = interaction.invoker?.id else {
+            throw DiscordError.invalidRequest(message: "Unable to resolve target user for add thread member test.")
+        }
+        do {
+            try await bot.addThreadMember(channelId: thread.id, userId: targetUserId)
+            let member = try await bot.getThreadMember(channelId: thread.id, userId: targetUserId, withMember: true)
+            try await sendDeferredInteractionDump(interaction, title: title, value: member, ephemeral: true)
+        } catch {
+            _ = try? await bot.deleteChannel(
+                channelId: thread.id,
+                auditLogReason: "DiscordKit cleanup thread after failed add thread member endpoint test"
+            )
+            throw error
+        }
+        _ = try? await bot.deleteChannel(
+            channelId: thread.id,
+            auditLogReason: "DiscordKit cleanup thread after add thread member endpoint test"
+        )
+
+    case "get_active_guild_threads":
+        let active = try await bot.getActiveGuildThreads(guildId: testGuildId)
+        try await sendDeferredInteractionDump(interaction, title: title, value: active, ephemeral: true)
 
     case "create_webhook":
         let webhook = try await bot.createWebhook(

@@ -198,6 +198,32 @@ public final class RESTClient: Sendable {
         )
     }
 
+    func editChannelPermission(
+        channelId: String,
+        overwriteId: String,
+        permission: EditChannelPermission,
+        auditLogReason: String? = nil
+    ) async throws {
+        try await requestVoid(
+            method: "PUT",
+            url: Routes.channelPermission(channelId, overwriteId: overwriteId),
+            body: permission,
+            headers: auditLogHeaders(reason: auditLogReason)
+        )
+    }
+
+    func deleteChannelPermission(
+        channelId: String,
+        overwriteId: String,
+        auditLogReason: String? = nil
+    ) async throws {
+        try await requestVoid(
+            method: "DELETE",
+            url: Routes.channelPermission(channelId, overwriteId: overwriteId),
+            headers: auditLogHeaders(reason: auditLogReason)
+        )
+    }
+
     func createWebhook(
         channelId: String,
         webhook: CreateWebhook,
@@ -429,12 +455,24 @@ public final class RESTClient: Sendable {
         return try await request(method: "GET", url: url, decodeAs: ChannelThreadMember.self)
     }
 
+    func addThreadMember(channelId: String, userId: String) async throws {
+        try await requestVoid(method: "PUT", url: Routes.threadMember(channelId, userId: userId))
+    }
+
     func joinThread(channelId: String) async throws {
         try await requestVoid(method: "PUT", url: Routes.threadMemberMe(channelId))
     }
 
     func leaveThread(channelId: String) async throws {
         try await requestVoid(method: "DELETE", url: Routes.threadMemberMe(channelId))
+    }
+
+    func getActiveGuildThreads(guildId: String) async throws -> ActiveGuildThreadsResponse {
+        try await request(
+            method: "GET",
+            url: Routes.guildActiveThreads(guildId),
+            decodeAs: ActiveGuildThreadsResponse.self
+        )
     }
 
     func getMessagePins(channelId: String, query: MessagePinsQuery = MessagePinsQuery()) async throws -> MessagePinsPage {
@@ -544,6 +582,92 @@ public final class RESTClient: Sendable {
         try await request(method: "GET", url: Routes.guild(guildId), decodeAs: Guild.self)
     }
 
+    func modifyGuild(
+        guildId: String,
+        modify: ModifyGuild,
+        auditLogReason: String? = nil
+    ) async throws -> Guild {
+        try await request(
+            method: "PATCH",
+            url: Routes.guild(guildId),
+            body: modify,
+            headers: auditLogHeaders(reason: auditLogReason),
+            decodeAs: Guild.self
+        )
+    }
+
+    func getGuildAuditLog(
+        guildId: String,
+        query: GuildAuditLogQuery = GuildAuditLogQuery()
+    ) async throws -> GuildAuditLog {
+        let url = buildGuildAuditLogURL(guildId: guildId, query: query)
+        return try await request(method: "GET", url: url, decodeAs: GuildAuditLog.self)
+    }
+
+    func getGuildBans(
+        guildId: String,
+        query: GuildBansQuery = GuildBansQuery()
+    ) async throws -> [GuildBan] {
+        let url = buildGuildBansURL(guildId: guildId, query: query)
+        return try await request(method: "GET", url: url, decodeAs: [GuildBan].self)
+    }
+
+    func getGuildBan(guildId: String, userId: String) async throws -> GuildBan {
+        try await request(
+            method: "GET",
+            url: Routes.guildBan(guildId, userId: userId),
+            decodeAs: GuildBan.self
+        )
+    }
+
+    func createGuildBan(
+        guildId: String,
+        userId: String,
+        ban: CreateGuildBan = CreateGuildBan(),
+        auditLogReason: String? = nil
+    ) async throws {
+        try await requestVoid(
+            method: "PUT",
+            url: Routes.guildBan(guildId, userId: userId),
+            body: ban,
+            headers: auditLogHeaders(reason: auditLogReason)
+        )
+    }
+
+    func deleteGuildBan(
+        guildId: String,
+        userId: String,
+        auditLogReason: String? = nil
+    ) async throws {
+        try await requestVoid(
+            method: "DELETE",
+            url: Routes.guildBan(guildId, userId: userId),
+            headers: auditLogHeaders(reason: auditLogReason)
+        )
+    }
+
+    func getGuildPruneCount(
+        guildId: String,
+        query: GuildPruneCountQuery = GuildPruneCountQuery()
+    ) async throws -> GuildPruneResult {
+        let url = buildGuildPruneURL(guildId: guildId, query: query)
+        return try await request(method: "GET", url: url, decodeAs: GuildPruneResult.self)
+    }
+
+    func beginGuildPrune(
+        guildId: String,
+        prune: BeginGuildPrune = BeginGuildPrune(),
+        auditLogReason: String? = nil
+    ) async throws -> GuildPruneResult {
+        try await request(
+            method: "POST",
+            url: Routes.guildPrune(guildId),
+            body: prune,
+            headers: auditLogHeaders(reason: auditLogReason),
+            decodeAs: GuildPruneResult.self
+        )
+    }
+
     func createGuildChannel(
         guildId: String,
         channel: CreateGuildChannel,
@@ -555,6 +679,19 @@ public final class RESTClient: Sendable {
             body: channel,
             headers: auditLogHeaders(reason: auditLogReason),
             decodeAs: Channel.self
+        )
+    }
+
+    func modifyGuildChannelPositions(
+        guildId: String,
+        positions: [ModifyGuildChannelPosition],
+        auditLogReason: String? = nil
+    ) async throws {
+        try await requestVoid(
+            method: "PATCH",
+            url: Routes.guildChannels(guildId),
+            body: positions,
+            headers: auditLogHeaders(reason: auditLogReason)
         )
     }
 
@@ -633,6 +770,20 @@ public final class RESTClient: Sendable {
         try await request(method: "GET", url: Routes.guildRoles(guildId), decodeAs: [GuildRole].self)
     }
 
+    func modifyGuildRolePositions(
+        guildId: String,
+        positions: [ModifyGuildRolePosition],
+        auditLogReason: String? = nil
+    ) async throws -> [GuildRole] {
+        try await request(
+            method: "PATCH",
+            url: Routes.guildRoles(guildId),
+            body: positions,
+            headers: auditLogHeaders(reason: auditLogReason),
+            decodeAs: [GuildRole].self
+        )
+    }
+
     func createGuildRole(
         guildId: String,
         role: CreateGuildRole,
@@ -687,6 +838,16 @@ public final class RESTClient: Sendable {
         var message = try await request(
             method: "GET",
             url: Routes.message(channelId, messageId: messageId),
+            decodeAs: Message.self
+        )
+        message._rest = self
+        return message
+    }
+
+    func crosspostMessage(channelId: String, messageId: String) async throws -> Message {
+        var message = try await request(
+            method: "POST",
+            url: Routes.messageCrosspost(channelId, messageId: messageId),
             decodeAs: Message.self
         )
         message._rest = self
@@ -1184,6 +1345,51 @@ public final class RESTClient: Sendable {
 }
 
 private extension RESTClient {
+    func buildGuildAuditLogURL(guildId: String, query: GuildAuditLogQuery) -> String {
+        guard var components = URLComponents(string: Routes.guildAuditLogs(guildId)) else {
+            return Routes.guildAuditLogs(guildId)
+        }
+
+        var items: [URLQueryItem] = []
+        if let userId = query.userId { items.append(URLQueryItem(name: "user_id", value: userId)) }
+        if let actionType = query.actionType { items.append(URLQueryItem(name: "action_type", value: String(actionType))) }
+        if let before = query.before { items.append(URLQueryItem(name: "before", value: before)) }
+        if let after = query.after { items.append(URLQueryItem(name: "after", value: after)) }
+        if let limit = query.limit { items.append(URLQueryItem(name: "limit", value: String(limit))) }
+
+        components.queryItems = items.isEmpty ? nil : items
+        return components.url?.absoluteString ?? Routes.guildAuditLogs(guildId)
+    }
+
+    func buildGuildBansURL(guildId: String, query: GuildBansQuery) -> String {
+        guard var components = URLComponents(string: Routes.guildBans(guildId)) else {
+            return Routes.guildBans(guildId)
+        }
+
+        var items: [URLQueryItem] = []
+        if let limit = query.limit { items.append(URLQueryItem(name: "limit", value: String(limit))) }
+        if let before = query.before { items.append(URLQueryItem(name: "before", value: before)) }
+        if let after = query.after { items.append(URLQueryItem(name: "after", value: after)) }
+
+        components.queryItems = items.isEmpty ? nil : items
+        return components.url?.absoluteString ?? Routes.guildBans(guildId)
+    }
+
+    func buildGuildPruneURL(guildId: String, query: GuildPruneCountQuery) -> String {
+        guard var components = URLComponents(string: Routes.guildPrune(guildId)) else {
+            return Routes.guildPrune(guildId)
+        }
+
+        var items: [URLQueryItem] = []
+        if let days = query.days { items.append(URLQueryItem(name: "days", value: String(days))) }
+        if let includeRoles = query.includeRoles, !includeRoles.isEmpty {
+            items.append(URLQueryItem(name: "include_roles", value: includeRoles.joined(separator: ",")))
+        }
+
+        components.queryItems = items.isEmpty ? nil : items
+        return components.url?.absoluteString ?? Routes.guildPrune(guildId)
+    }
+
     func buildGuildMembersURL(guildId: String, query: GuildMembersQuery) -> String {
         guard var components = URLComponents(string: Routes.guildMembers(guildId)) else {
             return Routes.guildMembers(guildId)

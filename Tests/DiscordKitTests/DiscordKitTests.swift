@@ -272,6 +272,79 @@ final class JSONCoderTests: XCTestCase {
         XCTAssertEqual(guild.approximateMemberCount, 120)
     }
 
+    func testGuildAuditLogDecoding() throws {
+        let json = """
+        {
+            "audit_log_entries": [
+                {
+                    "id": "1",
+                    "target_id": "99",
+                    "user_id": "42",
+                    "action_type": 10,
+                    "changes": [
+                        { "key": "name", "old_value": "old", "new_value": "new" }
+                    ],
+                    "options": {
+                        "count": "1",
+                        "channel_id": "123"
+                    },
+                    "reason": "test"
+                }
+            ],
+            "users": [
+                {
+                    "id": "42",
+                    "username": "mod",
+                    "discriminator": "0",
+                    "global_name": null,
+                    "avatar": null
+                }
+            ],
+            "webhooks": []
+        }
+        """.data(using: .utf8)!
+
+        let auditLog = try JSONCoder.decode(GuildAuditLog.self, from: json)
+        XCTAssertEqual(auditLog.auditLogEntries.count, 1)
+        XCTAssertEqual(auditLog.auditLogEntries.first?.actionType, 10)
+        XCTAssertEqual(auditLog.auditLogEntries.first?.changes?.first?.key, "name")
+        XCTAssertEqual(auditLog.users.first?.id, "42")
+    }
+
+    func testGuildBanDecoding() throws {
+        let json = """
+        {
+            "reason": "rule violation",
+            "user": {
+                "id": "777",
+                "username": "banned_user",
+                "discriminator": "0",
+                "global_name": null,
+                "avatar": null
+            }
+        }
+        """.data(using: .utf8)!
+
+        let ban = try JSONCoder.decode(GuildBan.self, from: json)
+        XCTAssertEqual(ban.reason, "rule violation")
+        XCTAssertEqual(ban.user.id, "777")
+    }
+
+    func testGuildPruneAndModifyPayloadEncoding() throws {
+        let prune = BeginGuildPrune(days: 30, computePruneCount: true, includeRoles: ["1", "2"])
+        let pruneData = try JSONCoder.encode(prune)
+        let pruneJSON = try JSONSerialization.jsonObject(with: pruneData) as? [String: Any]
+        XCTAssertEqual(pruneJSON?["days"] as? Int, 30)
+        XCTAssertEqual(pruneJSON?["compute_prune_count"] as? Bool, true)
+        XCTAssertEqual((pruneJSON?["include_roles"] as? [String])?.count, 2)
+
+        let modify = ModifyGuild(name: "Guild A", description: "Updated description")
+        let modifyData = try JSONCoder.encode(modify)
+        let modifyJSON = try JSONSerialization.jsonObject(with: modifyData) as? [String: Any]
+        XCTAssertEqual(modifyJSON?["name"] as? String, "Guild A")
+        XCTAssertEqual(modifyJSON?["description"] as? String, "Updated description")
+    }
+
     func testExtendedGuildMemberDecoding() throws {
         let json = """
         {
@@ -435,6 +508,29 @@ final class JSONCoderTests: XCTestCase {
         XCTAssertEqual(archived.threads.first?.id, "10")
         XCTAssertEqual(archived.members.first?.userId, "500")
         XCTAssertEqual(archived.hasMore, true)
+    }
+
+    func testActiveGuildThreadsResponseDecoding() throws {
+        let json = """
+        {
+            "threads": [
+                { "id": "11", "type": 11, "guild_id": "300", "name": "active-thread" }
+            ],
+            "members": [
+                {
+                    "id": "11",
+                    "user_id": "500",
+                    "join_timestamp": "2024-01-01T00:00:00.000Z",
+                    "flags": 0
+                }
+            ]
+        }
+        """.data(using: .utf8)!
+
+        let response = try JSONCoder.decode(ActiveGuildThreadsResponse.self, from: json)
+        XCTAssertEqual(response.threads.count, 1)
+        XCTAssertEqual(response.members.count, 1)
+        XCTAssertEqual(response.threads.first?.id, "11")
     }
 
     func testThreadMemberDecodingWithGuildMember() throws {
@@ -1122,6 +1218,34 @@ final class RouteCoverageTests: XCTestCase {
         XCTAssertEqual(
             Routes.pin("123", messageId: "m1"),
             "\(Routes.baseURL)/channels/123/pins/m1"
+        )
+        XCTAssertEqual(
+            Routes.channelPermission("123", overwriteId: "ov1"),
+            "\(Routes.baseURL)/channels/123/permissions/ov1"
+        )
+        XCTAssertEqual(
+            Routes.messageCrosspost("123", messageId: "m1"),
+            "\(Routes.baseURL)/channels/123/messages/m1/crosspost"
+        )
+        XCTAssertEqual(
+            Routes.guildAuditLogs("456"),
+            "\(Routes.baseURL)/guilds/456/audit-logs"
+        )
+        XCTAssertEqual(
+            Routes.guildBans("456"),
+            "\(Routes.baseURL)/guilds/456/bans"
+        )
+        XCTAssertEqual(
+            Routes.guildBan("456", userId: "u1"),
+            "\(Routes.baseURL)/guilds/456/bans/u1"
+        )
+        XCTAssertEqual(
+            Routes.guildPrune("456"),
+            "\(Routes.baseURL)/guilds/456/prune"
+        )
+        XCTAssertEqual(
+            Routes.guildActiveThreads("456"),
+            "\(Routes.baseURL)/guilds/456/threads/active"
         )
     }
 }

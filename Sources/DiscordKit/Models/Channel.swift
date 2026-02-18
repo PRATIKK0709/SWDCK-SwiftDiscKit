@@ -71,6 +71,18 @@ public struct ChannelPermissionOverwrite: Codable, Sendable {
     public let deny: String
 }
 
+public struct EditChannelPermission: Encodable, Sendable {
+    public let allow: String
+    public let deny: String
+    public let type: Int
+
+    public init(allow: String, deny: String, type: Int) {
+        self.allow = allow
+        self.deny = deny
+        self.type = type
+    }
+}
+
 public struct ChannelThreadMetadata: Codable, Sendable {
     public let archived: Bool?
     public let autoArchiveDuration: Int?
