@@ -12,8 +12,8 @@ This file lists Discord HTTP endpoints from the official docs and tracks SwiftDi
 ## Summary
 
 - Total documented endpoints in scope: **219**
-- Implemented in SwiftDiscKit: **169**
-- Remaining: **50**
+- Implemented in SwiftDiscKit: **186**
+- Remaining: **33**
 
 ## Implemented Endpoints (Highlights)
 
@@ -160,11 +160,11 @@ Full authoritative status for all 219 endpoints is in the matrix below.
 | Implemented | `GET` | `/applications/{application.id}/activity-instances/{instance_id}` | `developers/resources/application.mdx` | RESTClient.getApplicationActivityInstance |
 | Implemented | `PATCH` | `/applications/@me` | `developers/resources/application.mdx` | RESTClient.modifyCurrentApplication |
 | Implemented | `GET` | `/guilds/{guild.id}/audit-logs` | `developers/resources/audit-log.mdx` | RESTClient.getGuildAuditLog |
-| Remaining | `DELETE` | `/guilds/{guild.id}/auto-moderation/rules/{auto_moderation_rule.id}` | `developers/resources/auto-moderation.mdx` | - |
-| Remaining | `GET` | `/guilds/{guild.id}/auto-moderation/rules` | `developers/resources/auto-moderation.mdx` | - |
-| Remaining | `GET` | `/guilds/{guild.id}/auto-moderation/rules/{auto_moderation_rule.id}` | `developers/resources/auto-moderation.mdx` | - |
-| Remaining | `PATCH` | `/guilds/{guild.id}/auto-moderation/rules/{auto_moderation_rule.id}` | `developers/resources/auto-moderation.mdx` | - |
-| Remaining | `POST` | `/guilds/{guild.id}/auto-moderation/rules` | `developers/resources/auto-moderation.mdx` | - |
+| Implemented | `DELETE` | `/guilds/{guild.id}/auto-moderation/rules/{auto_moderation_rule.id}` | `developers/resources/auto-moderation.mdx` | RESTClient.deleteGuildAutoModerationRule |
+| Implemented | `GET` | `/guilds/{guild.id}/auto-moderation/rules` | `developers/resources/auto-moderation.mdx` | RESTClient.getGuildAutoModerationRules |
+| Implemented | `GET` | `/guilds/{guild.id}/auto-moderation/rules/{auto_moderation_rule.id}` | `developers/resources/auto-moderation.mdx` | RESTClient.getGuildAutoModerationRule |
+| Implemented | `PATCH` | `/guilds/{guild.id}/auto-moderation/rules/{auto_moderation_rule.id}` | `developers/resources/auto-moderation.mdx` | RESTClient.modifyGuildAutoModerationRule |
+| Implemented | `POST` | `/guilds/{guild.id}/auto-moderation/rules` | `developers/resources/auto-moderation.mdx` | RESTClient.createGuildAutoModerationRule |
 | Implemented | `DELETE` | `/channels/{channel.id}` | `developers/resources/channel.mdx` | RESTClient.deleteChannel |
 | Implemented | `DELETE` | `/channels/{channel.id}/permissions/{overwrite.id}` | `developers/resources/channel.mdx` | RESTClient.deleteChannelPermission |
 | Implemented | `DELETE` | `/channels/{channel.id}/recipients/{user.id}` | `developers/resources/channel.mdx` | RESTClient.deleteChannelRecipient |
@@ -188,20 +188,20 @@ Full authoritative status for all 219 endpoints is in the matrix below.
 | Implemented | `PUT` | `/channels/{channel.id}/thread-members/@me` | `developers/resources/channel.mdx` | RESTClient.joinThread |
 | Implemented | `PUT` | `/channels/{channel.id}/thread-members/{user.id}` | `developers/resources/channel.mdx` | RESTClient.addThreadMember |
 | Remaining | `DELETE` | `/applications/{application.id}/emojis/{emoji.id}` | `developers/resources/emoji.mdx` | - |
-| Remaining | `DELETE` | `/guilds/{guild.id}/emojis/{emoji.id}` | `developers/resources/emoji.mdx` | - |
+| Implemented | `DELETE` | `/guilds/{guild.id}/emojis/{emoji.id}` | `developers/resources/emoji.mdx` | RESTClient.deleteGuildEmoji |
 | Remaining | `GET` | `/applications/{application.id}/emojis` | `developers/resources/emoji.mdx` | - |
 | Remaining | `GET` | `/applications/{application.id}/emojis/{emoji.id}` | `developers/resources/emoji.mdx` | - |
-| Remaining | `GET` | `/guilds/{guild.id}/emojis` | `developers/resources/emoji.mdx` | - |
-| Remaining | `GET` | `/guilds/{guild.id}/emojis/{emoji.id}` | `developers/resources/emoji.mdx` | - |
+| Implemented | `GET` | `/guilds/{guild.id}/emojis` | `developers/resources/emoji.mdx` | RESTClient.getGuildEmojis |
+| Implemented | `GET` | `/guilds/{guild.id}/emojis/{emoji.id}` | `developers/resources/emoji.mdx` | RESTClient.getGuildEmoji |
 | Remaining | `PATCH` | `/applications/{application.id}/emojis/{emoji.id}` | `developers/resources/emoji.mdx` | - |
-| Remaining | `PATCH` | `/guilds/{guild.id}/emojis/{emoji.id}` | `developers/resources/emoji.mdx` | - |
+| Implemented | `PATCH` | `/guilds/{guild.id}/emojis/{emoji.id}` | `developers/resources/emoji.mdx` | RESTClient.modifyGuildEmoji |
 | Remaining | `POST` | `/applications/{application.id}/emojis` | `developers/resources/emoji.mdx` | - |
-| Remaining | `POST` | `/guilds/{guild.id}/emojis` | `developers/resources/emoji.mdx` | - |
+| Implemented | `POST` | `/guilds/{guild.id}/emojis` | `developers/resources/emoji.mdx` | RESTClient.createGuildEmoji |
 | Remaining | `DELETE` | `/applications/{application.id}/entitlements/{entitlement.id}` | `developers/resources/entitlement.mdx` | - |
-| Remaining | `GET` | `/applications/{application.id}/entitlements` | `developers/resources/entitlement.mdx` | - |
+| Implemented | `GET` | `/applications/{application.id}/entitlements` | `developers/resources/entitlement.mdx` | RESTClient.getApplicationEntitlements |
 | Remaining | `GET` | `/applications/{application.id}/entitlements/{entitlement.id}` | `developers/resources/entitlement.mdx` | - |
 | Remaining | `POST` | `/applications/{application.id}/entitlements` | `developers/resources/entitlement.mdx` | - |
-| Remaining | `POST` | `/applications/{application.id}/entitlements/{entitlement.id}/consume` | `developers/resources/entitlement.mdx` | - |
+| Implemented | `POST` | `/applications/{application.id}/entitlements/{entitlement.id}/consume` | `developers/resources/entitlement.mdx` | RESTClient.consumeEntitlement |
 | Implemented | `DELETE` | `/guilds/{guild.id}/scheduled-events/{guild_scheduled_event.id}` | `developers/resources/guild-scheduled-event.mdx` | RESTClient.deleteGuildScheduledEvent |
 | Implemented | `GET` | `/guilds/{guild.id}/scheduled-events` | `developers/resources/guild-scheduled-event.mdx` | RESTClient.getGuildScheduledEvents |
 | Implemented | `GET` | `/guilds/{guild.id}/scheduled-events/{guild_scheduled_event.id}` | `developers/resources/guild-scheduled-event.mdx` | RESTClient.getGuildScheduledEvent |
@@ -243,8 +243,8 @@ Full authoritative status for all 219 endpoints is in the matrix below.
 | Implemented | `GET` | `/guilds/{guild.id}/widget.png` | `developers/resources/guild.mdx` | RESTClient.getGuildWidgetImage |
 | Implemented | `PATCH` | `/guilds/{guild.id}` | `developers/resources/guild.mdx` | RESTClient.modifyGuild |
 | Implemented | `PATCH` | `/guilds/{guild.id}/channels` | `developers/resources/guild.mdx` | RESTClient.modifyGuildChannelPositions |
-| Remaining | `PATCH` | `/guilds/{guild.id}/members/@me` | `developers/resources/guild.mdx` | - |
-| Remaining | `PATCH` | `/guilds/{guild.id}/members/@me/nick` | `developers/resources/guild.mdx` | - |
+| Implemented | `PATCH` | `/guilds/{guild.id}/members/@me` | `developers/resources/guild.mdx` | RESTClient.modifyCurrentGuildMember |
+| Implemented | `PATCH` | `/guilds/{guild.id}/members/@me/nick` | `developers/resources/guild.mdx` | RESTClient.modifyCurrentGuildNick |
 | Implemented | `PATCH` | `/guilds/{guild.id}/members/{user.id}` | `developers/resources/guild.mdx` | RESTClient.modifyGuildMember |
 | Implemented | `PATCH` | `/guilds/{guild.id}/roles` | `developers/resources/guild.mdx` | RESTClient.modifyGuildRolePositions |
 | Implemented | `PATCH` | `/guilds/{guild.id}/roles/{role.id}` | `developers/resources/guild.mdx` | RESTClient.modifyGuildRole |
@@ -291,9 +291,9 @@ Full authoritative status for all 219 endpoints is in the matrix below.
 | Implemented | `PUT` | `/channels/{channel.id}/messages/pins/{message.id}` | `developers/resources/message.mdx` | RESTClient.pinMessage |
 | Implemented | `PUT` | `/channels/{channel.id}/messages/{message.id}/reactions/{emoji.id}/@me` | `developers/resources/message.mdx` | RESTClient.createReaction |
 | Implemented | `PUT` | `/channels/{channel.id}/pins/{message.id}` | `developers/resources/message.mdx` | RESTClient.pin |
-| Remaining | `GET` | `/channels/{channel.id}/polls/{message.id}/answers/{answer_id}` | `developers/resources/poll.mdx` | - |
-| Remaining | `POST` | `/channels/{channel.id}/polls/{message.id}/expire` | `developers/resources/poll.mdx` | - |
-| Remaining | `GET` | `/applications/{application.id}/skus` | `developers/resources/sku.mdx` | - |
+| Implemented | `GET` | `/channels/{channel.id}/polls/{message.id}/answers/{answer_id}` | `developers/resources/poll.mdx` | RESTClient.getPollAnswerVoters |
+| Implemented | `POST` | `/channels/{channel.id}/polls/{message.id}/expire` | `developers/resources/poll.mdx` | RESTClient.expirePoll |
+| Implemented | `GET` | `/applications/{application.id}/skus` | `developers/resources/sku.mdx` | RESTClient.getApplicationSKUs |
 | Remaining | `DELETE` | `/guilds/{guild.id}/soundboard-sounds/{sound.id}` | `developers/resources/soundboard.mdx` | - |
 | Remaining | `GET` | `/guilds/{guild.id}/soundboard-sounds` | `developers/resources/soundboard.mdx` | - |
 | Remaining | `GET` | `/guilds/{guild.id}/soundboard-sounds/{sound.id}` | `developers/resources/soundboard.mdx` | - |

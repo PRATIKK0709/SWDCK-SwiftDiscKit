@@ -479,6 +479,52 @@ public final class DiscordBot: Sendable {
         try await rest.getGuild(guildId: guildId)
     }
 
+    public func getGuildAutoModerationRules(_ guildId: String) async throws -> [AutoModerationRule] {
+        try await rest.getGuildAutoModerationRules(guildId: guildId)
+    }
+
+    public func getGuildAutoModerationRule(guildId: String, ruleId: String) async throws -> AutoModerationRule {
+        try await rest.getGuildAutoModerationRule(guildId: guildId, ruleId: ruleId)
+    }
+
+    public func createGuildAutoModerationRule(
+        guildId: String,
+        rule: CreateAutoModerationRule,
+        auditLogReason: String? = nil
+    ) async throws -> AutoModerationRule {
+        try await rest.createGuildAutoModerationRule(
+            guildId: guildId,
+            rule: rule,
+            auditLogReason: auditLogReason
+        )
+    }
+
+    public func modifyGuildAutoModerationRule(
+        guildId: String,
+        ruleId: String,
+        modify: ModifyAutoModerationRule,
+        auditLogReason: String? = nil
+    ) async throws -> AutoModerationRule {
+        try await rest.modifyGuildAutoModerationRule(
+            guildId: guildId,
+            ruleId: ruleId,
+            modify: modify,
+            auditLogReason: auditLogReason
+        )
+    }
+
+    public func deleteGuildAutoModerationRule(
+        guildId: String,
+        ruleId: String,
+        auditLogReason: String? = nil
+    ) async throws {
+        try await rest.deleteGuildAutoModerationRule(
+            guildId: guildId,
+            ruleId: ruleId,
+            auditLogReason: auditLogReason
+        )
+    }
+
     public func modifyGuild(
         guildId: String,
         modify: ModifyGuild,
@@ -580,6 +626,44 @@ public final class DiscordBot: Sendable {
 
     public func getGuildInvites(_ guildId: String) async throws -> [Invite] {
         try await rest.getGuildInvites(guildId: guildId)
+    }
+
+    public func getGuildEmojis(_ guildId: String) async throws -> [GuildEmoji] {
+        try await rest.getGuildEmojis(guildId: guildId)
+    }
+
+    public func getGuildEmoji(guildId: String, emojiId: String) async throws -> GuildEmoji {
+        try await rest.getGuildEmoji(guildId: guildId, emojiId: emojiId)
+    }
+
+    public func createGuildEmoji(
+        guildId: String,
+        emoji: CreateGuildEmoji,
+        auditLogReason: String? = nil
+    ) async throws -> GuildEmoji {
+        try await rest.createGuildEmoji(
+            guildId: guildId,
+            emoji: emoji,
+            auditLogReason: auditLogReason
+        )
+    }
+
+    public func modifyGuildEmoji(
+        guildId: String,
+        emojiId: String,
+        modify: ModifyGuildEmoji,
+        auditLogReason: String? = nil
+    ) async throws -> GuildEmoji {
+        try await rest.modifyGuildEmoji(
+            guildId: guildId,
+            emojiId: emojiId,
+            modify: modify,
+            auditLogReason: auditLogReason
+        )
+    }
+
+    public func deleteGuildEmoji(guildId: String, emojiId: String, auditLogReason: String? = nil) async throws {
+        try await rest.deleteGuildEmoji(guildId: guildId, emojiId: emojiId, auditLogReason: auditLogReason)
     }
 
     public func getGuildTemplate(code: String) async throws -> GuildTemplate {
@@ -938,6 +1022,24 @@ public final class DiscordBot: Sendable {
         try await rest.getInvite(code: code, query: query)
     }
 
+    public func getPollAnswerVoters(
+        channelId: String,
+        messageId: String,
+        answerId: String,
+        query: PollAnswerVotersQuery = PollAnswerVotersQuery()
+    ) async throws -> PollAnswerVotersResponse {
+        try await rest.getPollAnswerVoters(
+            channelId: channelId,
+            messageId: messageId,
+            answerId: answerId,
+            query: query
+        )
+    }
+
+    public func expirePoll(channelId: String, messageId: String) async throws -> Message {
+        try await rest.expirePoll(channelId: channelId, messageId: messageId)
+    }
+
     public func getInviteTargetUsers(code: String) async throws -> InviteTargetUsersResult {
         try await rest.getInviteTargetUsers(code: code)
     }
@@ -1015,6 +1117,21 @@ public final class DiscordBot: Sendable {
         _ applicationId: String
     ) async throws -> [ApplicationRoleConnectionMetadataRecord] {
         try await rest.getApplicationRoleConnectionMetadata(applicationId: applicationId)
+    }
+
+    public func getApplicationSKUs(_ applicationId: String) async throws -> [SKU] {
+        try await rest.getApplicationSKUs(applicationId: applicationId)
+    }
+
+    public func getApplicationEntitlements(
+        _ applicationId: String,
+        query: EntitlementsQuery = EntitlementsQuery()
+    ) async throws -> [Entitlement] {
+        try await rest.getApplicationEntitlements(applicationId: applicationId, query: query)
+    }
+
+    public func consumeEntitlement(applicationId: String, entitlementId: String) async throws {
+        try await rest.consumeEntitlement(applicationId: applicationId, entitlementId: entitlementId)
     }
 
     public func updateApplicationRoleConnectionMetadata(

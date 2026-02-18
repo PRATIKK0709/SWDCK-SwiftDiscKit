@@ -53,6 +53,14 @@ enum Routes {
         "\(baseURL)/channels/\(channelId)/messages/\(messageId)"
     }
 
+    static func pollAnswerVoters(_ channelId: String, messageId: String, answerId: String) -> String {
+        "\(baseURL)/channels/\(channelId)/polls/\(messageId)/answers/\(answerId)"
+    }
+
+    static func expirePoll(_ channelId: String, messageId: String) -> String {
+        "\(baseURL)/channels/\(channelId)/polls/\(messageId)/expire"
+    }
+
     static func messageCrosspost(_ channelId: String, messageId: String) -> String {
         "\(baseURL)/channels/\(channelId)/messages/\(messageId)/crosspost"
     }
@@ -229,6 +237,14 @@ enum Routes {
         "\(baseURL)/guilds/\(guildId)/auto-moderation/rules/\(ruleId)"
     }
 
+    static func guildEmojis(_ guildId: String) -> String {
+        "\(baseURL)/guilds/\(guildId)/emojis"
+    }
+
+    static func guildEmoji(_ guildId: String, emojiId: String) -> String {
+        "\(baseURL)/guilds/\(guildId)/emojis/\(emojiId)"
+    }
+
     static func guildMember(_ guildId: String, userId: String) -> String {
         "\(baseURL)/guilds/\(guildId)/members/\(userId)"
     }
@@ -335,6 +351,18 @@ enum Routes {
 
     static func applicationRoleConnectionMetadata(_ applicationId: String) -> String {
         "\(baseURL)/applications/\(applicationId)/role-connections/metadata"
+    }
+
+    static func applicationSkus(_ applicationId: String) -> String {
+        "\(baseURL)/applications/\(applicationId)/skus"
+    }
+
+    static func applicationEntitlements(_ applicationId: String) -> String {
+        "\(baseURL)/applications/\(applicationId)/entitlements"
+    }
+
+    static func applicationEntitlementConsume(_ applicationId: String, entitlementId: String) -> String {
+        "\(baseURL)/applications/\(applicationId)/entitlements/\(entitlementId)/consume"
     }
 
     static func interactionResponse(_ interactionId: String, token: String) -> String {

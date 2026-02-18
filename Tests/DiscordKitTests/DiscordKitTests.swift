@@ -1417,6 +1417,120 @@ final class AdditionalAPIModelsTests: XCTestCase {
         XCTAssertEqual(stage.guildScheduledEventId, "event_1")
     }
 
+    func testAutoModerationRuleDecoding() throws {
+        let json = """
+        {
+          "id": "rule_1",
+          "guild_id": "guild_1",
+          "name": "Spam Filter",
+          "creator_id": "user_1",
+          "event_type": 1,
+          "trigger_type": 1,
+          "trigger_metadata": {
+            "keyword_filter": ["buy now"],
+            "allow_list": ["trusted phrase"],
+            "mention_total_limit": 5
+          },
+          "actions": [
+            { "type": 1, "metadata": { "channel_id": "log_1" } },
+            { "type": 2, "metadata": { "duration_seconds": 300 } }
+          ],
+          "enabled": true,
+          "exempt_roles": ["role_1"],
+          "exempt_channels": ["channel_1"]
+        }
+        """.data(using: .utf8)!
+
+        let rule = try JSONCoder.decode(AutoModerationRule.self, from: json)
+        XCTAssertEqual(rule.id, "rule_1")
+        XCTAssertEqual(rule.name, "Spam Filter")
+        XCTAssertEqual(rule.triggerMetadata?.keywordFilter?.first, "buy now")
+        XCTAssertEqual(rule.actions.count, 2)
+        XCTAssertEqual(rule.exemptRoles.first, "role_1")
+    }
+
+    func testGuildEmojiDecoding() throws {
+        let json = """
+        {
+          "id": "emoji_1",
+          "name": "party",
+          "roles": ["role_1"],
+          "user": {
+            "id": "u1",
+            "username": "owner",
+            "discriminator": "0",
+            "global_name": null,
+            "avatar": null
+          },
+          "require_colons": true,
+          "managed": false,
+          "animated": true,
+          "available": true
+        }
+        """.data(using: .utf8)!
+
+        let emoji = try JSONCoder.decode(GuildEmoji.self, from: json)
+        XCTAssertEqual(emoji.id, "emoji_1")
+        XCTAssertEqual(emoji.name, "party")
+        XCTAssertEqual(emoji.roles?.first, "role_1")
+        XCTAssertEqual(emoji.animated, true)
+    }
+
+    func testSKUAndEntitlementDecoding() throws {
+        let skuJSON = """
+        {
+          "id": "sku_1",
+          "type": 5,
+          "application_id": "app_1",
+          "name": "Premium",
+          "slug": "premium",
+          "flags": 0
+        }
+        """.data(using: .utf8)!
+        let entitlementJSON = """
+        {
+          "id": "ent_1",
+          "sku_id": "sku_1",
+          "application_id": "app_1",
+          "user_id": "u1",
+          "type": 8,
+          "deleted": false,
+          "starts_at": "2026-02-18T00:00:00.000Z",
+          "ends_at": null,
+          "guild_id": null,
+          "consumed": false
+        }
+        """.data(using: .utf8)!
+
+        let sku = try JSONCoder.decode(SKU.self, from: skuJSON)
+        let entitlement = try JSONCoder.decode(Entitlement.self, from: entitlementJSON)
+        XCTAssertEqual(sku.id, "sku_1")
+        XCTAssertEqual(sku.applicationId, "app_1")
+        XCTAssertEqual(entitlement.id, "ent_1")
+        XCTAssertEqual(entitlement.skuId, "sku_1")
+        XCTAssertEqual(entitlement.consumed, false)
+    }
+
+    func testPollAnswerVotersDecoding() throws {
+        let json = """
+        {
+          "users": [
+            {
+              "id": "u1",
+              "username": "voter",
+              "discriminator": "0",
+              "global_name": null,
+              "avatar": null
+            }
+          ]
+        }
+        """.data(using: .utf8)!
+
+        let voters = try JSONCoder.decode(PollAnswerVotersResponse.self, from: json)
+        XCTAssertEqual(voters.users.count, 1)
+        XCTAssertEqual(voters.users[0].id, "u1")
+    }
+
     func testAdditionalRoutes() {
         XCTAssertEqual(
             Routes.guildCommandPermissions("app", guildId: "guild"),
@@ -1469,6 +1583,34 @@ final class AdditionalAPIModelsTests: XCTestCase {
         XCTAssertEqual(
             Routes.stageInstance("channel"),
             "\(Routes.baseURL)/stage-instances/channel"
+        )
+        XCTAssertEqual(
+            Routes.guildEmojis("guild"),
+            "\(Routes.baseURL)/guilds/guild/emojis"
+        )
+        XCTAssertEqual(
+            Routes.guildEmoji("guild", emojiId: "emoji"),
+            "\(Routes.baseURL)/guilds/guild/emojis/emoji"
+        )
+        XCTAssertEqual(
+            Routes.pollAnswerVoters("channel", messageId: "message", answerId: "answer"),
+            "\(Routes.baseURL)/channels/channel/polls/message/answers/answer"
+        )
+        XCTAssertEqual(
+            Routes.expirePoll("channel", messageId: "message"),
+            "\(Routes.baseURL)/channels/channel/polls/message/expire"
+        )
+        XCTAssertEqual(
+            Routes.applicationSkus("app"),
+            "\(Routes.baseURL)/applications/app/skus"
+        )
+        XCTAssertEqual(
+            Routes.applicationEntitlements("app"),
+            "\(Routes.baseURL)/applications/app/entitlements"
+        )
+        XCTAssertEqual(
+            Routes.applicationEntitlementConsume("app", entitlementId: "ent"),
+            "\(Routes.baseURL)/applications/app/entitlements/ent/consume"
         )
     }
 }

@@ -596,3 +596,204 @@ public struct ModifyStageInstance: Encodable, Sendable {
         self.privacyLevel = privacyLevel
     }
 }
+
+public struct AutoModerationRule: Codable, Sendable, Identifiable {
+    public let id: String
+    public let guildId: String
+    public let name: String
+    public let creatorId: String?
+    public let eventType: Int
+    public let triggerType: Int
+    public let triggerMetadata: AutoModerationTriggerMetadata?
+    public let actions: [AutoModerationAction]
+    public let enabled: Bool
+    public let exemptRoles: [String]
+    public let exemptChannels: [String]
+}
+
+public struct AutoModerationTriggerMetadata: Codable, Sendable {
+    public let keywordFilter: [String]?
+    public let regexPatterns: [String]?
+    public let presets: [Int]?
+    public let allowList: [String]?
+    public let mentionTotalLimit: Int?
+    public let mentionRaidProtectionEnabled: Bool?
+}
+
+public struct AutoModerationAction: Codable, Sendable {
+    public let type: Int
+    public let metadata: AutoModerationActionMetadata?
+
+    public init(type: Int, metadata: AutoModerationActionMetadata? = nil) {
+        self.type = type
+        self.metadata = metadata
+    }
+}
+
+public struct AutoModerationActionMetadata: Codable, Sendable {
+    public let channelId: String?
+    public let durationSeconds: Int?
+    public let customMessage: String?
+
+    public init(channelId: String? = nil, durationSeconds: Int? = nil, customMessage: String? = nil) {
+        self.channelId = channelId
+        self.durationSeconds = durationSeconds
+        self.customMessage = customMessage
+    }
+}
+
+public struct CreateAutoModerationRule: Encodable, Sendable {
+    public let name: String
+    public let eventType: Int
+    public let triggerType: Int
+    public let triggerMetadata: AutoModerationTriggerMetadata?
+    public let actions: [AutoModerationAction]
+    public let enabled: Bool?
+    public let exemptRoles: [String]?
+    public let exemptChannels: [String]?
+
+    public init(
+        name: String,
+        eventType: Int,
+        triggerType: Int,
+        triggerMetadata: AutoModerationTriggerMetadata? = nil,
+        actions: [AutoModerationAction],
+        enabled: Bool? = nil,
+        exemptRoles: [String]? = nil,
+        exemptChannels: [String]? = nil
+    ) {
+        self.name = name
+        self.eventType = eventType
+        self.triggerType = triggerType
+        self.triggerMetadata = triggerMetadata
+        self.actions = actions
+        self.enabled = enabled
+        self.exemptRoles = exemptRoles
+        self.exemptChannels = exemptChannels
+    }
+}
+
+public struct ModifyAutoModerationRule: Encodable, Sendable {
+    public let name: String?
+    public let eventType: Int?
+    public let triggerMetadata: AutoModerationTriggerMetadata?
+    public let actions: [AutoModerationAction]?
+    public let enabled: Bool?
+    public let exemptRoles: [String]?
+    public let exemptChannels: [String]?
+
+    public init(
+        name: String? = nil,
+        eventType: Int? = nil,
+        triggerMetadata: AutoModerationTriggerMetadata? = nil,
+        actions: [AutoModerationAction]? = nil,
+        enabled: Bool? = nil,
+        exemptRoles: [String]? = nil,
+        exemptChannels: [String]? = nil
+    ) {
+        self.name = name
+        self.eventType = eventType
+        self.triggerMetadata = triggerMetadata
+        self.actions = actions
+        self.enabled = enabled
+        self.exemptRoles = exemptRoles
+        self.exemptChannels = exemptChannels
+    }
+}
+
+public struct GuildEmoji: Codable, Sendable, Identifiable {
+    public let id: String
+    public let name: String?
+    public let roles: [String]?
+    public let user: DiscordUser?
+    public let requireColons: Bool?
+    public let managed: Bool?
+    public let animated: Bool?
+    public let available: Bool?
+}
+
+public struct CreateGuildEmoji: Encodable, Sendable {
+    public let name: String
+    public let image: String
+    public let roles: [String]?
+
+    public init(name: String, image: String, roles: [String]? = nil) {
+        self.name = name
+        self.image = image
+        self.roles = roles
+    }
+}
+
+public struct ModifyGuildEmoji: Encodable, Sendable {
+    public let name: String?
+    public let roles: [String]?
+
+    public init(name: String? = nil, roles: [String]? = nil) {
+        self.name = name
+        self.roles = roles
+    }
+}
+
+public struct PollAnswerVotersQuery: Sendable {
+    public let after: String?
+    public let limit: Int?
+
+    public init(after: String? = nil, limit: Int? = nil) {
+        self.after = after
+        self.limit = limit
+    }
+}
+
+public struct PollAnswerVotersResponse: Codable, Sendable {
+    public let users: [DiscordUser]
+}
+
+public struct SKU: Codable, Sendable, Identifiable {
+    public let id: String
+    public let type: Int
+    public let applicationId: String
+    public let name: String
+    public let slug: String
+    public let flags: Int?
+}
+
+public struct Entitlement: Codable, Sendable, Identifiable {
+    public let id: String
+    public let skuId: String
+    public let applicationId: String
+    public let userId: String?
+    public let type: Int?
+    public let deleted: Bool?
+    public let startsAt: String?
+    public let endsAt: String?
+    public let guildId: String?
+    public let consumed: Bool?
+}
+
+public struct EntitlementsQuery: Sendable {
+    public let userId: String?
+    public let skuIds: [String]?
+    public let before: String?
+    public let after: String?
+    public let limit: Int?
+    public let guildId: String?
+    public let excludeEnded: Bool?
+
+    public init(
+        userId: String? = nil,
+        skuIds: [String]? = nil,
+        before: String? = nil,
+        after: String? = nil,
+        limit: Int? = nil,
+        guildId: String? = nil,
+        excludeEnded: Bool? = nil
+    ) {
+        self.userId = userId
+        self.skuIds = skuIds
+        self.before = before
+        self.after = after
+        self.limit = limit
+        self.guildId = guildId
+        self.excludeEnded = excludeEnded
+    }
+}

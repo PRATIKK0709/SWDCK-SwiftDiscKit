@@ -329,6 +329,29 @@ public final class RESTClient: Sendable {
         )
     }
 
+    func getApplicationSKUs(applicationId: String) async throws -> [SKU] {
+        try await request(
+            method: "GET",
+            url: Routes.applicationSkus(applicationId),
+            decodeAs: [SKU].self
+        )
+    }
+
+    func getApplicationEntitlements(
+        applicationId: String,
+        query: EntitlementsQuery = EntitlementsQuery()
+    ) async throws -> [Entitlement] {
+        let url = buildApplicationEntitlementsURL(applicationId: applicationId, query: query)
+        return try await request(method: "GET", url: url, decodeAs: [Entitlement].self)
+    }
+
+    func consumeEntitlement(applicationId: String, entitlementId: String) async throws {
+        try await requestVoid(
+            method: "POST",
+            url: Routes.applicationEntitlementConsume(applicationId, entitlementId: entitlementId)
+        )
+    }
+
     func updateApplicationRoleConnectionMetadata(
         applicationId: String,
         records: [ApplicationRoleConnectionMetadataRecord]
@@ -800,6 +823,63 @@ public final class RESTClient: Sendable {
         try await request(method: "GET", url: Routes.guild(guildId), decodeAs: Guild.self)
     }
 
+    func getGuildAutoModerationRules(guildId: String) async throws -> [AutoModerationRule] {
+        try await request(
+            method: "GET",
+            url: Routes.guildAutoModerationRules(guildId),
+            decodeAs: [AutoModerationRule].self
+        )
+    }
+
+    func getGuildAutoModerationRule(guildId: String, ruleId: String) async throws -> AutoModerationRule {
+        try await request(
+            method: "GET",
+            url: Routes.guildAutoModerationRule(guildId, ruleId: ruleId),
+            decodeAs: AutoModerationRule.self
+        )
+    }
+
+    func createGuildAutoModerationRule(
+        guildId: String,
+        rule: CreateAutoModerationRule,
+        auditLogReason: String? = nil
+    ) async throws -> AutoModerationRule {
+        try await request(
+            method: "POST",
+            url: Routes.guildAutoModerationRules(guildId),
+            body: rule,
+            headers: auditLogHeaders(reason: auditLogReason),
+            decodeAs: AutoModerationRule.self
+        )
+    }
+
+    func modifyGuildAutoModerationRule(
+        guildId: String,
+        ruleId: String,
+        modify: ModifyAutoModerationRule,
+        auditLogReason: String? = nil
+    ) async throws -> AutoModerationRule {
+        try await request(
+            method: "PATCH",
+            url: Routes.guildAutoModerationRule(guildId, ruleId: ruleId),
+            body: modify,
+            headers: auditLogHeaders(reason: auditLogReason),
+            decodeAs: AutoModerationRule.self
+        )
+    }
+
+    func deleteGuildAutoModerationRule(
+        guildId: String,
+        ruleId: String,
+        auditLogReason: String? = nil
+    ) async throws {
+        try await requestVoid(
+            method: "DELETE",
+            url: Routes.guildAutoModerationRule(guildId, ruleId: ruleId),
+            headers: auditLogHeaders(reason: auditLogReason)
+        )
+    }
+
     func getGuildPreview(guildId: String) async throws -> JSONValue {
         try await request(method: "GET", url: Routes.guildPreview(guildId), decodeAs: JSONValue.self)
     }
@@ -1023,6 +1103,55 @@ public final class RESTClient: Sendable {
 
     func getGuildInvites(guildId: String) async throws -> [Invite] {
         try await request(method: "GET", url: Routes.guildInvites(guildId), decodeAs: [Invite].self)
+    }
+
+    func getGuildEmojis(guildId: String) async throws -> [GuildEmoji] {
+        try await request(method: "GET", url: Routes.guildEmojis(guildId), decodeAs: [GuildEmoji].self)
+    }
+
+    func getGuildEmoji(guildId: String, emojiId: String) async throws -> GuildEmoji {
+        try await request(
+            method: "GET",
+            url: Routes.guildEmoji(guildId, emojiId: emojiId),
+            decodeAs: GuildEmoji.self
+        )
+    }
+
+    func createGuildEmoji(
+        guildId: String,
+        emoji: CreateGuildEmoji,
+        auditLogReason: String? = nil
+    ) async throws -> GuildEmoji {
+        try await request(
+            method: "POST",
+            url: Routes.guildEmojis(guildId),
+            body: emoji,
+            headers: auditLogHeaders(reason: auditLogReason),
+            decodeAs: GuildEmoji.self
+        )
+    }
+
+    func modifyGuildEmoji(
+        guildId: String,
+        emojiId: String,
+        modify: ModifyGuildEmoji,
+        auditLogReason: String? = nil
+    ) async throws -> GuildEmoji {
+        try await request(
+            method: "PATCH",
+            url: Routes.guildEmoji(guildId, emojiId: emojiId),
+            body: modify,
+            headers: auditLogHeaders(reason: auditLogReason),
+            decodeAs: GuildEmoji.self
+        )
+    }
+
+    func deleteGuildEmoji(guildId: String, emojiId: String, auditLogReason: String? = nil) async throws {
+        try await requestVoid(
+            method: "DELETE",
+            url: Routes.guildEmoji(guildId, emojiId: emojiId),
+            headers: auditLogHeaders(reason: auditLogReason)
+        )
     }
 
     func getGuildTemplate(code: String) async throws -> GuildTemplate {
@@ -1369,6 +1498,31 @@ public final class RESTClient: Sendable {
     func getInvite(code: String, query: GetInviteQuery = GetInviteQuery()) async throws -> Invite {
         let url = buildInviteURL(code: code, query: query)
         return try await request(method: "GET", url: url, decodeAs: Invite.self)
+    }
+
+    func getPollAnswerVoters(
+        channelId: String,
+        messageId: String,
+        answerId: String,
+        query: PollAnswerVotersQuery = PollAnswerVotersQuery()
+    ) async throws -> PollAnswerVotersResponse {
+        let url = buildPollAnswerVotersURL(
+            channelId: channelId,
+            messageId: messageId,
+            answerId: answerId,
+            query: query
+        )
+        return try await request(method: "GET", url: url, decodeAs: PollAnswerVotersResponse.self)
+    }
+
+    func expirePoll(channelId: String, messageId: String) async throws -> Message {
+        var message = try await request(
+            method: "POST",
+            url: Routes.expirePoll(channelId, messageId: messageId),
+            decodeAs: Message.self
+        )
+        message._rest = self
+        return message
     }
 
     func getInviteTargetUsers(code: String) async throws -> InviteTargetUsersResult {
@@ -2205,6 +2359,45 @@ private extension RESTClient {
 
         components.queryItems = items.isEmpty ? nil : items
         return components.url?.absoluteString ?? Routes.invite(code)
+    }
+
+    func buildPollAnswerVotersURL(
+        channelId: String,
+        messageId: String,
+        answerId: String,
+        query: PollAnswerVotersQuery
+    ) -> String {
+        guard var components = URLComponents(string: Routes.pollAnswerVoters(channelId, messageId: messageId, answerId: answerId)) else {
+            return Routes.pollAnswerVoters(channelId, messageId: messageId, answerId: answerId)
+        }
+
+        var items: [URLQueryItem] = []
+        if let after = query.after { items.append(URLQueryItem(name: "after", value: after)) }
+        if let limit = query.limit { items.append(URLQueryItem(name: "limit", value: String(limit))) }
+        components.queryItems = items.isEmpty ? nil : items
+        return components.url?.absoluteString ?? Routes.pollAnswerVoters(channelId, messageId: messageId, answerId: answerId)
+    }
+
+    func buildApplicationEntitlementsURL(applicationId: String, query: EntitlementsQuery) -> String {
+        guard var components = URLComponents(string: Routes.applicationEntitlements(applicationId)) else {
+            return Routes.applicationEntitlements(applicationId)
+        }
+
+        var items: [URLQueryItem] = []
+        if let userId = query.userId { items.append(URLQueryItem(name: "user_id", value: userId)) }
+        if let skuIds = query.skuIds, !skuIds.isEmpty {
+            items.append(URLQueryItem(name: "sku_ids", value: skuIds.joined(separator: ",")))
+        }
+        if let before = query.before { items.append(URLQueryItem(name: "before", value: before)) }
+        if let after = query.after { items.append(URLQueryItem(name: "after", value: after)) }
+        if let limit = query.limit { items.append(URLQueryItem(name: "limit", value: String(limit))) }
+        if let guildId = query.guildId { items.append(URLQueryItem(name: "guild_id", value: guildId)) }
+        if let excludeEnded = query.excludeEnded {
+            items.append(URLQueryItem(name: "exclude_ended", value: excludeEnded ? "true" : "false"))
+        }
+
+        components.queryItems = items.isEmpty ? nil : items
+        return components.url?.absoluteString ?? Routes.applicationEntitlements(applicationId)
     }
 
     func buildExecuteWebhookURL(webhookId: String, token: String, query: ExecuteWebhookQuery) -> String {
