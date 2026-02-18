@@ -4,6 +4,8 @@ import Foundation
 public typealias MessageHandler     = @Sendable (Message) async throws -> Void
 public typealias ReadyHandler       = @Sendable (ReadyData) async throws -> Void
 public typealias InteractionHandler = @Sendable (Interaction) async throws -> Void
+public typealias VoiceStateUpdateHandler = @Sendable (VoiceState) async throws -> Void
+public typealias VoiceServerUpdateHandler = @Sendable (VoiceServerUpdateEvent) async throws -> Void
 
 public enum CommandSyncMode: Sendable {
     case global
@@ -56,6 +58,14 @@ public final class DiscordBot: Sendable {
         Task { await eventState.setInteractionHandler(handler) }
     }
 
+    public func onVoiceStateUpdate(_ handler: @escaping VoiceStateUpdateHandler) {
+        Task { await eventState.setVoiceStateUpdateHandler(handler) }
+    }
+
+    public func onVoiceServerUpdate(_ handler: @escaping VoiceServerUpdateHandler) {
+        Task { await eventState.setVoiceServerUpdateHandler(handler) }
+    }
+
 
     public func slashCommand(
         _ name: String,
@@ -78,6 +88,14 @@ public final class DiscordBot: Sendable {
         try await rest.sendMessage(channelId: channelId, content: content)
     }
 
+    public func getCurrentUser() async throws -> DiscordUser {
+        try await rest.getCurrentUser()
+    }
+
+    public func modifyCurrentUser(_ modify: ModifyCurrentUser) async throws -> DiscordUser {
+        try await rest.modifyCurrentUser(modify)
+    }
+
     @discardableResult
     public func sendComponentsV2Message(to channelId: String, components: [ComponentV2Node]) async throws -> Message {
         try await rest.sendComponentsV2Message(channelId: channelId, components: components)
@@ -98,6 +116,14 @@ public final class DiscordBot: Sendable {
 
     public func getChannel(_ channelId: String) async throws -> Channel {
         try await rest.getChannel(channelId: channelId)
+    }
+
+    public func addChannelRecipient(channelId: String, userId: String, recipient: GroupDMAddRecipient) async throws {
+        try await rest.addChannelRecipient(channelId: channelId, userId: userId, recipient: recipient)
+    }
+
+    public func deleteChannelRecipient(channelId: String, userId: String) async throws {
+        try await rest.deleteChannelRecipient(channelId: channelId, userId: userId)
     }
 
     public func modifyChannel(
@@ -205,6 +231,40 @@ public final class DiscordBot: Sendable {
         )
     }
 
+    @discardableResult
+    public func executeGitHubWebhook(
+        webhookId: String,
+        token: String,
+        payload: JSONValue,
+        query: ExecuteWebhookQuery = ExecuteWebhookQuery()
+    ) async throws -> Message? {
+        try await rest.executeGitHubWebhook(
+            webhookId: webhookId,
+            token: token,
+            payload: payload,
+            query: query
+        )
+    }
+
+    @discardableResult
+    public func executeSlackWebhook(
+        webhookId: String,
+        token: String,
+        payload: JSONValue,
+        query: ExecuteWebhookQuery = ExecuteWebhookQuery()
+    ) async throws -> Message? {
+        try await rest.executeSlackWebhook(
+            webhookId: webhookId,
+            token: token,
+            payload: payload,
+            query: query
+        )
+    }
+
+    public func getWebhookGitHub(webhookId: String, token: String) async throws -> Webhook {
+        try await rest.getWebhookGitHub(webhookId: webhookId, token: token)
+    }
+
     public func getWebhookMessage(
         webhookId: String,
         token: String,
@@ -259,6 +319,13 @@ public final class DiscordBot: Sendable {
 
     public func getChannelInvites(_ channelId: String) async throws -> [Invite] {
         try await rest.getChannelInvites(channelId: channelId)
+    }
+
+    public func followAnnouncementChannel(channelId: String, webhookChannelId: String) async throws -> FollowedChannel {
+        try await rest.followAnnouncementChannel(
+            channelId: channelId,
+            follow: FollowAnnouncementChannel(webhookChannelId: webhookChannelId)
+        )
     }
 
     public func createChannelInvite(
@@ -337,6 +404,10 @@ public final class DiscordBot: Sendable {
 
     public func addThreadMember(channelId: String, userId: String) async throws {
         try await rest.addThreadMember(channelId: channelId, userId: userId)
+    }
+
+    public func removeThreadMember(channelId: String, userId: String) async throws {
+        try await rest.removeThreadMember(channelId: channelId, userId: userId)
     }
 
     public func joinThread(channelId: String) async throws {
@@ -511,6 +582,205 @@ public final class DiscordBot: Sendable {
         try await rest.getGuildInvites(guildId: guildId)
     }
 
+    public func getGuildTemplate(code: String) async throws -> GuildTemplate {
+        try await rest.getGuildTemplate(code: code)
+    }
+
+    public func createGuildFromTemplate(code: String, guild: CreateGuildFromTemplate) async throws -> Guild {
+        try await rest.createGuildFromTemplate(code: code, guild: guild)
+    }
+
+    public func getGuildTemplates(_ guildId: String) async throws -> [GuildTemplate] {
+        try await rest.getGuildTemplates(guildId: guildId)
+    }
+
+    public func createGuildTemplate(
+        guildId: String,
+        template: CreateGuildTemplate,
+        auditLogReason: String? = nil
+    ) async throws -> GuildTemplate {
+        try await rest.createGuildTemplate(
+            guildId: guildId,
+            template: template,
+            auditLogReason: auditLogReason
+        )
+    }
+
+    public func syncGuildTemplate(
+        guildId: String,
+        code: String,
+        auditLogReason: String? = nil
+    ) async throws -> GuildTemplate {
+        try await rest.syncGuildTemplate(
+            guildId: guildId,
+            code: code,
+            auditLogReason: auditLogReason
+        )
+    }
+
+    public func modifyGuildTemplate(
+        guildId: String,
+        code: String,
+        modify: ModifyGuildTemplate,
+        auditLogReason: String? = nil
+    ) async throws -> GuildTemplate {
+        try await rest.modifyGuildTemplate(
+            guildId: guildId,
+            code: code,
+            modify: modify,
+            auditLogReason: auditLogReason
+        )
+    }
+
+    public func deleteGuildTemplate(
+        guildId: String,
+        code: String,
+        auditLogReason: String? = nil
+    ) async throws -> GuildTemplate {
+        try await rest.deleteGuildTemplate(
+            guildId: guildId,
+            code: code,
+            auditLogReason: auditLogReason
+        )
+    }
+
+    public func getGuildScheduledEvents(
+        guildId: String,
+        query: GuildScheduledEventsQuery = GuildScheduledEventsQuery()
+    ) async throws -> [GuildScheduledEvent] {
+        try await rest.getGuildScheduledEvents(guildId: guildId, query: query)
+    }
+
+    public func createGuildScheduledEvent(
+        guildId: String,
+        event: CreateGuildScheduledEvent,
+        auditLogReason: String? = nil
+    ) async throws -> GuildScheduledEvent {
+        try await rest.createGuildScheduledEvent(
+            guildId: guildId,
+            event: event,
+            auditLogReason: auditLogReason
+        )
+    }
+
+    public func getGuildScheduledEvent(
+        guildId: String,
+        eventId: String,
+        withUserCount: Bool? = nil
+    ) async throws -> GuildScheduledEvent {
+        try await rest.getGuildScheduledEvent(guildId: guildId, eventId: eventId, withUserCount: withUserCount)
+    }
+
+    public func modifyGuildScheduledEvent(
+        guildId: String,
+        eventId: String,
+        modify: ModifyGuildScheduledEvent,
+        auditLogReason: String? = nil
+    ) async throws -> GuildScheduledEvent {
+        try await rest.modifyGuildScheduledEvent(
+            guildId: guildId,
+            eventId: eventId,
+            modify: modify,
+            auditLogReason: auditLogReason
+        )
+    }
+
+    public func deleteGuildScheduledEvent(
+        guildId: String,
+        eventId: String,
+        auditLogReason: String? = nil
+    ) async throws {
+        try await rest.deleteGuildScheduledEvent(
+            guildId: guildId,
+            eventId: eventId,
+            auditLogReason: auditLogReason
+        )
+    }
+
+    public func getGuildScheduledEventUsers(
+        guildId: String,
+        eventId: String,
+        query: GuildScheduledEventUsersQuery = GuildScheduledEventUsersQuery()
+    ) async throws -> [GuildScheduledEventUser] {
+        try await rest.getGuildScheduledEventUsers(guildId: guildId, eventId: eventId, query: query)
+    }
+
+    public func getGuildPreview(_ guildId: String) async throws -> JSONValue {
+        try await rest.getGuildPreview(guildId: guildId)
+    }
+
+    public func getGuildIntegrations(_ guildId: String) async throws -> [GuildIntegration] {
+        try await rest.getGuildIntegrations(guildId: guildId)
+    }
+
+    public func deleteGuildIntegration(guildId: String, integrationId: String, auditLogReason: String? = nil) async throws {
+        try await rest.deleteGuildIntegration(
+            guildId: guildId,
+            integrationId: integrationId,
+            auditLogReason: auditLogReason
+        )
+    }
+
+    public func getGuildOnboarding(_ guildId: String) async throws -> JSONValue {
+        try await rest.getGuildOnboarding(guildId: guildId)
+    }
+
+    public func modifyGuildOnboarding(
+        guildId: String,
+        onboarding: JSONValue,
+        auditLogReason: String? = nil
+    ) async throws -> JSONValue {
+        try await rest.modifyGuildOnboarding(
+            guildId: guildId,
+            payload: onboarding,
+            auditLogReason: auditLogReason
+        )
+    }
+
+    public func getGuildRegions(_ guildId: String) async throws -> [VoiceRegion] {
+        try await rest.getGuildRegions(guildId: guildId)
+    }
+
+    public func getGuildRoleMemberCounts(_ guildId: String) async throws -> [String: Int] {
+        try await rest.getGuildRoleMemberCounts(guildId: guildId)
+    }
+
+    public func getGuildVanityURL(_ guildId: String) async throws -> JSONValue {
+        try await rest.getGuildVanityURL(guildId: guildId)
+    }
+
+    public func getGuildWelcomeScreen(_ guildId: String) async throws -> JSONValue {
+        try await rest.getGuildWelcomeScreen(guildId: guildId)
+    }
+
+    public func modifyGuildWelcomeScreen(
+        guildId: String,
+        welcomeScreen: JSONValue,
+        auditLogReason: String? = nil
+    ) async throws -> JSONValue {
+        try await rest.modifyGuildWelcomeScreen(
+            guildId: guildId,
+            payload: welcomeScreen,
+            auditLogReason: auditLogReason
+        )
+    }
+
+    public func getGuildWidgetSettings(_ guildId: String) async throws -> JSONValue {
+        try await rest.getGuildWidgetSettings(guildId: guildId)
+    }
+
+    public func modifyGuildWidget(guildId: String, widget: JSONValue, auditLogReason: String? = nil) async throws -> JSONValue {
+        try await rest.modifyGuildWidget(guildId: guildId, payload: widget, auditLogReason: auditLogReason)
+    }
+
+    public func getGuildWidget(_ guildId: String) async throws -> JSONValue {
+        try await rest.getGuildWidget(guildId: guildId)
+    }
+
+    public func getGuildWidgetImage(_ guildId: String, style: String? = nil) async throws -> Data {
+        try await rest.getGuildWidgetImage(guildId: guildId, style: style)
+    }
+
     public func getGuildChannels(_ guildId: String) async throws -> [Channel] {
         try await rest.getGuildChannels(guildId: guildId)
     }
@@ -525,6 +795,51 @@ public final class DiscordBot: Sendable {
 
     public func getGuildMember(guildId: String, userId: String) async throws -> GuildMember {
         try await rest.getGuildMember(guildId: guildId, userId: userId)
+    }
+
+    public func modifyCurrentGuildMember(
+        guildId: String,
+        modify: ModifyCurrentGuildMember,
+        reason: String? = nil
+    ) async throws -> GuildMember {
+        try await rest.modifyCurrentGuildMember(guildId: guildId, modify: modify, auditLogReason: reason)
+    }
+
+    public func modifyCurrentGuildNick(guildId: String, nick: String, reason: String? = nil) async throws -> GuildMember {
+        try await rest.modifyCurrentGuildNick(
+            guildId: guildId,
+            modify: ModifyCurrentGuildNick(nick: nick),
+            auditLogReason: reason
+        )
+    }
+
+    public func addGuildMember(guildId: String, userId: String, member: AddGuildMember) async throws -> GuildMember {
+        try await rest.addGuildMember(guildId: guildId, userId: userId, add: member)
+    }
+
+    public func removeGuildMember(guildId: String, userId: String, reason: String? = nil) async throws {
+        try await rest.removeGuildMember(guildId: guildId, userId: userId, auditLogReason: reason)
+    }
+
+    public func bulkBanGuildMembers(
+        guildId: String,
+        userIds: [String],
+        deleteMessageSeconds: Int? = nil,
+        reason: String? = nil
+    ) async throws -> BulkBanResult {
+        try await rest.bulkBanGuildMembers(
+            guildId: guildId,
+            ban: BulkBan(userIds: userIds, deleteMessageSeconds: deleteMessageSeconds),
+            auditLogReason: reason
+        )
+    }
+
+    public func setGuildIncidentActions(
+        guildId: String,
+        actions: GuildIncidentActions,
+        reason: String? = nil
+    ) async throws {
+        try await rest.setGuildIncidentActions(guildId: guildId, actions: actions, auditLogReason: reason)
     }
 
     public func modifyGuildMember(
@@ -623,8 +938,145 @@ public final class DiscordBot: Sendable {
         try await rest.getInvite(code: code, query: query)
     }
 
+    public func getInviteTargetUsers(code: String) async throws -> InviteTargetUsersResult {
+        try await rest.getInviteTargetUsers(code: code)
+    }
+
+    public func getInviteTargetUsersJobStatus(code: String) async throws -> InviteTargetUsersJobStatus {
+        try await rest.getInviteTargetUsersJobStatus(code: code)
+    }
+
+    public func updateInviteTargetUsers(code: String, users: [String]) async throws -> InviteTargetUsersJobStatus {
+        try await rest.updateInviteTargetUsers(code: code, users: InviteTargetUsersUpdate(users: users))
+    }
+
     public func getUser(_ userId: String) async throws -> DiscordUser {
         try await rest.getUser(userId: userId)
+    }
+
+    public func getCurrentUserGuilds(query: CurrentUserGuildsQuery = CurrentUserGuildsQuery()) async throws -> [UserGuild] {
+        try await rest.getCurrentUserGuilds(query: query)
+    }
+
+    public func leaveGuild(_ guildId: String) async throws {
+        try await rest.leaveGuild(guildId: guildId)
+    }
+
+    public func createDM(recipientId: String) async throws -> Channel {
+        try await rest.createDM(CreateDM(recipientId: recipientId))
+    }
+
+    public func getCurrentUserConnections() async throws -> [UserConnection] {
+        try await rest.getCurrentUserConnections()
+    }
+
+    public func getCurrentUserGuildMember(_ guildId: String) async throws -> GuildMember {
+        try await rest.getCurrentUserGuildMember(guildId: guildId)
+    }
+
+    public func getCurrentUserApplicationRoleConnection(applicationId: String) async throws -> ApplicationRoleConnection {
+        try await rest.getCurrentUserApplicationRoleConnection(applicationId: applicationId)
+    }
+
+    public func updateCurrentUserApplicationRoleConnection(
+        applicationId: String,
+        connection: PutApplicationRoleConnection
+    ) async throws -> ApplicationRoleConnection {
+        try await rest.updateCurrentUserApplicationRoleConnection(applicationId: applicationId, connection: connection)
+    }
+
+    public func getCurrentApplication() async throws -> DiscordApplication {
+        try await rest.getCurrentApplication()
+    }
+
+    public func modifyCurrentApplication(_ modify: ModifyApplication) async throws -> DiscordApplication {
+        try await rest.modifyCurrentApplication(modify)
+    }
+
+    public func getApplication(_ applicationId: String) async throws -> DiscordApplication {
+        try await rest.getApplication(applicationId: applicationId)
+    }
+
+    public func modifyApplication(
+        _ applicationId: String,
+        modify: ModifyApplication
+    ) async throws -> DiscordApplication {
+        try await rest.modifyApplication(applicationId: applicationId, modify: modify)
+    }
+
+    public func getApplicationActivityInstance(
+        applicationId: String,
+        instanceId: String
+    ) async throws -> JSONValue {
+        try await rest.getApplicationActivityInstance(applicationId: applicationId, instanceId: instanceId)
+    }
+
+    public func getApplicationRoleConnectionMetadata(
+        _ applicationId: String
+    ) async throws -> [ApplicationRoleConnectionMetadataRecord] {
+        try await rest.getApplicationRoleConnectionMetadata(applicationId: applicationId)
+    }
+
+    public func updateApplicationRoleConnectionMetadata(
+        _ applicationId: String,
+        records: [ApplicationRoleConnectionMetadataRecord]
+    ) async throws -> [ApplicationRoleConnectionMetadataRecord] {
+        try await rest.updateApplicationRoleConnectionMetadata(applicationId: applicationId, records: records)
+    }
+
+    public func getOAuth2CurrentAuthorization() async throws -> OAuth2Authorization {
+        try await rest.getOAuth2CurrentAuthorization()
+    }
+
+    public func getOAuth2CurrentApplication() async throws -> DiscordApplication {
+        try await rest.getOAuth2CurrentApplication()
+    }
+
+    public func getVoiceRegions() async throws -> [VoiceRegion] {
+        try await rest.getVoiceRegions()
+    }
+
+    public func getCurrentUserVoiceState(guildId: String) async throws -> VoiceState {
+        try await rest.getCurrentUserVoiceState(guildId: guildId)
+    }
+
+    public func getVoiceState(guildId: String, userId: String) async throws -> VoiceState {
+        try await rest.getVoiceState(guildId: guildId, userId: userId)
+    }
+
+    public func modifyCurrentUserVoiceState(guildId: String, state: ModifyCurrentUserVoiceState) async throws {
+        try await rest.modifyCurrentUserVoiceState(guildId: guildId, state: state)
+    }
+
+    public func modifyUserVoiceState(guildId: String, userId: String, state: ModifyUserVoiceState) async throws {
+        try await rest.modifyUserVoiceState(guildId: guildId, userId: userId, state: state)
+    }
+
+    public func createStageInstance(
+        stage: CreateStageInstance,
+        auditLogReason: String? = nil
+    ) async throws -> StageInstance {
+        try await rest.createStageInstance(stage: stage, auditLogReason: auditLogReason)
+    }
+
+    public func getStageInstance(channelId: String) async throws -> StageInstance {
+        try await rest.getStageInstance(channelId: channelId)
+    }
+
+    public func modifyStageInstance(
+        channelId: String,
+        modify: ModifyStageInstance,
+        auditLogReason: String? = nil
+    ) async throws -> StageInstance {
+        try await rest.modifyStageInstance(
+            channelId: channelId,
+            modify: modify,
+            auditLogReason: auditLogReason
+        )
+    }
+
+    public func deleteStageInstance(channelId: String, auditLogReason: String? = nil) async throws {
+        try await rest.deleteStageInstance(channelId: channelId, auditLogReason: auditLogReason)
     }
 
     public func getMessage(channelId: String, messageId: String) async throws -> Message {
@@ -758,6 +1210,43 @@ public final class DiscordBot: Sendable {
         try await rest.deleteGlobalCommand(applicationId: applicationId, commandId: commandId)
     }
 
+    public func getGuildCommandPermissions(guildId: String) async throws -> [GuildApplicationCommandPermissions] {
+        let applicationId = try await resolveApplicationId()
+        return try await rest.getGuildCommandPermissions(applicationId: applicationId, guildId: guildId)
+    }
+
+    public func getCommandPermissions(guildId: String, commandId: String) async throws -> GuildApplicationCommandPermissions {
+        let applicationId = try await resolveApplicationId()
+        return try await rest.getCommandPermissions(applicationId: applicationId, guildId: guildId, commandId: commandId)
+    }
+
+    public func bulkOverwriteGuildCommandPermissions(
+        guildId: String,
+        permissions: [GuildApplicationCommandPermissions]
+    ) async throws -> [GuildApplicationCommandPermissions] {
+        let applicationId = try await resolveApplicationId()
+        return try await rest.bulkOverwriteGuildCommandPermissions(
+            applicationId: applicationId,
+            guildId: guildId,
+            permissions: permissions
+        )
+    }
+
+    public func setGuildCommandPermissions(
+        guildId: String,
+        commandId: String,
+        permissions: [ApplicationCommandPermission]
+    ) async throws -> GuildApplicationCommandPermissions {
+        let applicationId = try await resolveApplicationId()
+        let edit = EditGuildApplicationCommandPermissions(permissions: permissions)
+        return try await rest.setGuildCommandPermissions(
+            applicationId: applicationId,
+            guildId: guildId,
+            commandId: commandId,
+            permissions: edit
+        )
+    }
+
 
     public func start() async throws {
         logger.info("DiscordKit starting up...")
@@ -817,6 +1306,10 @@ public final class DiscordBot: Sendable {
             await handleMessageCreate(rawJSON)
         case "INTERACTION_CREATE":
             await handleInteractionCreate(rawJSON)
+        case "VOICE_STATE_UPDATE":
+            await handleVoiceStateUpdate(rawJSON)
+        case "VOICE_SERVER_UPDATE":
+            await handleVoiceServerUpdate(rawJSON)
         default:
             logger.debug("Unhandled dispatch: \(eventName)")
         }
@@ -863,6 +1356,38 @@ public final class DiscordBot: Sendable {
         }
     }
 
+    private func handleVoiceStateUpdate(_ rawJSON: RawJSON) async {
+        guard let handler = await eventState.voiceStateUpdateHandler else { return }
+        let state: VoiceState
+        do {
+            state = try rawJSON.decode(VoiceState.self)
+        } catch {
+            logger.warning("Failed to decode VOICE_STATE_UPDATE: \(error)")
+            return
+        }
+        do {
+            try await handler(state)
+        } catch {
+            logger.error("onVoiceStateUpdate handler threw: \(error)")
+        }
+    }
+
+    private func handleVoiceServerUpdate(_ rawJSON: RawJSON) async {
+        guard let handler = await eventState.voiceServerUpdateHandler else { return }
+        let event: VoiceServerUpdateEvent
+        do {
+            event = try rawJSON.decode(VoiceServerUpdateEvent.self)
+        } catch {
+            logger.warning("Failed to decode VOICE_SERVER_UPDATE: \(error)")
+            return
+        }
+        do {
+            try await handler(event)
+        } catch {
+            logger.error("onVoiceServerUpdate handler threw: \(error)")
+        }
+    }
+
 
     private func syncCommandsIfNeeded(applicationId: String) async {
         let definitions = await commandRegistry.allDefinitions()
@@ -893,10 +1418,14 @@ private actor EventState {
     var messageHandler: MessageHandler?
     var readyHandler: ReadyHandler?
     var interactionHandler: InteractionHandler?
+    var voiceStateUpdateHandler: VoiceStateUpdateHandler?
+    var voiceServerUpdateHandler: VoiceServerUpdateHandler?
 
     func setMessageHandler(_ h: @escaping MessageHandler)     { messageHandler = h }
     func setReadyHandler(_ h: @escaping ReadyHandler)         { readyHandler = h }
     func setInteractionHandler(_ h: @escaping InteractionHandler) { interactionHandler = h }
+    func setVoiceStateUpdateHandler(_ h: @escaping VoiceStateUpdateHandler) { voiceStateUpdateHandler = h }
+    func setVoiceServerUpdateHandler(_ h: @escaping VoiceServerUpdateHandler) { voiceServerUpdateHandler = h }
 }
 
 private actor BotState {

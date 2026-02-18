@@ -12,10 +12,12 @@ This file lists Discord HTTP endpoints from the official docs and tracks SwiftDi
 ## Summary
 
 - Total documented endpoints in scope: **219**
-- Implemented in SwiftDiscKit: **102**
-- Remaining: **117**
+- Implemented in SwiftDiscKit: **169**
+- Remaining: **50**
 
-## Implemented Endpoints
+## Implemented Endpoints (Highlights)
+
+Full authoritative status for all 219 endpoints is in the matrix below.
 
 | Method | Endpoint | SwiftDiscKit Mapping |
 |---|---|---|
@@ -133,17 +135,17 @@ This file lists Discord HTTP endpoints from the official docs and tracks SwiftDi
 | Implemented | `GET` | `/applications/{application.id}/commands` | `developers/interactions/application-commands.mdx` | RESTClient.getGlobalCommands |
 | Implemented | `GET` | `/applications/{application.id}/commands/{command.id}` | `developers/interactions/application-commands.mdx` | RESTClient.getGlobalCommand |
 | Implemented | `GET` | `/applications/{application.id}/guilds/{guild.id}/commands` | `developers/interactions/application-commands.mdx` | RESTClient.getGuildCommands |
-| Remaining | `GET` | `/applications/{application.id}/guilds/{guild.id}/commands/permissions` | `developers/interactions/application-commands.mdx` | - |
+| Implemented | `GET` | `/applications/{application.id}/guilds/{guild.id}/commands/permissions` | `developers/interactions/application-commands.mdx` | RESTClient.getGuildCommandPermissions |
 | Implemented | `GET` | `/applications/{application.id}/guilds/{guild.id}/commands/{command.id}` | `developers/interactions/application-commands.mdx` | RESTClient.getGuildCommand |
-| Remaining | `GET` | `/applications/{application.id}/guilds/{guild.id}/commands/{command.id}/permissions` | `developers/interactions/application-commands.mdx` | - |
+| Implemented | `GET` | `/applications/{application.id}/guilds/{guild.id}/commands/{command.id}/permissions` | `developers/interactions/application-commands.mdx` | RESTClient.getCommandPermissions |
 | Implemented | `PATCH` | `/applications/{application.id}/commands/{command.id}` | `developers/interactions/application-commands.mdx` | RESTClient.editGlobalCommand |
 | Implemented | `PATCH` | `/applications/{application.id}/guilds/{guild.id}/commands/{command.id}` | `developers/interactions/application-commands.mdx` | RESTClient.editGuildCommand |
 | Implemented | `POST` | `/applications/{application.id}/commands` | `developers/interactions/application-commands.mdx` | RESTClient.createGlobalCommand / createSlashCommand |
 | Implemented | `POST` | `/applications/{application.id}/guilds/{guild.id}/commands` | `developers/interactions/application-commands.mdx` | RESTClient.createGuildCommand |
 | Implemented | `PUT` | `/applications/{application.id}/commands` | `developers/interactions/application-commands.mdx` | RESTClient.bulkOverwriteGlobalCommands |
 | Implemented | `PUT` | `/applications/{application.id}/guilds/{guild.id}/commands` | `developers/interactions/application-commands.mdx` | RESTClient.bulkOverwriteGuildCommands |
-| Remaining | `PUT` | `/applications/{application.id}/guilds/{guild.id}/commands/permissions` | `developers/interactions/application-commands.mdx` | - |
-| Remaining | `PUT` | `/applications/{application.id}/guilds/{guild.id}/commands/{command.id}/permissions` | `developers/interactions/application-commands.mdx` | - |
+| Implemented | `PUT` | `/applications/{application.id}/guilds/{guild.id}/commands/permissions` | `developers/interactions/application-commands.mdx` | RESTClient.bulkOverwriteGuildCommandPermissions |
+| Implemented | `PUT` | `/applications/{application.id}/guilds/{guild.id}/commands/{command.id}/permissions` | `developers/interactions/application-commands.mdx` | RESTClient.setGuildCommandPermissions |
 | Implemented | `DELETE` | `/webhooks/{application.id}/{interaction.token}/messages/@original` | `developers/interactions/receiving-and-responding.mdx` | RESTClient.deleteOriginalInteractionResponse |
 | Implemented | `DELETE` | `/webhooks/{application.id}/{interaction.token}/messages/{message.id}` | `developers/interactions/receiving-and-responding.mdx` | RESTClient.deleteFollowupMessage |
 | Implemented | `GET` | `/webhooks/{application.id}/{interaction.token}/messages/@original` | `developers/interactions/receiving-and-responding.mdx` | RESTClient.getOriginalInteractionResponse |
@@ -152,11 +154,11 @@ This file lists Discord HTTP endpoints from the official docs and tracks SwiftDi
 | Implemented | `PATCH` | `/webhooks/{application.id}/{interaction.token}/messages/{message.id}` | `developers/interactions/receiving-and-responding.mdx` | RESTClient.editFollowupMessage |
 | Implemented | `POST` | `/interactions/{interaction.id}/{interaction.token}/callback` | `developers/interactions/receiving-and-responding.mdx` | RESTClient.createInteractionResponse |
 | Implemented | `POST` | `/webhooks/{application.id}/{interaction.token}` | `developers/interactions/receiving-and-responding.mdx` | RESTClient.createFollowup |
-| Remaining | `GET` | `/applications/{application.id}/role-connections/metadata` | `developers/resources/application-role-connection-metadata.mdx` | - |
-| Remaining | `PUT` | `/applications/{application.id}/role-connections/metadata` | `developers/resources/application-role-connection-metadata.mdx` | - |
-| Remaining | `GET` | `/applications/@me` | `developers/resources/application.mdx` | - |
-| Remaining | `GET` | `/applications/{application.id}/activity-instances/{instance_id}` | `developers/resources/application.mdx` | - |
-| Remaining | `PATCH` | `/applications/@me` | `developers/resources/application.mdx` | - |
+| Implemented | `GET` | `/applications/{application.id}/role-connections/metadata` | `developers/resources/application-role-connection-metadata.mdx` | RESTClient.getApplicationRoleConnectionMetadata |
+| Implemented | `PUT` | `/applications/{application.id}/role-connections/metadata` | `developers/resources/application-role-connection-metadata.mdx` | RESTClient.updateApplicationRoleConnectionMetadata |
+| Implemented | `GET` | `/applications/@me` | `developers/resources/application.mdx` | RESTClient.getCurrentApplication |
+| Implemented | `GET` | `/applications/{application.id}/activity-instances/{instance_id}` | `developers/resources/application.mdx` | RESTClient.getApplicationActivityInstance |
+| Implemented | `PATCH` | `/applications/@me` | `developers/resources/application.mdx` | RESTClient.modifyCurrentApplication |
 | Implemented | `GET` | `/guilds/{guild.id}/audit-logs` | `developers/resources/audit-log.mdx` | RESTClient.getGuildAuditLog |
 | Remaining | `DELETE` | `/guilds/{guild.id}/auto-moderation/rules/{auto_moderation_rule.id}` | `developers/resources/auto-moderation.mdx` | - |
 | Remaining | `GET` | `/guilds/{guild.id}/auto-moderation/rules` | `developers/resources/auto-moderation.mdx` | - |
@@ -165,9 +167,9 @@ This file lists Discord HTTP endpoints from the official docs and tracks SwiftDi
 | Remaining | `POST` | `/guilds/{guild.id}/auto-moderation/rules` | `developers/resources/auto-moderation.mdx` | - |
 | Implemented | `DELETE` | `/channels/{channel.id}` | `developers/resources/channel.mdx` | RESTClient.deleteChannel |
 | Implemented | `DELETE` | `/channels/{channel.id}/permissions/{overwrite.id}` | `developers/resources/channel.mdx` | RESTClient.deleteChannelPermission |
-| Remaining | `DELETE` | `/channels/{channel.id}/recipients/{user.id}` | `developers/resources/channel.mdx` | - |
+| Implemented | `DELETE` | `/channels/{channel.id}/recipients/{user.id}` | `developers/resources/channel.mdx` | RESTClient.deleteChannelRecipient |
 | Implemented | `DELETE` | `/channels/{channel.id}/thread-members/@me` | `developers/resources/channel.mdx` | RESTClient.leaveThread |
-| Remaining | `DELETE` | `/channels/{channel.id}/thread-members/{user.id}` | `developers/resources/channel.mdx` | - |
+| Implemented | `DELETE` | `/channels/{channel.id}/thread-members/{user.id}` | `developers/resources/channel.mdx` | RESTClient.removeThreadMember |
 | Implemented | `GET` | `/channels/{channel.id}` | `developers/resources/channel.mdx` | RESTClient.getChannel |
 | Implemented | `GET` | `/channels/{channel.id}/invites` | `developers/resources/channel.mdx` | RESTClient.getChannelInvites |
 | Implemented | `GET` | `/channels/{channel.id}/thread-members` | `developers/resources/channel.mdx` | RESTClient.getThreadMembers |
@@ -176,13 +178,13 @@ This file lists Discord HTTP endpoints from the official docs and tracks SwiftDi
 | Implemented | `GET` | `/channels/{channel.id}/threads/archived/public` | `developers/resources/channel.mdx` | RESTClient.getPublicArchivedThreads |
 | Implemented | `GET` | `/channels/{channel.id}/users/@me/threads/archived/private` | `developers/resources/channel.mdx` | RESTClient.getJoinedPrivateArchivedThreads |
 | Implemented | `PATCH` | `/channels/{channel.id}` | `developers/resources/channel.mdx` | RESTClient.modifyChannel |
-| Remaining | `POST` | `/channels/{channel.id}/followers` | `developers/resources/channel.mdx` | - |
+| Implemented | `POST` | `/channels/{channel.id}/followers` | `developers/resources/channel.mdx` | RESTClient.followAnnouncementChannel |
 | Implemented | `POST` | `/channels/{channel.id}/invites` | `developers/resources/channel.mdx` | RESTClient.createChannelInvite |
 | Implemented | `POST` | `/channels/{channel.id}/messages/{message.id}/threads` | `developers/resources/channel.mdx` | RESTClient.startThreadFromMessage |
 | Implemented | `POST` | `/channels/{channel.id}/threads` | `developers/resources/channel.mdx` | RESTClient.startThreadWithoutMessage |
 | Implemented | `POST` | `/channels/{channel.id}/typing` | `developers/resources/channel.mdx` | RESTClient.triggerTyping |
 | Implemented | `PUT` | `/channels/{channel.id}/permissions/{overwrite.id}` | `developers/resources/channel.mdx` | RESTClient.editChannelPermission |
-| Remaining | `PUT` | `/channels/{channel.id}/recipients/{user.id}` | `developers/resources/channel.mdx` | - |
+| Implemented | `PUT` | `/channels/{channel.id}/recipients/{user.id}` | `developers/resources/channel.mdx` | RESTClient.addChannelRecipient |
 | Implemented | `PUT` | `/channels/{channel.id}/thread-members/@me` | `developers/resources/channel.mdx` | RESTClient.joinThread |
 | Implemented | `PUT` | `/channels/{channel.id}/thread-members/{user.id}` | `developers/resources/channel.mdx` | RESTClient.addThreadMember |
 | Remaining | `DELETE` | `/applications/{application.id}/emojis/{emoji.id}` | `developers/resources/emoji.mdx` | - |
@@ -200,45 +202,45 @@ This file lists Discord HTTP endpoints from the official docs and tracks SwiftDi
 | Remaining | `GET` | `/applications/{application.id}/entitlements/{entitlement.id}` | `developers/resources/entitlement.mdx` | - |
 | Remaining | `POST` | `/applications/{application.id}/entitlements` | `developers/resources/entitlement.mdx` | - |
 | Remaining | `POST` | `/applications/{application.id}/entitlements/{entitlement.id}/consume` | `developers/resources/entitlement.mdx` | - |
-| Remaining | `DELETE` | `/guilds/{guild.id}/scheduled-events/{guild_scheduled_event.id}` | `developers/resources/guild-scheduled-event.mdx` | - |
-| Remaining | `GET` | `/guilds/{guild.id}/scheduled-events` | `developers/resources/guild-scheduled-event.mdx` | - |
-| Remaining | `GET` | `/guilds/{guild.id}/scheduled-events/{guild_scheduled_event.id}` | `developers/resources/guild-scheduled-event.mdx` | - |
-| Remaining | `GET` | `/guilds/{guild.id}/scheduled-events/{guild_scheduled_event.id}/users` | `developers/resources/guild-scheduled-event.mdx` | - |
-| Remaining | `PATCH` | `/guilds/{guild.id}/scheduled-events/{guild_scheduled_event.id}` | `developers/resources/guild-scheduled-event.mdx` | - |
-| Remaining | `POST` | `/guilds/{guild.id}/scheduled-events` | `developers/resources/guild-scheduled-event.mdx` | - |
-| Remaining | `DELETE` | `/guilds/{guild.id}/templates/{template.code}` | `developers/resources/guild-template.mdx` | - |
-| Remaining | `GET` | `/guilds/templates/{template.code}` | `developers/resources/guild-template.mdx` | - |
-| Remaining | `GET` | `/guilds/{guild.id}/templates` | `developers/resources/guild-template.mdx` | - |
-| Remaining | `PATCH` | `/guilds/{guild.id}/templates/{template.code}` | `developers/resources/guild-template.mdx` | - |
-| Remaining | `POST` | `/guilds/{guild.id}/templates` | `developers/resources/guild-template.mdx` | - |
-| Remaining | `PUT` | `/guilds/{guild.id}/templates/{template.code}` | `developers/resources/guild-template.mdx` | - |
+| Implemented | `DELETE` | `/guilds/{guild.id}/scheduled-events/{guild_scheduled_event.id}` | `developers/resources/guild-scheduled-event.mdx` | RESTClient.deleteGuildScheduledEvent |
+| Implemented | `GET` | `/guilds/{guild.id}/scheduled-events` | `developers/resources/guild-scheduled-event.mdx` | RESTClient.getGuildScheduledEvents |
+| Implemented | `GET` | `/guilds/{guild.id}/scheduled-events/{guild_scheduled_event.id}` | `developers/resources/guild-scheduled-event.mdx` | RESTClient.getGuildScheduledEvent |
+| Implemented | `GET` | `/guilds/{guild.id}/scheduled-events/{guild_scheduled_event.id}/users` | `developers/resources/guild-scheduled-event.mdx` | RESTClient.getGuildScheduledEventUsers |
+| Implemented | `PATCH` | `/guilds/{guild.id}/scheduled-events/{guild_scheduled_event.id}` | `developers/resources/guild-scheduled-event.mdx` | RESTClient.modifyGuildScheduledEvent |
+| Implemented | `POST` | `/guilds/{guild.id}/scheduled-events` | `developers/resources/guild-scheduled-event.mdx` | RESTClient.createGuildScheduledEvent |
+| Implemented | `DELETE` | `/guilds/{guild.id}/templates/{template.code}` | `developers/resources/guild-template.mdx` | RESTClient.deleteGuildTemplate |
+| Implemented | `GET` | `/guilds/templates/{template.code}` | `developers/resources/guild-template.mdx` | RESTClient.getGuildTemplate |
+| Implemented | `GET` | `/guilds/{guild.id}/templates` | `developers/resources/guild-template.mdx` | RESTClient.getGuildTemplates |
+| Implemented | `PATCH` | `/guilds/{guild.id}/templates/{template.code}` | `developers/resources/guild-template.mdx` | RESTClient.modifyGuildTemplate |
+| Implemented | `POST` | `/guilds/{guild.id}/templates` | `developers/resources/guild-template.mdx` | RESTClient.createGuildTemplate |
+| Implemented | `PUT` | `/guilds/{guild.id}/templates/{template.code}` | `developers/resources/guild-template.mdx` | RESTClient.syncGuildTemplate |
 | Implemented | `DELETE` | `/guilds/{guild.id}/bans/{user.id}` | `developers/resources/guild.mdx` | RESTClient.deleteGuildBan |
-| Remaining | `DELETE` | `/guilds/{guild.id}/integrations/{integration.id}` | `developers/resources/guild.mdx` | - |
-| Remaining | `DELETE` | `/guilds/{guild.id}/members/{user.id}` | `developers/resources/guild.mdx` | - |
+| Implemented | `DELETE` | `/guilds/{guild.id}/integrations/{integration.id}` | `developers/resources/guild.mdx` | RESTClient.deleteGuildIntegration |
+| Implemented | `DELETE` | `/guilds/{guild.id}/members/{user.id}` | `developers/resources/guild.mdx` | RESTClient.removeGuildMember |
 | Implemented | `DELETE` | `/guilds/{guild.id}/members/{user.id}/roles/{role.id}` | `developers/resources/guild.mdx` | RESTClient.removeGuildMemberRole |
 | Implemented | `DELETE` | `/guilds/{guild.id}/roles/{role.id}` | `developers/resources/guild.mdx` | RESTClient.deleteGuildRole |
 | Implemented | `GET` | `/guilds/{guild.id}` | `developers/resources/guild.mdx` | RESTClient.getGuild |
 | Implemented | `GET` | `/guilds/{guild.id}/bans` | `developers/resources/guild.mdx` | RESTClient.getGuildBans |
 | Implemented | `GET` | `/guilds/{guild.id}/bans/{user.id}` | `developers/resources/guild.mdx` | RESTClient.getGuildBan |
 | Implemented | `GET` | `/guilds/{guild.id}/channels` | `developers/resources/guild.mdx` | RESTClient.getGuildChannels |
-| Remaining | `GET` | `/guilds/{guild.id}/integrations` | `developers/resources/guild.mdx` | - |
+| Implemented | `GET` | `/guilds/{guild.id}/integrations` | `developers/resources/guild.mdx` | RESTClient.getGuildIntegrations |
 | Implemented | `GET` | `/guilds/{guild.id}/invites` | `developers/resources/guild.mdx` | RESTClient.getGuildInvites |
 | Implemented | `GET` | `/guilds/{guild.id}/members` | `developers/resources/guild.mdx` | RESTClient.getGuildMembers |
 | Implemented | `GET` | `/guilds/{guild.id}/members/search` | `developers/resources/guild.mdx` | RESTClient.searchGuildMembers |
 | Implemented | `GET` | `/guilds/{guild.id}/members/{user.id}` | `developers/resources/guild.mdx` | RESTClient.getGuildMember |
-| Remaining | `GET` | `/guilds/{guild.id}/onboarding` | `developers/resources/guild.mdx` | - |
-| Remaining | `GET` | `/guilds/{guild.id}/preview` | `developers/resources/guild.mdx` | - |
+| Implemented | `GET` | `/guilds/{guild.id}/onboarding` | `developers/resources/guild.mdx` | RESTClient.getGuildOnboarding |
+| Implemented | `GET` | `/guilds/{guild.id}/preview` | `developers/resources/guild.mdx` | RESTClient.getGuildPreview |
 | Implemented | `GET` | `/guilds/{guild.id}/prune` | `developers/resources/guild.mdx` | RESTClient.getGuildPruneCount |
-| Remaining | `GET` | `/guilds/{guild.id}/regions` | `developers/resources/guild.mdx` | - |
+| Implemented | `GET` | `/guilds/{guild.id}/regions` | `developers/resources/guild.mdx` | RESTClient.getGuildRegions |
 | Implemented | `GET` | `/guilds/{guild.id}/roles` | `developers/resources/guild.mdx` | RESTClient.getGuildRoles |
-| Remaining | `GET` | `/guilds/{guild.id}/roles/member-counts` | `developers/resources/guild.mdx` | - |
+| Implemented | `GET` | `/guilds/{guild.id}/roles/member-counts` | `developers/resources/guild.mdx` | RESTClient.getGuildRoleMemberCounts |
 | Implemented | `GET` | `/guilds/{guild.id}/roles/{role.id}` | `developers/resources/guild.mdx` | RESTClient.getGuildRole |
 | Implemented | `GET` | `/guilds/{guild.id}/threads/active` | `developers/resources/guild.mdx` | RESTClient.getActiveGuildThreads |
-| Remaining | `GET` | `/guilds/{guild.id}/vanity-url` | `developers/resources/guild.mdx` | - |
-| Remaining | `GET` | `/guilds/{guild.id}/welcome-screen` | `developers/resources/guild.mdx` | - |
-| Remaining | `GET` | `/guilds/{guild.id}/widget` | `developers/resources/guild.mdx` | - |
-| Remaining | `GET` | `/guilds/{guild.id}/widget.json` | `developers/resources/guild.mdx` | - |
-| Remaining | `GET` | `/guilds/{guild.id}/widget.png` | `developers/resources/guild.mdx` | - |
+| Implemented | `GET` | `/guilds/{guild.id}/vanity-url` | `developers/resources/guild.mdx` | RESTClient.getGuildVanityURL |
+| Implemented | `GET` | `/guilds/{guild.id}/welcome-screen` | `developers/resources/guild.mdx` | RESTClient.getGuildWelcomeScreen |
+| Implemented | `GET` | `/guilds/{guild.id}/widget` | `developers/resources/guild.mdx` | RESTClient.getGuildWidgetSettings |
+| Implemented | `GET` | `/guilds/{guild.id}/widget.json` | `developers/resources/guild.mdx` | RESTClient.getGuildWidget |
+| Implemented | `GET` | `/guilds/{guild.id}/widget.png` | `developers/resources/guild.mdx` | RESTClient.getGuildWidgetImage |
 | Implemented | `PATCH` | `/guilds/{guild.id}` | `developers/resources/guild.mdx` | RESTClient.modifyGuild |
 | Implemented | `PATCH` | `/guilds/{guild.id}/channels` | `developers/resources/guild.mdx` | RESTClient.modifyGuildChannelPositions |
 | Remaining | `PATCH` | `/guilds/{guild.id}/members/@me` | `developers/resources/guild.mdx` | - |
@@ -246,22 +248,22 @@ This file lists Discord HTTP endpoints from the official docs and tracks SwiftDi
 | Implemented | `PATCH` | `/guilds/{guild.id}/members/{user.id}` | `developers/resources/guild.mdx` | RESTClient.modifyGuildMember |
 | Implemented | `PATCH` | `/guilds/{guild.id}/roles` | `developers/resources/guild.mdx` | RESTClient.modifyGuildRolePositions |
 | Implemented | `PATCH` | `/guilds/{guild.id}/roles/{role.id}` | `developers/resources/guild.mdx` | RESTClient.modifyGuildRole |
-| Remaining | `PATCH` | `/guilds/{guild.id}/welcome-screen` | `developers/resources/guild.mdx` | - |
-| Remaining | `PATCH` | `/guilds/{guild.id}/widget` | `developers/resources/guild.mdx` | - |
-| Remaining | `POST` | `/guilds/{guild.id}/bulk-ban` | `developers/resources/guild.mdx` | - |
+| Implemented | `PATCH` | `/guilds/{guild.id}/welcome-screen` | `developers/resources/guild.mdx` | RESTClient.modifyGuildWelcomeScreen |
+| Implemented | `PATCH` | `/guilds/{guild.id}/widget` | `developers/resources/guild.mdx` | RESTClient.modifyGuildWidget |
+| Implemented | `POST` | `/guilds/{guild.id}/bulk-ban` | `developers/resources/guild.mdx` | RESTClient.bulkBanGuildMembers |
 | Implemented | `POST` | `/guilds/{guild.id}/channels` | `developers/resources/guild.mdx` | RESTClient.createGuildChannel |
 | Implemented | `POST` | `/guilds/{guild.id}/prune` | `developers/resources/guild.mdx` | RESTClient.beginGuildPrune |
 | Implemented | `POST` | `/guilds/{guild.id}/roles` | `developers/resources/guild.mdx` | RESTClient.createGuildRole |
 | Implemented | `PUT` | `/guilds/{guild.id}/bans/{user.id}` | `developers/resources/guild.mdx` | RESTClient.createGuildBan |
-| Remaining | `PUT` | `/guilds/{guild.id}/incident-actions` | `developers/resources/guild.mdx` | - |
-| Remaining | `PUT` | `/guilds/{guild.id}/members/{user.id}` | `developers/resources/guild.mdx` | - |
+| Implemented | `PUT` | `/guilds/{guild.id}/incident-actions` | `developers/resources/guild.mdx` | RESTClient.setGuildIncidentActions |
+| Implemented | `PUT` | `/guilds/{guild.id}/members/{user.id}` | `developers/resources/guild.mdx` | RESTClient.addGuildMember |
 | Implemented | `PUT` | `/guilds/{guild.id}/members/{user.id}/roles/{role.id}` | `developers/resources/guild.mdx` | RESTClient.addGuildMemberRole |
-| Remaining | `PUT` | `/guilds/{guild.id}/onboarding` | `developers/resources/guild.mdx` | - |
+| Implemented | `PUT` | `/guilds/{guild.id}/onboarding` | `developers/resources/guild.mdx` | RESTClient.modifyGuildOnboarding |
 | Implemented | `DELETE` | `/invites/{invite.code}` | `developers/resources/invite.mdx` | RESTClient.deleteInvite |
 | Implemented | `GET` | `/invites/{invite.code}` | `developers/resources/invite.mdx` | RESTClient.getInvite |
-| Remaining | `GET` | `/invites/{invite.code}/target-users` | `developers/resources/invite.mdx` | - |
-| Remaining | `GET` | `/invites/{invite.code}/target-users/job-status` | `developers/resources/invite.mdx` | - |
-| Remaining | `PUT` | `/invites/{invite.code}/target-users` | `developers/resources/invite.mdx` | - |
+| Implemented | `GET` | `/invites/{invite.code}/target-users` | `developers/resources/invite.mdx` | RESTClient.getInviteTargetUsers |
+| Implemented | `GET` | `/invites/{invite.code}/target-users/job-status` | `developers/resources/invite.mdx` | RESTClient.getInviteTargetUsersJobStatus |
+| Implemented | `PUT` | `/invites/{invite.code}/target-users` | `developers/resources/invite.mdx` | RESTClient.updateInviteTargetUsers |
 | Remaining | `DELETE` | `/lobbies/{lobby.id}` | `developers/resources/lobby.mdx` | - |
 | Remaining | `DELETE` | `/lobbies/{lobby.id}/members/@me` | `developers/resources/lobby.mdx` | - |
 | Remaining | `DELETE` | `/lobbies/{lobby.id}/members/{user.id}` | `developers/resources/lobby.mdx` | - |
@@ -299,10 +301,10 @@ This file lists Discord HTTP endpoints from the official docs and tracks SwiftDi
 | Remaining | `PATCH` | `/guilds/{guild.id}/soundboard-sounds/{sound.id}` | `developers/resources/soundboard.mdx` | - |
 | Remaining | `POST` | `/channels/{channel.id}/send-soundboard-sound` | `developers/resources/soundboard.mdx` | - |
 | Remaining | `POST` | `/guilds/{guild.id}/soundboard-sounds` | `developers/resources/soundboard.mdx` | - |
-| Remaining | `DELETE` | `/stage-instances/{channel.id}` | `developers/resources/stage-instance.mdx` | - |
-| Remaining | `GET` | `/stage-instances/{channel.id}` | `developers/resources/stage-instance.mdx` | - |
-| Remaining | `PATCH` | `/stage-instances/{channel.id}` | `developers/resources/stage-instance.mdx` | - |
-| Remaining | `POST` | `/stage-instances` | `developers/resources/stage-instance.mdx` | - |
+| Implemented | `DELETE` | `/stage-instances/{channel.id}` | `developers/resources/stage-instance.mdx` | RESTClient.deleteStageInstance |
+| Implemented | `GET` | `/stage-instances/{channel.id}` | `developers/resources/stage-instance.mdx` | RESTClient.getStageInstance |
+| Implemented | `PATCH` | `/stage-instances/{channel.id}` | `developers/resources/stage-instance.mdx` | RESTClient.modifyStageInstance |
+| Implemented | `POST` | `/stage-instances` | `developers/resources/stage-instance.mdx` | RESTClient.createStageInstance |
 | Remaining | `DELETE` | `/guilds/{guild.id}/stickers/{sticker.id}` | `developers/resources/sticker.mdx` | - |
 | Remaining | `GET` | `/guilds/{guild.id}/stickers` | `developers/resources/sticker.mdx` | - |
 | Remaining | `GET` | `/guilds/{guild.id}/stickers/{sticker.id}` | `developers/resources/sticker.mdx` | - |
@@ -313,21 +315,21 @@ This file lists Discord HTTP endpoints from the official docs and tracks SwiftDi
 | Remaining | `POST` | `/guilds/{guild.id}/stickers` | `developers/resources/sticker.mdx` | - |
 | Remaining | `GET` | `/skus/{sku.id}/subscriptions` | `developers/resources/subscription.mdx` | - |
 | Remaining | `GET` | `/skus/{sku.id}/subscriptions/{subscription.id}` | `developers/resources/subscription.mdx` | - |
-| Remaining | `DELETE` | `/users/@me/guilds/{guild.id}` | `developers/resources/user.mdx` | - |
+| Implemented | `DELETE` | `/users/@me/guilds/{guild.id}` | `developers/resources/user.mdx` | RESTClient.leaveGuild |
 | Implemented | `GET` | `/users/@me` | `developers/resources/user.mdx` | RESTClient.getCurrentUser |
-| Remaining | `GET` | `/users/@me/applications/{application.id}/role-connection` | `developers/resources/user.mdx` | - |
-| Remaining | `GET` | `/users/@me/connections` | `developers/resources/user.mdx` | - |
-| Remaining | `GET` | `/users/@me/guilds` | `developers/resources/user.mdx` | - |
-| Remaining | `GET` | `/users/@me/guilds/{guild.id}/member` | `developers/resources/user.mdx` | - |
+| Implemented | `GET` | `/users/@me/applications/{application.id}/role-connection` | `developers/resources/user.mdx` | RESTClient.getCurrentUserApplicationRoleConnection |
+| Implemented | `GET` | `/users/@me/connections` | `developers/resources/user.mdx` | RESTClient.getCurrentUserConnections |
+| Implemented | `GET` | `/users/@me/guilds` | `developers/resources/user.mdx` | RESTClient.getCurrentUserGuilds |
+| Implemented | `GET` | `/users/@me/guilds/{guild.id}/member` | `developers/resources/user.mdx` | RESTClient.getCurrentUserGuildMember |
 | Implemented | `GET` | `/users/{user.id}` | `developers/resources/user.mdx` | RESTClient.getUser |
-| Remaining | `PATCH` | `/users/@me` | `developers/resources/user.mdx` | - |
-| Remaining | `POST` | `/users/@me/channels` | `developers/resources/user.mdx` | - |
-| Remaining | `PUT` | `/users/@me/applications/{application.id}/role-connection` | `developers/resources/user.mdx` | - |
-| Remaining | `GET` | `/guilds/{guild.id}/voice-states/@me` | `developers/resources/voice.mdx` | - |
-| Remaining | `GET` | `/guilds/{guild.id}/voice-states/{user.id}` | `developers/resources/voice.mdx` | - |
-| Remaining | `GET` | `/voice/regions` | `developers/resources/voice.mdx` | - |
-| Remaining | `PATCH` | `/guilds/{guild.id}/voice-states/@me` | `developers/resources/voice.mdx` | - |
-| Remaining | `PATCH` | `/guilds/{guild.id}/voice-states/{user.id}` | `developers/resources/voice.mdx` | - |
+| Implemented | `PATCH` | `/users/@me` | `developers/resources/user.mdx` | RESTClient.modifyCurrentUser |
+| Implemented | `POST` | `/users/@me/channels` | `developers/resources/user.mdx` | RESTClient.createDM |
+| Implemented | `PUT` | `/users/@me/applications/{application.id}/role-connection` | `developers/resources/user.mdx` | RESTClient.updateCurrentUserApplicationRoleConnection |
+| Implemented | `GET` | `/guilds/{guild.id}/voice-states/@me` | `developers/resources/voice.mdx` | RESTClient.getCurrentUserVoiceState |
+| Implemented | `GET` | `/guilds/{guild.id}/voice-states/{user.id}` | `developers/resources/voice.mdx` | RESTClient.getVoiceState |
+| Implemented | `GET` | `/voice/regions` | `developers/resources/voice.mdx` | RESTClient.getVoiceRegions |
+| Implemented | `PATCH` | `/guilds/{guild.id}/voice-states/@me` | `developers/resources/voice.mdx` | RESTClient.modifyCurrentUserVoiceState |
+| Implemented | `PATCH` | `/guilds/{guild.id}/voice-states/{user.id}` | `developers/resources/voice.mdx` | RESTClient.modifyUserVoiceState |
 | Implemented | `DELETE` | `/webhooks/{webhook.id}` | `developers/resources/webhook.mdx` | RESTClient.deleteWebhook(webhookId:) |
 | Implemented | `DELETE` | `/webhooks/{webhook.id}/{webhook.token}` | `developers/resources/webhook.mdx` | RESTClient.deleteWebhook(webhookId:token:) |
 | Implemented | `DELETE` | `/webhooks/{webhook.id}/{webhook.token}/messages/{message.id}` | `developers/resources/webhook.mdx` | RESTClient.deleteWebhookMessage |
@@ -341,7 +343,7 @@ This file lists Discord HTTP endpoints from the official docs and tracks SwiftDi
 | Implemented | `PATCH` | `/webhooks/{webhook.id}/{webhook.token}/messages/{message.id}` | `developers/resources/webhook.mdx` | RESTClient.editWebhookMessage |
 | Implemented | `POST` | `/channels/{channel.id}/webhooks` | `developers/resources/webhook.mdx` | RESTClient.createWebhook |
 | Implemented | `POST` | `/webhooks/{webhook.id}/{webhook.token}` | `developers/resources/webhook.mdx` | RESTClient.executeWebhook |
-| Remaining | `POST` | `/webhooks/{webhook.id}/{webhook.token}/github` | `developers/resources/webhook.mdx` | - |
-| Remaining | `POST` | `/webhooks/{webhook.id}/{webhook.token}/slack` | `developers/resources/webhook.mdx` | - |
-| Remaining | `GET` | `/oauth2/@me` | `developers/topics/oauth2.mdx` | - |
-| Remaining | `GET` | `/oauth2/applications/@me` | `developers/topics/oauth2.mdx` | - |
+| Implemented | `POST` | `/webhooks/{webhook.id}/{webhook.token}/github` | `developers/resources/webhook.mdx` | RESTClient.executeGitHubWebhook |
+| Implemented | `POST` | `/webhooks/{webhook.id}/{webhook.token}/slack` | `developers/resources/webhook.mdx` | RESTClient.executeSlackWebhook |
+| Implemented | `GET` | `/oauth2/@me` | `developers/topics/oauth2.mdx` | RESTClient.getOAuth2CurrentAuthorization |
+| Implemented | `GET` | `/oauth2/applications/@me` | `developers/topics/oauth2.mdx` | RESTClient.getOAuth2CurrentApplication |

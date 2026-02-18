@@ -21,6 +21,14 @@ enum Routes {
         "\(baseURL)/channels/\(channelId)/invites"
     }
 
+    static func channelRecipient(_ channelId: String, userId: String) -> String {
+        "\(baseURL)/channels/\(channelId)/recipients/\(userId)"
+    }
+
+    static func channelFollowers(_ channelId: String) -> String {
+        "\(baseURL)/channels/\(channelId)/followers"
+    }
+
     static func typing(_ channelId: String) -> String {
         "\(baseURL)/channels/\(channelId)/typing"
     }
@@ -129,6 +137,98 @@ enum Routes {
         "\(baseURL)/guilds/\(guildId)/invites"
     }
 
+    static func guildIntegrations(_ guildId: String) -> String {
+        "\(baseURL)/guilds/\(guildId)/integrations"
+    }
+
+    static func guildIntegration(_ guildId: String, integrationId: String) -> String {
+        "\(baseURL)/guilds/\(guildId)/integrations/\(integrationId)"
+    }
+
+    static func guildOnboarding(_ guildId: String) -> String {
+        "\(baseURL)/guilds/\(guildId)/onboarding"
+    }
+
+    static func guildPreview(_ guildId: String) -> String {
+        "\(baseURL)/guilds/\(guildId)/preview"
+    }
+
+    static func guildRegions(_ guildId: String) -> String {
+        "\(baseURL)/guilds/\(guildId)/regions"
+    }
+
+    static func guildRoleMemberCounts(_ guildId: String) -> String {
+        "\(baseURL)/guilds/\(guildId)/roles/member-counts"
+    }
+
+    static func guildScheduledEvents(_ guildId: String) -> String {
+        "\(baseURL)/guilds/\(guildId)/scheduled-events"
+    }
+
+    static func guildScheduledEvent(_ guildId: String, eventId: String) -> String {
+        "\(baseURL)/guilds/\(guildId)/scheduled-events/\(eventId)"
+    }
+
+    static func guildScheduledEventUsers(_ guildId: String, eventId: String) -> String {
+        "\(baseURL)/guilds/\(guildId)/scheduled-events/\(eventId)/users"
+    }
+
+    static func guildTemplates(_ guildId: String) -> String {
+        "\(baseURL)/guilds/\(guildId)/templates"
+    }
+
+    static func guildTemplate(_ guildId: String, code: String) -> String {
+        "\(baseURL)/guilds/\(guildId)/templates/\(code)"
+    }
+
+    static func guildTemplate(code: String) -> String {
+        "\(baseURL)/guilds/templates/\(code)"
+    }
+
+    static func guildVanityURL(_ guildId: String) -> String {
+        "\(baseURL)/guilds/\(guildId)/vanity-url"
+    }
+
+    static func guildWelcomeScreen(_ guildId: String) -> String {
+        "\(baseURL)/guilds/\(guildId)/welcome-screen"
+    }
+
+    static func guildWidget(_ guildId: String) -> String {
+        "\(baseURL)/guilds/\(guildId)/widget"
+    }
+
+    static func guildWidgetJSON(_ guildId: String) -> String {
+        "\(baseURL)/guilds/\(guildId)/widget.json"
+    }
+
+    static func guildWidgetPNG(_ guildId: String) -> String {
+        "\(baseURL)/guilds/\(guildId)/widget.png"
+    }
+
+    static func guildBulkBan(_ guildId: String) -> String {
+        "\(baseURL)/guilds/\(guildId)/bulk-ban"
+    }
+
+    static func guildIncidentActions(_ guildId: String) -> String {
+        "\(baseURL)/guilds/\(guildId)/incident-actions"
+    }
+
+    static func guildMemberMe(_ guildId: String) -> String {
+        "\(baseURL)/guilds/\(guildId)/members/@me"
+    }
+
+    static func guildMemberNickMe(_ guildId: String) -> String {
+        "\(baseURL)/guilds/\(guildId)/members/@me/nick"
+    }
+
+    static func guildAutoModerationRules(_ guildId: String) -> String {
+        "\(baseURL)/guilds/\(guildId)/auto-moderation/rules"
+    }
+
+    static func guildAutoModerationRule(_ guildId: String, ruleId: String) -> String {
+        "\(baseURL)/guilds/\(guildId)/auto-moderation/rules/\(ruleId)"
+    }
+
     static func guildMember(_ guildId: String, userId: String) -> String {
         "\(baseURL)/guilds/\(guildId)/members/\(userId)"
     }
@@ -169,6 +269,14 @@ enum Routes {
         "\(baseURL)/invites/\(code)"
     }
 
+    static func inviteTargetUsers(_ code: String) -> String {
+        "\(baseURL)/invites/\(code)/target-users"
+    }
+
+    static func inviteTargetUsersJobStatus(_ code: String) -> String {
+        "\(baseURL)/invites/\(code)/target-users/job-status"
+    }
+
     static func webhook(_ webhookId: String) -> String {
         "\(baseURL)/webhooks/\(webhookId)"
     }
@@ -179,6 +287,14 @@ enum Routes {
 
     static func webhookMessage(_ webhookId: String, token: String, messageId: String) -> String {
         "\(baseURL)/webhooks/\(webhookId)/\(token)/messages/\(messageId)"
+    }
+
+    static func webhookGithub(_ webhookId: String, token: String) -> String {
+        "\(baseURL)/webhooks/\(webhookId)/\(token)/github"
+    }
+
+    static func webhookSlack(_ webhookId: String, token: String) -> String {
+        "\(baseURL)/webhooks/\(webhookId)/\(token)/slack"
     }
 
     static func globalCommands(_ applicationId: String) -> String {
@@ -195,6 +311,30 @@ enum Routes {
 
     static func guildCommand(_ applicationId: String, guildId: String, commandId: String) -> String {
         "\(baseURL)/applications/\(applicationId)/guilds/\(guildId)/commands/\(commandId)"
+    }
+
+    static func guildCommandPermissions(_ applicationId: String, guildId: String) -> String {
+        "\(baseURL)/applications/\(applicationId)/guilds/\(guildId)/commands/permissions"
+    }
+
+    static func guildCommandPermissions(_ applicationId: String, guildId: String, commandId: String) -> String {
+        "\(baseURL)/applications/\(applicationId)/guilds/\(guildId)/commands/\(commandId)/permissions"
+    }
+
+    static func currentApplication() -> String {
+        "\(baseURL)/applications/@me"
+    }
+
+    static func application(_ applicationId: String) -> String {
+        "\(baseURL)/applications/\(applicationId)"
+    }
+
+    static func applicationActivityInstance(_ applicationId: String, instanceId: String) -> String {
+        "\(baseURL)/applications/\(applicationId)/activity-instances/\(instanceId)"
+    }
+
+    static func applicationRoleConnectionMetadata(_ applicationId: String) -> String {
+        "\(baseURL)/applications/\(applicationId)/role-connections/metadata"
     }
 
     static func interactionResponse(_ interactionId: String, token: String) -> String {
@@ -217,5 +357,57 @@ enum Routes {
 
     static func user(_ userId: String) -> String {
         "\(baseURL)/users/\(userId)"
+    }
+
+    static func currentUserGuilds() -> String {
+        "\(baseURL)/users/@me/guilds"
+    }
+
+    static func currentUserGuild(_ guildId: String) -> String {
+        "\(baseURL)/users/@me/guilds/\(guildId)"
+    }
+
+    static func currentUserGuildMember(_ guildId: String) -> String {
+        "\(baseURL)/users/@me/guilds/\(guildId)/member"
+    }
+
+    static func currentUserChannels() -> String {
+        "\(baseURL)/users/@me/channels"
+    }
+
+    static func currentUserConnections() -> String {
+        "\(baseURL)/users/@me/connections"
+    }
+
+    static func currentUserApplicationRoleConnection(_ applicationId: String) -> String {
+        "\(baseURL)/users/@me/applications/\(applicationId)/role-connection"
+    }
+
+    static func guildVoiceStateMe(_ guildId: String) -> String {
+        "\(baseURL)/guilds/\(guildId)/voice-states/@me"
+    }
+
+    static func guildVoiceState(_ guildId: String, userId: String) -> String {
+        "\(baseURL)/guilds/\(guildId)/voice-states/\(userId)"
+    }
+
+    static func voiceRegions() -> String {
+        "\(baseURL)/voice/regions"
+    }
+
+    static func stageInstances() -> String {
+        "\(baseURL)/stage-instances"
+    }
+
+    static func stageInstance(_ channelId: String) -> String {
+        "\(baseURL)/stage-instances/\(channelId)"
+    }
+
+    static func oauth2CurrentAuthorization() -> String {
+        "\(baseURL)/oauth2/@me"
+    }
+
+    static func oauth2CurrentApplication() -> String {
+        "\(baseURL)/oauth2/applications/@me"
     }
 }

@@ -158,6 +158,10 @@ public final class RESTClient: Sendable {
         try await request(method: "GET", url: Routes.currentUser, decodeAs: DiscordUser.self)
     }
 
+    func modifyCurrentUser(_ modify: ModifyCurrentUser) async throws -> DiscordUser {
+        try await request(method: "PATCH", url: Routes.currentUser, body: modify, decodeAs: DiscordUser.self)
+    }
+
     func getGateway() async throws -> GatewayInfo {
         try await request(method: "GET", url: Routes.gateway, decodeAs: GatewayInfo.self)
     }
@@ -166,8 +170,191 @@ public final class RESTClient: Sendable {
         try await request(method: "GET", url: Routes.gatewayBot, decodeAs: GatewayBot.self)
     }
 
+    func getVoiceRegions() async throws -> [VoiceRegion] {
+        try await request(method: "GET", url: Routes.voiceRegions(), decodeAs: [VoiceRegion].self)
+    }
+
+    func getCurrentUserVoiceState(guildId: String) async throws -> VoiceState {
+        try await request(method: "GET", url: Routes.guildVoiceStateMe(guildId), decodeAs: VoiceState.self)
+    }
+
+    func getVoiceState(guildId: String, userId: String) async throws -> VoiceState {
+        try await request(
+            method: "GET",
+            url: Routes.guildVoiceState(guildId, userId: userId),
+            decodeAs: VoiceState.self
+        )
+    }
+
+    func modifyCurrentUserVoiceState(guildId: String, state: ModifyCurrentUserVoiceState) async throws {
+        try await requestVoid(method: "PATCH", url: Routes.guildVoiceStateMe(guildId), body: state)
+    }
+
+    func modifyUserVoiceState(guildId: String, userId: String, state: ModifyUserVoiceState) async throws {
+        try await requestVoid(
+            method: "PATCH",
+            url: Routes.guildVoiceState(guildId, userId: userId),
+            body: state
+        )
+    }
+
+    func createStageInstance(
+        stage: CreateStageInstance,
+        auditLogReason: String? = nil
+    ) async throws -> StageInstance {
+        try await request(
+            method: "POST",
+            url: Routes.stageInstances(),
+            body: stage,
+            headers: auditLogHeaders(reason: auditLogReason),
+            decodeAs: StageInstance.self
+        )
+    }
+
+    func getStageInstance(channelId: String) async throws -> StageInstance {
+        try await request(method: "GET", url: Routes.stageInstance(channelId), decodeAs: StageInstance.self)
+    }
+
+    func modifyStageInstance(
+        channelId: String,
+        modify: ModifyStageInstance,
+        auditLogReason: String? = nil
+    ) async throws -> StageInstance {
+        try await request(
+            method: "PATCH",
+            url: Routes.stageInstance(channelId),
+            body: modify,
+            headers: auditLogHeaders(reason: auditLogReason),
+            decodeAs: StageInstance.self
+        )
+    }
+
+    func deleteStageInstance(channelId: String, auditLogReason: String? = nil) async throws {
+        try await requestVoid(
+            method: "DELETE",
+            url: Routes.stageInstance(channelId),
+            headers: auditLogHeaders(reason: auditLogReason)
+        )
+    }
+
     func getUser(userId: String) async throws -> DiscordUser {
         try await request(method: "GET", url: Routes.user(userId), decodeAs: DiscordUser.self)
+    }
+
+    func getCurrentUserGuilds(query: CurrentUserGuildsQuery = CurrentUserGuildsQuery()) async throws -> [UserGuild] {
+        let url = buildCurrentUserGuildsURL(query: query)
+        return try await request(method: "GET", url: url, decodeAs: [UserGuild].self)
+    }
+
+    func leaveGuild(guildId: String) async throws {
+        try await requestVoid(method: "DELETE", url: Routes.currentUserGuild(guildId))
+    }
+
+    func createDM(_ create: CreateDM) async throws -> Channel {
+        try await request(
+            method: "POST",
+            url: Routes.currentUserChannels(),
+            body: create,
+            decodeAs: Channel.self
+        )
+    }
+
+    func getCurrentUserConnections() async throws -> [UserConnection] {
+        try await request(method: "GET", url: Routes.currentUserConnections(), decodeAs: [UserConnection].self)
+    }
+
+    func getCurrentUserGuildMember(guildId: String) async throws -> GuildMember {
+        try await request(method: "GET", url: Routes.currentUserGuildMember(guildId), decodeAs: GuildMember.self)
+    }
+
+    func getCurrentUserApplicationRoleConnection(applicationId: String) async throws -> ApplicationRoleConnection {
+        try await request(
+            method: "GET",
+            url: Routes.currentUserApplicationRoleConnection(applicationId),
+            decodeAs: ApplicationRoleConnection.self
+        )
+    }
+
+    func updateCurrentUserApplicationRoleConnection(
+        applicationId: String,
+        connection: PutApplicationRoleConnection
+    ) async throws -> ApplicationRoleConnection {
+        try await request(
+            method: "PUT",
+            url: Routes.currentUserApplicationRoleConnection(applicationId),
+            body: connection,
+            decodeAs: ApplicationRoleConnection.self
+        )
+    }
+
+    func getCurrentApplication() async throws -> DiscordApplication {
+        try await request(method: "GET", url: Routes.currentApplication(), decodeAs: DiscordApplication.self)
+    }
+
+    func modifyCurrentApplication(_ modify: ModifyApplication) async throws -> DiscordApplication {
+        try await request(
+            method: "PATCH",
+            url: Routes.currentApplication(),
+            body: modify,
+            decodeAs: DiscordApplication.self
+        )
+    }
+
+    func getApplication(applicationId: String) async throws -> DiscordApplication {
+        try await request(method: "GET", url: Routes.application(applicationId), decodeAs: DiscordApplication.self)
+    }
+
+    func modifyApplication(applicationId: String, modify: ModifyApplication) async throws -> DiscordApplication {
+        try await request(
+            method: "PATCH",
+            url: Routes.application(applicationId),
+            body: modify,
+            decodeAs: DiscordApplication.self
+        )
+    }
+
+    func getApplicationActivityInstance(applicationId: String, instanceId: String) async throws -> JSONValue {
+        try await request(
+            method: "GET",
+            url: Routes.applicationActivityInstance(applicationId, instanceId: instanceId),
+            decodeAs: JSONValue.self
+        )
+    }
+
+    func getApplicationRoleConnectionMetadata(applicationId: String) async throws -> [ApplicationRoleConnectionMetadataRecord] {
+        try await request(
+            method: "GET",
+            url: Routes.applicationRoleConnectionMetadata(applicationId),
+            decodeAs: [ApplicationRoleConnectionMetadataRecord].self
+        )
+    }
+
+    func updateApplicationRoleConnectionMetadata(
+        applicationId: String,
+        records: [ApplicationRoleConnectionMetadataRecord]
+    ) async throws -> [ApplicationRoleConnectionMetadataRecord] {
+        try await request(
+            method: "PUT",
+            url: Routes.applicationRoleConnectionMetadata(applicationId),
+            body: records,
+            decodeAs: [ApplicationRoleConnectionMetadataRecord].self
+        )
+    }
+
+    func getOAuth2CurrentAuthorization() async throws -> OAuth2Authorization {
+        try await request(
+            method: "GET",
+            url: Routes.oauth2CurrentAuthorization(),
+            decodeAs: OAuth2Authorization.self
+        )
+    }
+
+    func getOAuth2CurrentApplication() async throws -> DiscordApplication {
+        try await request(
+            method: "GET",
+            url: Routes.oauth2CurrentApplication(),
+            decodeAs: DiscordApplication.self
+        )
     }
 
 
@@ -195,6 +382,21 @@ public final class RESTClient: Sendable {
             url: Routes.channel(channelId),
             headers: auditLogHeaders(reason: auditLogReason),
             decodeAs: Channel.self
+        )
+    }
+
+    func addChannelRecipient(channelId: String, userId: String, recipient: GroupDMAddRecipient) async throws {
+        try await requestVoid(
+            method: "PUT",
+            url: Routes.channelRecipient(channelId, userId: userId),
+            body: recipient
+        )
+    }
+
+    func deleteChannelRecipient(channelId: String, userId: String) async throws {
+        try await requestVoid(
+            method: "DELETE",
+            url: Routes.channelRecipient(channelId, userId: userId)
         )
     }
 
@@ -390,6 +592,18 @@ public final class RESTClient: Sendable {
         )
     }
 
+    func followAnnouncementChannel(
+        channelId: String,
+        follow: FollowAnnouncementChannel
+    ) async throws -> FollowedChannel {
+        try await request(
+            method: "POST",
+            url: Routes.channelFollowers(channelId),
+            body: follow,
+            decodeAs: FollowedChannel.self
+        )
+    }
+
     func triggerTyping(channelId: String) async throws {
         try await requestVoid(method: "POST", url: Routes.typing(channelId))
     }
@@ -457,6 +671,10 @@ public final class RESTClient: Sendable {
 
     func addThreadMember(channelId: String, userId: String) async throws {
         try await requestVoid(method: "PUT", url: Routes.threadMember(channelId, userId: userId))
+    }
+
+    func removeThreadMember(channelId: String, userId: String) async throws {
+        try await requestVoid(method: "DELETE", url: Routes.threadMember(channelId, userId: userId))
     }
 
     func joinThread(channelId: String) async throws {
@@ -582,6 +800,10 @@ public final class RESTClient: Sendable {
         try await request(method: "GET", url: Routes.guild(guildId), decodeAs: Guild.self)
     }
 
+    func getGuildPreview(guildId: String) async throws -> JSONValue {
+        try await request(method: "GET", url: Routes.guildPreview(guildId), decodeAs: JSONValue.self)
+    }
+
     func modifyGuild(
         guildId: String,
         modify: ModifyGuild,
@@ -602,6 +824,102 @@ public final class RESTClient: Sendable {
     ) async throws -> GuildAuditLog {
         let url = buildGuildAuditLogURL(guildId: guildId, query: query)
         return try await request(method: "GET", url: url, decodeAs: GuildAuditLog.self)
+    }
+
+    func getGuildIntegrations(guildId: String) async throws -> [GuildIntegration] {
+        try await request(method: "GET", url: Routes.guildIntegrations(guildId), decodeAs: [GuildIntegration].self)
+    }
+
+    func deleteGuildIntegration(guildId: String, integrationId: String, auditLogReason: String? = nil) async throws {
+        try await requestVoid(
+            method: "DELETE",
+            url: Routes.guildIntegration(guildId, integrationId: integrationId),
+            headers: auditLogHeaders(reason: auditLogReason)
+        )
+    }
+
+    func getGuildOnboarding(guildId: String) async throws -> JSONValue {
+        try await request(method: "GET", url: Routes.guildOnboarding(guildId), decodeAs: JSONValue.self)
+    }
+
+    func modifyGuildOnboarding(
+        guildId: String,
+        payload: JSONValue,
+        auditLogReason: String? = nil
+    ) async throws -> JSONValue {
+        try await request(
+            method: "PUT",
+            url: Routes.guildOnboarding(guildId),
+            body: payload,
+            headers: auditLogHeaders(reason: auditLogReason),
+            decodeAs: JSONValue.self
+        )
+    }
+
+    func getGuildRegions(guildId: String) async throws -> [VoiceRegion] {
+        try await request(method: "GET", url: Routes.guildRegions(guildId), decodeAs: [VoiceRegion].self)
+    }
+
+    func getGuildRoleMemberCounts(guildId: String) async throws -> [String: Int] {
+        try await request(method: "GET", url: Routes.guildRoleMemberCounts(guildId), decodeAs: [String: Int].self)
+    }
+
+    func getGuildVanityURL(guildId: String) async throws -> JSONValue {
+        try await request(method: "GET", url: Routes.guildVanityURL(guildId), decodeAs: JSONValue.self)
+    }
+
+    func getGuildWelcomeScreen(guildId: String) async throws -> JSONValue {
+        try await request(method: "GET", url: Routes.guildWelcomeScreen(guildId), decodeAs: JSONValue.self)
+    }
+
+    func modifyGuildWelcomeScreen(
+        guildId: String,
+        payload: JSONValue,
+        auditLogReason: String? = nil
+    ) async throws -> JSONValue {
+        try await request(
+            method: "PATCH",
+            url: Routes.guildWelcomeScreen(guildId),
+            body: payload,
+            headers: auditLogHeaders(reason: auditLogReason),
+            decodeAs: JSONValue.self
+        )
+    }
+
+    func getGuildWidgetSettings(guildId: String) async throws -> JSONValue {
+        try await request(method: "GET", url: Routes.guildWidget(guildId), decodeAs: JSONValue.self)
+    }
+
+    func modifyGuildWidget(
+        guildId: String,
+        payload: JSONValue,
+        auditLogReason: String? = nil
+    ) async throws -> JSONValue {
+        try await request(
+            method: "PATCH",
+            url: Routes.guildWidget(guildId),
+            body: payload,
+            headers: auditLogHeaders(reason: auditLogReason),
+            decodeAs: JSONValue.self
+        )
+    }
+
+    func getGuildWidget(guildId: String) async throws -> JSONValue {
+        try await request(method: "GET", url: Routes.guildWidgetJSON(guildId), decodeAs: JSONValue.self)
+    }
+
+    func getGuildWidgetImage(guildId: String, style: String? = nil) async throws -> Data {
+        guard
+            let style,
+            !style.isEmpty,
+            var components = URLComponents(string: Routes.guildWidgetPNG(guildId))
+        else {
+            return try await rawRequest(method: "GET", url: Routes.guildWidgetPNG(guildId), body: nil, headers: [:])
+        }
+
+        components.queryItems = [URLQueryItem(name: "style", value: style)]
+        let url = components.url?.absoluteString ?? Routes.guildWidgetPNG(guildId)
+        return try await rawRequest(method: "GET", url: url, body: nil, headers: [:])
     }
 
     func getGuildBans(
@@ -707,6 +1025,145 @@ public final class RESTClient: Sendable {
         try await request(method: "GET", url: Routes.guildInvites(guildId), decodeAs: [Invite].self)
     }
 
+    func getGuildTemplate(code: String) async throws -> GuildTemplate {
+        try await request(method: "GET", url: Routes.guildTemplate(code: code), decodeAs: GuildTemplate.self)
+    }
+
+    func createGuildFromTemplate(code: String, guild: CreateGuildFromTemplate) async throws -> Guild {
+        try await request(
+            method: "POST",
+            url: Routes.guildTemplate(code: code),
+            body: guild,
+            decodeAs: Guild.self
+        )
+    }
+
+    func getGuildTemplates(guildId: String) async throws -> [GuildTemplate] {
+        try await request(method: "GET", url: Routes.guildTemplates(guildId), decodeAs: [GuildTemplate].self)
+    }
+
+    func createGuildTemplate(
+        guildId: String,
+        template: CreateGuildTemplate,
+        auditLogReason: String? = nil
+    ) async throws -> GuildTemplate {
+        try await request(
+            method: "POST",
+            url: Routes.guildTemplates(guildId),
+            body: template,
+            headers: auditLogHeaders(reason: auditLogReason),
+            decodeAs: GuildTemplate.self
+        )
+    }
+
+    func syncGuildTemplate(
+        guildId: String,
+        code: String,
+        auditLogReason: String? = nil
+    ) async throws -> GuildTemplate {
+        try await request(
+            method: "PUT",
+            url: Routes.guildTemplate(guildId, code: code),
+            headers: auditLogHeaders(reason: auditLogReason),
+            decodeAs: GuildTemplate.self
+        )
+    }
+
+    func modifyGuildTemplate(
+        guildId: String,
+        code: String,
+        modify: ModifyGuildTemplate,
+        auditLogReason: String? = nil
+    ) async throws -> GuildTemplate {
+        try await request(
+            method: "PATCH",
+            url: Routes.guildTemplate(guildId, code: code),
+            body: modify,
+            headers: auditLogHeaders(reason: auditLogReason),
+            decodeAs: GuildTemplate.self
+        )
+    }
+
+    func deleteGuildTemplate(
+        guildId: String,
+        code: String,
+        auditLogReason: String? = nil
+    ) async throws -> GuildTemplate {
+        try await request(
+            method: "DELETE",
+            url: Routes.guildTemplate(guildId, code: code),
+            headers: auditLogHeaders(reason: auditLogReason),
+            decodeAs: GuildTemplate.self
+        )
+    }
+
+    func getGuildScheduledEvents(
+        guildId: String,
+        query: GuildScheduledEventsQuery = GuildScheduledEventsQuery()
+    ) async throws -> [GuildScheduledEvent] {
+        let url = buildGuildScheduledEventsURL(guildId: guildId, query: query)
+        return try await request(method: "GET", url: url, decodeAs: [GuildScheduledEvent].self)
+    }
+
+    func createGuildScheduledEvent(
+        guildId: String,
+        event: CreateGuildScheduledEvent,
+        auditLogReason: String? = nil
+    ) async throws -> GuildScheduledEvent {
+        try await request(
+            method: "POST",
+            url: Routes.guildScheduledEvents(guildId),
+            body: event,
+            headers: auditLogHeaders(reason: auditLogReason),
+            decodeAs: GuildScheduledEvent.self
+        )
+    }
+
+    func getGuildScheduledEvent(
+        guildId: String,
+        eventId: String,
+        withUserCount: Bool? = nil
+    ) async throws -> GuildScheduledEvent {
+        let url = buildGuildScheduledEventURL(guildId: guildId, eventId: eventId, withUserCount: withUserCount)
+        return try await request(method: "GET", url: url, decodeAs: GuildScheduledEvent.self)
+    }
+
+    func modifyGuildScheduledEvent(
+        guildId: String,
+        eventId: String,
+        modify: ModifyGuildScheduledEvent,
+        auditLogReason: String? = nil
+    ) async throws -> GuildScheduledEvent {
+        try await request(
+            method: "PATCH",
+            url: Routes.guildScheduledEvent(guildId, eventId: eventId),
+            body: modify,
+            headers: auditLogHeaders(reason: auditLogReason),
+            decodeAs: GuildScheduledEvent.self
+        )
+    }
+
+    func deleteGuildScheduledEvent(
+        guildId: String,
+        eventId: String,
+        auditLogReason: String? = nil
+    ) async throws {
+        try await requestVoid(
+            method: "DELETE",
+            url: Routes.guildScheduledEvent(guildId, eventId: eventId),
+            headers: auditLogHeaders(reason: auditLogReason)
+        )
+    }
+
+    func getGuildScheduledEventUsers(
+        guildId: String,
+        eventId: String,
+        query: GuildScheduledEventUsersQuery = GuildScheduledEventUsersQuery()
+    ) async throws -> [GuildScheduledEventUser] {
+        let url = buildGuildScheduledEventUsersURL(guildId: guildId, eventId: eventId, query: query)
+        return try await request(method: "GET", url: url, decodeAs: [GuildScheduledEventUser].self)
+    }
+
     func getGuildChannels(guildId: String) async throws -> [Channel] {
         try await request(method: "GET", url: Routes.guildChannels(guildId), decodeAs: [Channel].self)
     }
@@ -737,6 +1194,86 @@ public final class RESTClient: Sendable {
             body: modify,
             headers: auditLogHeaders(reason: auditLogReason),
             decodeAs: GuildMember.self
+        )
+    }
+
+    func modifyCurrentGuildMember(
+        guildId: String,
+        modify: ModifyCurrentGuildMember,
+        auditLogReason: String? = nil
+    ) async throws -> GuildMember {
+        try await request(
+            method: "PATCH",
+            url: Routes.guildMemberMe(guildId),
+            body: modify,
+            headers: auditLogHeaders(reason: auditLogReason),
+            decodeAs: GuildMember.self
+        )
+    }
+
+    func modifyCurrentGuildNick(
+        guildId: String,
+        modify: ModifyCurrentGuildNick,
+        auditLogReason: String? = nil
+    ) async throws -> GuildMember {
+        try await request(
+            method: "PATCH",
+            url: Routes.guildMemberNickMe(guildId),
+            body: modify,
+            headers: auditLogHeaders(reason: auditLogReason),
+            decodeAs: GuildMember.self
+        )
+    }
+
+    func addGuildMember(
+        guildId: String,
+        userId: String,
+        add: AddGuildMember
+    ) async throws -> GuildMember {
+        try await request(
+            method: "PUT",
+            url: Routes.guildMember(guildId, userId: userId),
+            body: add,
+            decodeAs: GuildMember.self
+        )
+    }
+
+    func removeGuildMember(
+        guildId: String,
+        userId: String,
+        auditLogReason: String? = nil
+    ) async throws {
+        try await requestVoid(
+            method: "DELETE",
+            url: Routes.guildMember(guildId, userId: userId),
+            headers: auditLogHeaders(reason: auditLogReason)
+        )
+    }
+
+    func bulkBanGuildMembers(
+        guildId: String,
+        ban: BulkBan,
+        auditLogReason: String? = nil
+    ) async throws -> BulkBanResult {
+        try await request(
+            method: "POST",
+            url: Routes.guildBulkBan(guildId),
+            body: ban,
+            headers: auditLogHeaders(reason: auditLogReason),
+            decodeAs: BulkBanResult.self
+        )
+    }
+
+    func setGuildIncidentActions(
+        guildId: String,
+        actions: GuildIncidentActions,
+        auditLogReason: String? = nil
+    ) async throws {
+        try await requestVoid(
+            method: "PUT",
+            url: Routes.guildIncidentActions(guildId),
+            body: actions,
+            headers: auditLogHeaders(reason: auditLogReason)
         )
     }
 
@@ -834,6 +1371,31 @@ public final class RESTClient: Sendable {
         return try await request(method: "GET", url: url, decodeAs: Invite.self)
     }
 
+    func getInviteTargetUsers(code: String) async throws -> InviteTargetUsersResult {
+        try await request(
+            method: "GET",
+            url: Routes.inviteTargetUsers(code),
+            decodeAs: InviteTargetUsersResult.self
+        )
+    }
+
+    func getInviteTargetUsersJobStatus(code: String) async throws -> InviteTargetUsersJobStatus {
+        try await request(
+            method: "GET",
+            url: Routes.inviteTargetUsersJobStatus(code),
+            decodeAs: InviteTargetUsersJobStatus.self
+        )
+    }
+
+    func updateInviteTargetUsers(code: String, users: InviteTargetUsersUpdate) async throws -> InviteTargetUsersJobStatus {
+        try await request(
+            method: "PUT",
+            url: Routes.inviteTargetUsers(code),
+            body: users,
+            decodeAs: InviteTargetUsersJobStatus.self
+        )
+    }
+
     func getMessage(channelId: String, messageId: String) async throws -> Message {
         var message = try await request(
             method: "GET",
@@ -874,6 +1436,40 @@ public final class RESTClient: Sendable {
         var msg = try await request(method: "POST", url: Routes.messages(channelId), body: body, decodeAs: Message.self)
         msg._rest = self
         return msg
+    }
+
+    @discardableResult
+    func executeGitHubWebhook(
+        webhookId: String,
+        token: String,
+        payload: JSONValue,
+        query: ExecuteWebhookQuery = ExecuteWebhookQuery()
+    ) async throws -> Message? {
+        let url = buildExecuteWebhookURL(baseURL: Routes.webhookGithub(webhookId, token: token), query: query)
+        let data = try await rawRequest(method: "POST", url: url, body: payload, headers: [:])
+        guard query.wait == true, !data.isEmpty else { return nil }
+        var message = try JSONCoder.decode(Message.self, from: data)
+        message._rest = self
+        return message
+    }
+
+    @discardableResult
+    func executeSlackWebhook(
+        webhookId: String,
+        token: String,
+        payload: JSONValue,
+        query: ExecuteWebhookQuery = ExecuteWebhookQuery()
+    ) async throws -> Message? {
+        let url = buildExecuteWebhookURL(baseURL: Routes.webhookSlack(webhookId, token: token), query: query)
+        let data = try await rawRequest(method: "POST", url: url, body: payload, headers: [:])
+        guard query.wait == true, !data.isEmpty else { return nil }
+        var message = try JSONCoder.decode(Message.self, from: data)
+        message._rest = self
+        return message
+    }
+
+    func getWebhookGitHub(webhookId: String, token: String) async throws -> Webhook {
+        try await request(method: "GET", url: Routes.webhookGithub(webhookId, token: token), decodeAs: Webhook.self)
     }
 
     @discardableResult
@@ -1159,6 +1755,29 @@ public final class RESTClient: Sendable {
         )
     }
 
+    func getGuildCommandPermissions(
+        applicationId: String,
+        guildId: String
+    ) async throws -> [GuildApplicationCommandPermissions] {
+        try await request(
+            method: "GET",
+            url: Routes.guildCommandPermissions(applicationId, guildId: guildId),
+            decodeAs: [GuildApplicationCommandPermissions].self
+        )
+    }
+
+    func getCommandPermissions(
+        applicationId: String,
+        guildId: String,
+        commandId: String
+    ) async throws -> GuildApplicationCommandPermissions {
+        try await request(
+            method: "GET",
+            url: Routes.guildCommandPermissions(applicationId, guildId: guildId, commandId: commandId),
+            decodeAs: GuildApplicationCommandPermissions.self
+        )
+    }
+
     func getGuildCommand(applicationId: String, guildId: String, commandId: String) async throws -> ApplicationCommand {
         try await request(
             method: "GET",
@@ -1205,6 +1824,33 @@ public final class RESTClient: Sendable {
         try await requestVoid(
             method: "DELETE",
             url: Routes.guildCommand(applicationId, guildId: guildId, commandId: commandId)
+        )
+    }
+
+    func bulkOverwriteGuildCommandPermissions(
+        applicationId: String,
+        guildId: String,
+        permissions: [GuildApplicationCommandPermissions]
+    ) async throws -> [GuildApplicationCommandPermissions] {
+        try await request(
+            method: "PUT",
+            url: Routes.guildCommandPermissions(applicationId, guildId: guildId),
+            body: permissions,
+            decodeAs: [GuildApplicationCommandPermissions].self
+        )
+    }
+
+    func setGuildCommandPermissions(
+        applicationId: String,
+        guildId: String,
+        commandId: String,
+        permissions: EditGuildApplicationCommandPermissions
+    ) async throws -> GuildApplicationCommandPermissions {
+        try await request(
+            method: "PUT",
+            url: Routes.guildCommandPermissions(applicationId, guildId: guildId, commandId: commandId),
+            body: permissions,
+            decodeAs: GuildApplicationCommandPermissions.self
         )
     }
 
@@ -1403,6 +2049,23 @@ private extension RESTClient {
         return components.url?.absoluteString ?? Routes.guildMembers(guildId)
     }
 
+    func buildCurrentUserGuildsURL(query: CurrentUserGuildsQuery) -> String {
+        guard var components = URLComponents(string: Routes.currentUserGuilds()) else {
+            return Routes.currentUserGuilds()
+        }
+
+        var items: [URLQueryItem] = []
+        if let before = query.before { items.append(URLQueryItem(name: "before", value: before)) }
+        if let after = query.after { items.append(URLQueryItem(name: "after", value: after)) }
+        if let limit = query.limit { items.append(URLQueryItem(name: "limit", value: String(limit))) }
+        if let withCounts = query.withCounts {
+            items.append(URLQueryItem(name: "with_counts", value: withCounts ? "true" : "false"))
+        }
+
+        components.queryItems = items.isEmpty ? nil : items
+        return components.url?.absoluteString ?? Routes.currentUserGuilds()
+    }
+
     func buildGuildMemberSearchURL(guildId: String, query: GuildMemberSearchQuery) -> String {
         guard var components = URLComponents(string: Routes.guildMembersSearch(guildId)) else {
             return Routes.guildMembersSearch(guildId)
@@ -1413,6 +2076,52 @@ private extension RESTClient {
 
         components.queryItems = items
         return components.url?.absoluteString ?? Routes.guildMembersSearch(guildId)
+    }
+
+    func buildGuildScheduledEventsURL(guildId: String, query: GuildScheduledEventsQuery) -> String {
+        guard var components = URLComponents(string: Routes.guildScheduledEvents(guildId)) else {
+            return Routes.guildScheduledEvents(guildId)
+        }
+
+        var items: [URLQueryItem] = []
+        if let withUserCount = query.withUserCount {
+            items.append(URLQueryItem(name: "with_user_count", value: withUserCount ? "true" : "false"))
+        }
+        components.queryItems = items.isEmpty ? nil : items
+        return components.url?.absoluteString ?? Routes.guildScheduledEvents(guildId)
+    }
+
+    func buildGuildScheduledEventURL(guildId: String, eventId: String, withUserCount: Bool?) -> String {
+        guard
+            let withUserCount,
+            var components = URLComponents(string: Routes.guildScheduledEvent(guildId, eventId: eventId))
+        else {
+            return Routes.guildScheduledEvent(guildId, eventId: eventId)
+        }
+
+        components.queryItems = [URLQueryItem(name: "with_user_count", value: withUserCount ? "true" : "false")]
+        return components.url?.absoluteString ?? Routes.guildScheduledEvent(guildId, eventId: eventId)
+    }
+
+    func buildGuildScheduledEventUsersURL(
+        guildId: String,
+        eventId: String,
+        query: GuildScheduledEventUsersQuery
+    ) -> String {
+        guard var components = URLComponents(string: Routes.guildScheduledEventUsers(guildId, eventId: eventId)) else {
+            return Routes.guildScheduledEventUsers(guildId, eventId: eventId)
+        }
+
+        var items: [URLQueryItem] = []
+        if let limit = query.limit { items.append(URLQueryItem(name: "limit", value: String(limit))) }
+        if let withMember = query.withMember {
+            items.append(URLQueryItem(name: "with_member", value: withMember ? "true" : "false"))
+        }
+        if let before = query.before { items.append(URLQueryItem(name: "before", value: before)) }
+        if let after = query.after { items.append(URLQueryItem(name: "after", value: after)) }
+
+        components.queryItems = items.isEmpty ? nil : items
+        return components.url?.absoluteString ?? Routes.guildScheduledEventUsers(guildId, eventId: eventId)
     }
 
     func buildMessageHistoryURL(channelId: String, query: MessageHistoryQuery) -> String {
@@ -1499,8 +2208,12 @@ private extension RESTClient {
     }
 
     func buildExecuteWebhookURL(webhookId: String, token: String, query: ExecuteWebhookQuery) -> String {
-        guard var components = URLComponents(string: Routes.webhook(webhookId, token: token)) else {
-            return Routes.webhook(webhookId, token: token)
+        buildExecuteWebhookURL(baseURL: Routes.webhook(webhookId, token: token), query: query)
+    }
+
+    func buildExecuteWebhookURL(baseURL: String, query: ExecuteWebhookQuery) -> String {
+        guard var components = URLComponents(string: baseURL) else {
+            return baseURL
         }
 
         var items: [URLQueryItem] = []
@@ -1508,7 +2221,7 @@ private extension RESTClient {
         if let threadId = query.threadId { items.append(URLQueryItem(name: "thread_id", value: threadId)) }
 
         components.queryItems = items.isEmpty ? nil : items
-        return components.url?.absoluteString ?? Routes.webhook(webhookId, token: token)
+        return components.url?.absoluteString ?? baseURL
     }
 
     func buildWebhookMessageURL(webhookId: String, token: String, messageId: String, query: WebhookMessageQuery) -> String {

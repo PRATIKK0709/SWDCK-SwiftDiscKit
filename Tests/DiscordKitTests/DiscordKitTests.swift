@@ -1274,3 +1274,201 @@ final class GuildRoleModelTests: XCTestCase {
         XCTAssertEqual(role.position, 3)
     }
 }
+
+final class AdditionalAPIModelsTests: XCTestCase {
+    func testGuildApplicationCommandPermissionsDecoding() throws {
+        let json = """
+        {
+          "id": "123",
+          "application_id": "app_1",
+          "guild_id": "guild_1",
+          "permissions": [
+            { "id": "role_1", "type": 1, "permission": true },
+            { "id": "user_1", "type": 2, "permission": false }
+          ]
+        }
+        """.data(using: .utf8)!
+
+        let permissions = try JSONCoder.decode(GuildApplicationCommandPermissions.self, from: json)
+        XCTAssertEqual(permissions.id, "123")
+        XCTAssertEqual(permissions.applicationId, "app_1")
+        XCTAssertEqual(permissions.guildId, "guild_1")
+        XCTAssertEqual(permissions.permissions.count, 2)
+        XCTAssertEqual(permissions.permissions[0].permission, true)
+    }
+
+    func testVoiceStateDecoding() throws {
+        let json = """
+        {
+          "guild_id": "1",
+          "channel_id": "2",
+          "user_id": "3",
+          "session_id": "session",
+          "deaf": false,
+          "mute": true,
+          "self_deaf": false,
+          "self_mute": true,
+          "self_stream": null,
+          "self_video": false,
+          "suppress": false,
+          "request_to_speak_timestamp": null
+        }
+        """.data(using: .utf8)!
+
+        let voiceState = try JSONCoder.decode(VoiceState.self, from: json)
+        XCTAssertEqual(voiceState.guildId, "1")
+        XCTAssertEqual(voiceState.channelId, "2")
+        XCTAssertEqual(voiceState.userId, "3")
+        XCTAssertEqual(voiceState.sessionId, "session")
+        XCTAssertEqual(voiceState.mute, true)
+    }
+
+    func testCurrentUserGuildDecoding() throws {
+        let json = """
+        {
+          "id": "10",
+          "name": "Guild Name",
+          "icon": null,
+          "banner": null,
+          "owner": false,
+          "permissions": "1234",
+          "features": ["COMMUNITY"],
+          "approximate_member_count": 120,
+          "approximate_presence_count": 42
+        }
+        """.data(using: .utf8)!
+
+        let guild = try JSONCoder.decode(UserGuild.self, from: json)
+        XCTAssertEqual(guild.id, "10")
+        XCTAssertEqual(guild.name, "Guild Name")
+        XCTAssertEqual(guild.approximateMemberCount, 120)
+        XCTAssertEqual(guild.approximatePresenceCount, 42)
+    }
+
+    func testGuildTemplateDecoding() throws {
+        let json = """
+        {
+          "code": "abc123",
+          "name": "Community Template",
+          "description": "Template description",
+          "usage_count": 7,
+          "creator_id": "11",
+          "created_at": "2026-02-18T00:00:00.000Z",
+          "updated_at": "2026-02-18T00:30:00.000Z",
+          "source_guild_id": "99",
+          "is_dirty": false
+        }
+        """.data(using: .utf8)!
+
+        let template = try JSONCoder.decode(GuildTemplate.self, from: json)
+        XCTAssertEqual(template.code, "abc123")
+        XCTAssertEqual(template.name, "Community Template")
+        XCTAssertEqual(template.usageCount, 7)
+        XCTAssertEqual(template.sourceGuildId, "99")
+        XCTAssertEqual(template.isDirty, false)
+    }
+
+    func testGuildScheduledEventDecoding() throws {
+        let json = """
+        {
+          "id": "event_1",
+          "guild_id": "guild_1",
+          "channel_id": "chan_1",
+          "name": "Townhall",
+          "description": "Monthly sync",
+          "scheduled_start_time": "2026-02-20T10:00:00.000Z",
+          "scheduled_end_time": "2026-02-20T11:00:00.000Z",
+          "privacy_level": 2,
+          "status": 1,
+          "entity_type": 1,
+          "entity_id": null,
+          "entity_metadata": { "location": null },
+          "user_count": 42
+        }
+        """.data(using: .utf8)!
+
+        let event = try JSONCoder.decode(GuildScheduledEvent.self, from: json)
+        XCTAssertEqual(event.id, "event_1")
+        XCTAssertEqual(event.guildId, "guild_1")
+        XCTAssertEqual(event.name, "Townhall")
+        XCTAssertEqual(event.privacyLevel, 2)
+        XCTAssertEqual(event.userCount, 42)
+    }
+
+    func testStageInstanceDecoding() throws {
+        let json = """
+        {
+          "id": "stage_1",
+          "guild_id": "guild_1",
+          "channel_id": "chan_1",
+          "topic": "Sprint Review",
+          "privacy_level": 2,
+          "discoverable_disabled": false,
+          "guild_scheduled_event_id": "event_1"
+        }
+        """.data(using: .utf8)!
+
+        let stage = try JSONCoder.decode(StageInstance.self, from: json)
+        XCTAssertEqual(stage.id, "stage_1")
+        XCTAssertEqual(stage.guildId, "guild_1")
+        XCTAssertEqual(stage.channelId, "chan_1")
+        XCTAssertEqual(stage.topic, "Sprint Review")
+        XCTAssertEqual(stage.privacyLevel, 2)
+        XCTAssertEqual(stage.guildScheduledEventId, "event_1")
+    }
+
+    func testAdditionalRoutes() {
+        XCTAssertEqual(
+            Routes.guildCommandPermissions("app", guildId: "guild"),
+            "\(Routes.baseURL)/applications/app/guilds/guild/commands/permissions"
+        )
+        XCTAssertEqual(
+            Routes.guildCommandPermissions("app", guildId: "guild", commandId: "command"),
+            "\(Routes.baseURL)/applications/app/guilds/guild/commands/command/permissions"
+        )
+        XCTAssertEqual(
+            Routes.channelRecipient("chan", userId: "user"),
+            "\(Routes.baseURL)/channels/chan/recipients/user"
+        )
+        XCTAssertEqual(
+            Routes.inviteTargetUsers("abc"),
+            "\(Routes.baseURL)/invites/abc/target-users"
+        )
+        XCTAssertEqual(
+            Routes.oauth2CurrentAuthorization(),
+            "\(Routes.baseURL)/oauth2/@me"
+        )
+        XCTAssertEqual(
+            Routes.guildScheduledEvents("guild"),
+            "\(Routes.baseURL)/guilds/guild/scheduled-events"
+        )
+        XCTAssertEqual(
+            Routes.guildScheduledEvent("guild", eventId: "event"),
+            "\(Routes.baseURL)/guilds/guild/scheduled-events/event"
+        )
+        XCTAssertEqual(
+            Routes.guildScheduledEventUsers("guild", eventId: "event"),
+            "\(Routes.baseURL)/guilds/guild/scheduled-events/event/users"
+        )
+        XCTAssertEqual(
+            Routes.guildTemplates("guild"),
+            "\(Routes.baseURL)/guilds/guild/templates"
+        )
+        XCTAssertEqual(
+            Routes.guildTemplate("guild", code: "code"),
+            "\(Routes.baseURL)/guilds/guild/templates/code"
+        )
+        XCTAssertEqual(
+            Routes.guildTemplate(code: "code"),
+            "\(Routes.baseURL)/guilds/templates/code"
+        )
+        XCTAssertEqual(
+            Routes.stageInstances(),
+            "\(Routes.baseURL)/stage-instances"
+        )
+        XCTAssertEqual(
+            Routes.stageInstance("channel"),
+            "\(Routes.baseURL)/stage-instances/channel"
+        )
+    }
+}
