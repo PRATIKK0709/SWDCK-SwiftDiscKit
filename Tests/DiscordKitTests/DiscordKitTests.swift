@@ -2057,6 +2057,12 @@ final class MessagePayloadTests: XCTestCase {
 // MARK: - Branch 2: Rate Limiting & Retries Tests
 
 final class RateLimiterTests: XCTestCase {
+    private func elapsedWait(for route: String, limiter: RateLimiter) async -> TimeInterval {
+        let start = Date()
+        await limiter.waitIfNeeded(for: route)
+        return Date().timeIntervalSince(start)
+    }
+
     func testWaitIfNeededNoExistingBucket() async {
         let limiter = RateLimiter()
         await limiter.waitIfNeeded(for: "GET:/test/route")
@@ -2083,6 +2089,71 @@ final class RateLimiterTests: XCTestCase {
         ]
         await limiter.update(route: "GET:/global-test", headers: headers)
         await limiter.waitIfNeeded(for: "GET:/other-route")
+    }
+
+    func testSharedBucketIdDoesNotCollideAcrossDifferentMajors() async {
+        let limiter = RateLimiter()
+        let exhaustedBucketHeaders: [AnyHashable: Any] = [
+            "X-RateLimit-Remaining": "0",
+            "X-RateLimit-Limit": "5",
+            "X-RateLimit-Reset-After": "0.08",
+            "X-RateLimit-Bucket": "shared-bucket"
+        ]
+        let healthyBucketHeaders: [AnyHashable: Any] = [
+            "X-RateLimit-Remaining": "5",
+            "X-RateLimit-Limit": "5",
+            "X-RateLimit-Reset-After": "0.08",
+            "X-RateLimit-Bucket": "shared-bucket"
+        ]
+
+        await limiter.update(
+            route: "GET:/channels/111/messages/:id",
+            headers: exhaustedBucketHeaders
+        )
+        await limiter.update(
+            route: "GET:/channels/222/messages/:id",
+            headers: healthyBucketHeaders
+        )
+
+        let blockedElapsed = await elapsedWait(for: "GET:/channels/111/messages/:id", limiter: limiter)
+        let freeElapsed = await elapsedWait(for: "GET:/channels/222/messages/:id", limiter: limiter)
+
+        XCTAssertGreaterThanOrEqual(blockedElapsed, 0.05)
+        XCTAssertLessThan(freeElapsed, 0.03)
+    }
+
+    func testConcurrentWaitsRespectMajorRouteIsolationWithSameBucketId() async {
+        let limiter = RateLimiter()
+        let exhaustedBucketHeaders: [AnyHashable: Any] = [
+            "X-RateLimit-Remaining": "0",
+            "X-RateLimit-Limit": "5",
+            "X-RateLimit-Reset-After": "0.08",
+            "X-RateLimit-Bucket": "shared-bucket"
+        ]
+        let healthyBucketHeaders: [AnyHashable: Any] = [
+            "X-RateLimit-Remaining": "5",
+            "X-RateLimit-Limit": "5",
+            "X-RateLimit-Reset-After": "0.08",
+            "X-RateLimit-Bucket": "shared-bucket"
+        ]
+
+        await limiter.update(
+            route: "GET:/guilds/555/members/:id",
+            headers: exhaustedBucketHeaders
+        )
+        await limiter.update(
+            route: "GET:/guilds/777/members/:id",
+            headers: healthyBucketHeaders
+        )
+
+        async let blockedElapsed = elapsedWait(for: "GET:/guilds/555/members/:id", limiter: limiter)
+        async let freeElapsed = elapsedWait(for: "GET:/guilds/777/members/:id", limiter: limiter)
+
+        let blocked = await blockedElapsed
+        let free = await freeElapsed
+
+        XCTAssertGreaterThanOrEqual(blocked, 0.05)
+        XCTAssertLessThan(free, 0.03)
     }
 }
 
