@@ -1,31 +1,175 @@
+import Foundation
 import XCTest
 @testable import DiscordKit
 
-final class ArchitectureTests: XCTestCase {
-
-    func testAuthPrefix() {
-        let client = RESTClient(token: "my-token", authPrefix: "Bearer")
-        _ = client
+private final class MockURLProtocol: URLProtocol {
+    struct StubResponse {
+        let statusCode: Int
+        let headers: [String: String]
+        let body: Data
     }
 
-    func testBucketNormalizationRegex() {
-        let client = RESTClient(token: "test")
+    private static let lock = NSLock()
+    private static var responses: [StubResponse] = []
+    private static var capturedRequests: [URLRequest] = []
+
+    static func configure(responses: [StubResponse]) {
+        lock.lock()
+        self.responses = responses
+        capturedRequests = []
+        lock.unlock()
+    }
+
+    static func requests() -> [URLRequest] {
+        lock.lock()
+        defer { lock.unlock() }
+        return capturedRequests
+    }
+
+    override class func canInit(with request: URLRequest) -> Bool {
+        true
+    }
+
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest {
+        request
+    }
+
+    override func startLoading() {
+        Self.lock.lock()
+        let request = self.request
+        Self.capturedRequests.append(request)
+        guard !Self.responses.isEmpty else {
+            Self.lock.unlock()
+            client?.urlProtocol(self, didFailWithError: URLError(.badServerResponse))
+            return
+        }
+        let stub = Self.responses.removeFirst()
+        Self.lock.unlock()
+
+        let response = HTTPURLResponse(
+            url: request.url!,
+            statusCode: stub.statusCode,
+            httpVersion: nil,
+            headerFields: stub.headers
+        )!
+
+        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: stub.body)
+        client?.urlProtocolDidFinishLoading(self)
+    }
+
+    override func stopLoading() {}
+}
+
+final class ArchitectureTests: XCTestCase {
+
+    private func makeClient(token: String = "token", authPrefix: String = "Bot") -> RESTClient {
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [MockURLProtocol.self]
+        let session = URLSession(configuration: config)
+        return RESTClient(
+            token: token,
+            authPrefix: authPrefix,
+            session: session,
+            rateLimiter: RateLimiter()
+        )
+    }
+
+    private func data(_ string: String) -> Data {
+        Data(string.utf8)
+    }
+
+    func testAuthPrefixIsAppliedToOutgoingRequests() async throws {
+        MockURLProtocol.configure(responses: [
+            .init(
+                statusCode: 200,
+                headers: [:],
+                body: data(#"{"url":"wss://gateway.discord.gg"}"#)
+            )
+        ])
+
+        let client = makeClient(token: "oauth-token", authPrefix: "Bearer")
+        _ = try await client.getGateway()
+
+        let authHeader = MockURLProtocol.requests().first?.value(forHTTPHeaderField: "Authorization")
+        XCTAssertEqual(authHeader, "Bearer oauth-token")
+    }
+
+    func testRetriesAfter429WithRetryAfterPayload() async throws {
+        MockURLProtocol.configure(responses: [
+            .init(
+                statusCode: 429,
+                headers: [:],
+                body: data(#"{"message":"rate limited","retry_after":0.001,"global":false}"#)
+            ),
+            .init(
+                statusCode: 200,
+                headers: [:],
+                body: data(#"{"url":"wss://gateway.discord.gg"}"#)
+            )
+        ])
+
+        let client = makeClient()
+        let gateway = try await client.getGateway()
+        XCTAssertEqual(gateway.url, "wss://gateway.discord.gg")
+        XCTAssertEqual(MockURLProtocol.requests().count, 2)
+    }
+
+    func testMajorParameterAwareRouteNormalization() {
+        let client = makeClient()
 
         XCTAssertEqual(
             client.normalizedRateLimitPath(from: "/channels/123456789/messages/987654321"),
-            "/channels/:id/messages/:id"
+            "/channels/123456789/messages/:id"
         )
         XCTAssertEqual(
-            client.normalizedRateLimitPath(from: "/guilds/555/roles"),
-            "/guilds/:id/roles"
+            client.normalizedRateLimitPath(from: "/guilds/555/members/777"),
+            "/guilds/555/members/:id"
         )
         XCTAssertEqual(
             client.normalizedRateLimitPath(from: "/guilds/@me/channels"),
             "/guilds/@me/channels"
         )
         XCTAssertEqual(
-            client.normalizedRateLimitPath(from: "/applications/123/commands/permissions"),
-            "/applications/:id/commands/permissions"
+            client.normalizedRateLimitPath(from: "/applications/123/commands/456"),
+            "/applications/:id/commands/:id"
+        )
+        XCTAssertEqual(
+            client.normalizedRateLimitPath(from: "/webhooks/123/token/messages/456"),
+            "/webhooks/123/token/messages/:id"
+        )
+        XCTAssertEqual(
+            client.normalizedRateLimitPath(from: "/webhooks/123/456/messages/789"),
+            "/webhooks/123/456/messages/:id"
+        )
+    }
+
+    func testGatewayReconnectURLSelection() {
+        XCTAssertEqual(
+            GatewayClient.resolvedReconnectURL(
+                canResume: true,
+                resumeGatewayURL: "wss://resume.example",
+                initialGatewayURL: "wss://initial.example"
+            ),
+            "wss://resume.example"
+        )
+
+        XCTAssertEqual(
+            GatewayClient.resolvedReconnectURL(
+                canResume: false,
+                resumeGatewayURL: "wss://resume.example",
+                initialGatewayURL: "wss://initial.example"
+            ),
+            "wss://initial.example"
+        )
+
+        XCTAssertEqual(
+            GatewayClient.resolvedReconnectURL(
+                canResume: false,
+                resumeGatewayURL: nil,
+                initialGatewayURL: nil
+            ),
+            "wss://gateway.discord.gg/?v=10&encoding=json"
         )
     }
 }
