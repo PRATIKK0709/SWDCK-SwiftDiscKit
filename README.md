@@ -28,7 +28,7 @@ dependencies: [
 ## Quick Start
 
 ```swift
-import DiscordKit
+import SWDCK
 
 let bot = DiscordBot(
     token: ProcessInfo.processInfo.environment["BOT_TOKEN"] ?? "",
@@ -102,7 +102,7 @@ export BOT_TOKEN="..."
 export TEST_GUILD_ID="..."
 export TEST_CHANNEL_ID="..."
 export TEST_ROLE_ID="..."
-swift run DiscordKitBot
+swift run SWDCKBot
 ```
 
 ## Endpoint Coverage

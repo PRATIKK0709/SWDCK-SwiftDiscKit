@@ -1,6 +1,6 @@
 import Foundation
 import XCTest
-@testable import DiscordKit
+@testable import SWDCK
 
 private final class MockURLProtocol: URLProtocol {
     struct StubResponse {
@@ -171,5 +171,42 @@ final class ArchitectureTests: XCTestCase {
             ),
             "wss://gateway.discord.gg/?v=10&encoding=json"
         )
+    }
+
+    func testNewQueryBuildersIncludeExpectedParameters() async throws {
+        let client = makeClient()
+
+        MockURLProtocol.configure(responses: [
+            .init(statusCode: 200, headers: [:], body: data("[]")),
+            .init(statusCode: 200, headers: [:], body: data("[]"))
+        ])
+
+        _ = try await client.getSKUSubscriptions(
+            skuId: "sku_1",
+            query: SkuSubscriptionsQuery(
+                before: "b",
+                after: "a",
+                limit: 25,
+                userId: "user_1"
+            )
+        )
+        _ = try await client.getApplicationEntitlements(
+            applicationId: "app_1",
+            query: EntitlementsQuery(
+                excludeEnded: true,
+                excludeDeleted: true
+            )
+        )
+
+        let requests = MockURLProtocol.requests()
+        let subscriptionsItems = URLComponents(string: requests[0].url?.absoluteString ?? "")?.queryItems ?? []
+        XCTAssertTrue(subscriptionsItems.contains(URLQueryItem(name: "before", value: "b")))
+        XCTAssertTrue(subscriptionsItems.contains(URLQueryItem(name: "after", value: "a")))
+        XCTAssertTrue(subscriptionsItems.contains(URLQueryItem(name: "limit", value: "25")))
+        XCTAssertTrue(subscriptionsItems.contains(URLQueryItem(name: "user_id", value: "user_1")))
+
+        let entitlementItems = URLComponents(string: requests[1].url?.absoluteString ?? "")?.queryItems ?? []
+        XCTAssertTrue(entitlementItems.contains(URLQueryItem(name: "exclude_ended", value: "true")))
+        XCTAssertTrue(entitlementItems.contains(URLQueryItem(name: "exclude_deleted", value: "true")))
     }
 }

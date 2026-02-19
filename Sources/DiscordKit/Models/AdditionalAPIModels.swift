@@ -734,6 +734,151 @@ public struct ModifyGuildEmoji: Encodable, Sendable {
     }
 }
 
+public struct ApplicationEmojisResponse: Codable, Sendable {
+    public let items: [GuildEmoji]
+}
+
+public struct CreateApplicationEmoji: Encodable, Sendable {
+    public let name: String
+    public let image: String
+
+    public init(name: String, image: String) {
+        self.name = name
+        self.image = image
+    }
+}
+
+public struct ModifyApplicationEmoji: Encodable, Sendable {
+    public let name: String?
+
+    public init(name: String? = nil) {
+        self.name = name
+    }
+}
+
+public struct Lobby: Codable, Sendable, Identifiable {
+    public let id: String
+    public let applicationId: String?
+    public let capacity: Int?
+    public let locked: Bool?
+    public let metadata: [String: String]?
+    public let members: [LobbyMember]?
+    public let linkedChannelIds: [String]?
+    public let secret: String?
+}
+
+public struct CreateLobby: Encodable, Sendable {
+    public let capacity: Int?
+    public let locked: Bool?
+    public let metadata: [String: String]?
+
+    public init(capacity: Int? = nil, locked: Bool? = nil, metadata: [String: String]? = nil) {
+        self.capacity = capacity
+        self.locked = locked
+        self.metadata = metadata
+    }
+}
+
+public struct ModifyLobby: Encodable, Sendable {
+    public let capacity: Int?
+    public let locked: Bool?
+    public let metadata: [String: String]?
+
+    public init(capacity: Int? = nil, locked: Bool? = nil, metadata: [String: String]? = nil) {
+        self.capacity = capacity
+        self.locked = locked
+        self.metadata = metadata
+    }
+}
+
+public struct LobbyMember: Codable, Sendable {
+    public let id: String
+    public let metadata: [String: String]?
+}
+
+public struct ModifyLobbyMember: Encodable, Sendable {
+    public let metadata: [String: String]?
+
+    public init(metadata: [String: String]? = nil) {
+        self.metadata = metadata
+    }
+}
+
+public struct LobbyChannelLinking: Encodable, Sendable {
+    public let channelId: String?
+
+    public init(channelId: String? = nil) {
+        self.channelId = channelId
+    }
+}
+
+public struct SoundboardSound: Codable, Sendable, Identifiable {
+    public let soundId: String
+    public let name: String
+    public let volume: Double?
+    public let emojiId: String?
+    public let emojiName: String?
+    public let available: Bool?
+    public let guildId: String?
+    public let user: DiscordUser?
+    public var id: String { soundId }
+}
+
+public struct SoundboardSoundsResponse: Codable, Sendable {
+    public let items: [SoundboardSound]
+}
+
+public struct CreateGuildSoundboardSound: Encodable, Sendable {
+    public let name: String
+    public let sound: String
+    public let volume: Double?
+    public let emojiId: String?
+    public let emojiName: String?
+
+    public init(
+        name: String,
+        sound: String,
+        volume: Double? = nil,
+        emojiId: String? = nil,
+        emojiName: String? = nil
+    ) {
+        self.name = name
+        self.sound = sound
+        self.volume = volume
+        self.emojiId = emojiId
+        self.emojiName = emojiName
+    }
+}
+
+public struct ModifyGuildSoundboardSound: Encodable, Sendable {
+    public let name: String?
+    public let volume: Double?
+    public let emojiId: String?
+    public let emojiName: String?
+
+    public init(
+        name: String? = nil,
+        volume: Double? = nil,
+        emojiId: String? = nil,
+        emojiName: String? = nil
+    ) {
+        self.name = name
+        self.volume = volume
+        self.emojiId = emojiId
+        self.emojiName = emojiName
+    }
+}
+
+public struct SendSoundboardSound: Encodable, Sendable {
+    public let soundId: String
+    public let sourceGuildId: String?
+
+    public init(soundId: String, sourceGuildId: String? = nil) {
+        self.soundId = soundId
+        self.sourceGuildId = sourceGuildId
+    }
+}
+
 public struct PollAnswerVotersQuery: Sendable {
     public let after: String?
     public let limit: Int?
@@ -763,11 +908,26 @@ public struct Entitlement: Codable, Sendable, Identifiable {
     public let applicationId: String
     public let userId: String?
     public let type: Int?
+    public let subscriptionId: String?
+    public let promotionId: String?
     public let deleted: Bool?
+    public let giftCodeFlags: Int?
     public let startsAt: String?
     public let endsAt: String?
     public let guildId: String?
     public let consumed: Bool?
+}
+
+public struct CreateTestEntitlement: Encodable, Sendable {
+    public let skuId: String
+    public let ownerId: String
+    public let ownerType: Int
+
+    public init(skuId: String, ownerId: String, ownerType: Int) {
+        self.skuId = skuId
+        self.ownerId = ownerId
+        self.ownerType = ownerType
+    }
 }
 
 public struct EntitlementsQuery: Sendable {
@@ -778,6 +938,7 @@ public struct EntitlementsQuery: Sendable {
     public let limit: Int?
     public let guildId: String?
     public let excludeEnded: Bool?
+    public let excludeDeleted: Bool?
 
     public init(
         userId: String? = nil,
@@ -786,7 +947,8 @@ public struct EntitlementsQuery: Sendable {
         after: String? = nil,
         limit: Int? = nil,
         guildId: String? = nil,
-        excludeEnded: Bool? = nil
+        excludeEnded: Bool? = nil,
+        excludeDeleted: Bool? = nil
     ) {
         self.userId = userId
         self.skuIds = skuIds
@@ -795,5 +957,38 @@ public struct EntitlementsQuery: Sendable {
         self.limit = limit
         self.guildId = guildId
         self.excludeEnded = excludeEnded
+        self.excludeDeleted = excludeDeleted
+    }
+}
+
+public struct Subscription: Codable, Sendable, Identifiable {
+    public let id: String
+    public let userId: String?
+    public let skuIds: [String]?
+    public let entitlementIds: [String]?
+    public let currentPeriodStart: String?
+    public let currentPeriodEnd: String?
+    public let status: Int?
+    public let canceledAt: String?
+    public let country: String?
+    public let renewalSkuIds: [String]?
+}
+
+public struct SkuSubscriptionsQuery: Sendable {
+    public let before: String?
+    public let after: String?
+    public let limit: Int?
+    public let userId: String?
+
+    public init(
+        before: String? = nil,
+        after: String? = nil,
+        limit: Int? = nil,
+        userId: String? = nil
+    ) {
+        self.before = before
+        self.after = after
+        self.limit = limit
+        self.userId = userId
     }
 }

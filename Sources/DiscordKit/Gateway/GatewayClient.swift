@@ -270,7 +270,7 @@ actor GatewayClient {
         let payload = IdentifyPayload(d: .init(
             token: token,
             intents: intents.rawValue,
-            properties: .init(os: "linux", browser: "DiscordKit", device: "DiscordKit")
+            properties: .init(os: "linux", browser: "SWDCK", device: "SWDCK")
         ))
         await sendJSON(payload)
     }

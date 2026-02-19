@@ -742,6 +742,60 @@ public final class DiscordBot: Sendable {
         try await rest.deleteGuildEmoji(guildId: guildId, emojiId: emojiId, auditLogReason: auditLogReason)
     }
 
+    public func getGuildSoundboardSounds(_ guildId: String) async throws -> [SoundboardSound] {
+        try await rest.getGuildSoundboardSounds(guildId: guildId)
+    }
+
+    public func getGuildSoundboardSound(guildId: String, soundId: String) async throws -> SoundboardSound {
+        try await rest.getGuildSoundboardSound(guildId: guildId, soundId: soundId)
+    }
+
+    public func getDefaultSoundboardSounds() async throws -> [SoundboardSound] {
+        try await rest.getDefaultSoundboardSounds()
+    }
+
+    public func createGuildSoundboardSound(
+        guildId: String,
+        sound: CreateGuildSoundboardSound,
+        auditLogReason: String? = nil
+    ) async throws -> SoundboardSound {
+        try await rest.createGuildSoundboardSound(
+            guildId: guildId,
+            sound: sound,
+            auditLogReason: auditLogReason
+        )
+    }
+
+    public func modifyGuildSoundboardSound(
+        guildId: String,
+        soundId: String,
+        modify: ModifyGuildSoundboardSound,
+        auditLogReason: String? = nil
+    ) async throws -> SoundboardSound {
+        try await rest.modifyGuildSoundboardSound(
+            guildId: guildId,
+            soundId: soundId,
+            modify: modify,
+            auditLogReason: auditLogReason
+        )
+    }
+
+    public func deleteGuildSoundboardSound(
+        guildId: String,
+        soundId: String,
+        auditLogReason: String? = nil
+    ) async throws {
+        try await rest.deleteGuildSoundboardSound(
+            guildId: guildId,
+            soundId: soundId,
+            auditLogReason: auditLogReason
+        )
+    }
+
+    public func sendSoundboardSound(channelId: String, sound: SendSoundboardSound) async throws {
+        try await rest.sendSoundboardSound(channelId: channelId, sound: sound)
+    }
+
     public func getGuildTemplate(code: String) async throws -> GuildTemplate {
         try await rest.getGuildTemplate(code: code)
     }
@@ -1128,6 +1182,41 @@ public final class DiscordBot: Sendable {
         try await rest.updateInviteTargetUsers(code: code, users: InviteTargetUsersUpdate(users: users))
     }
 
+    public func createLobby(_ lobby: CreateLobby) async throws -> Lobby {
+        try await rest.createLobby(lobby)
+    }
+
+    public func getLobby(_ lobbyId: String) async throws -> Lobby {
+        try await rest.getLobby(lobbyId: lobbyId)
+    }
+
+    public func modifyLobby(lobbyId: String, modify: ModifyLobby) async throws -> Lobby {
+        try await rest.modifyLobby(lobbyId: lobbyId, modify: modify)
+    }
+
+    public func deleteLobby(_ lobbyId: String) async throws {
+        try await rest.deleteLobby(lobbyId: lobbyId)
+    }
+
+    public func addLobbyMember(lobbyId: String, userId: String, member: ModifyLobbyMember) async throws -> LobbyMember {
+        try await rest.addLobbyMember(lobbyId: lobbyId, userId: userId, member: member)
+    }
+
+    public func removeLobbyMember(lobbyId: String, userId: String) async throws {
+        try await rest.removeLobbyMember(lobbyId: lobbyId, userId: userId)
+    }
+
+    public func leaveLobby(_ lobbyId: String) async throws {
+        try await rest.leaveLobby(lobbyId: lobbyId)
+    }
+
+    public func updateLobbyChannelLinking(lobbyId: String, channelId: String?) async throws -> Lobby {
+        try await rest.updateLobbyChannelLinking(
+            lobbyId: lobbyId,
+            linking: LobbyChannelLinking(channelId: channelId)
+        )
+    }
+
     public func getUser(_ userId: String) async throws -> DiscordUser {
         try await rest.getUser(userId: userId)
     }
@@ -1199,11 +1288,61 @@ public final class DiscordBot: Sendable {
         try await rest.getApplicationSKUs(applicationId: applicationId)
     }
 
+    public func getSKUSubscriptions(
+        skuId: String,
+        query: SkuSubscriptionsQuery = SkuSubscriptionsQuery()
+    ) async throws -> [Subscription] {
+        try await rest.getSKUSubscriptions(skuId: skuId, query: query)
+    }
+
+    public func getSKUSubscription(skuId: String, subscriptionId: String) async throws -> Subscription {
+        try await rest.getSKUSubscription(skuId: skuId, subscriptionId: subscriptionId)
+    }
+
+    public func getApplicationEmojis(_ applicationId: String) async throws -> [GuildEmoji] {
+        try await rest.getApplicationEmojis(applicationId: applicationId)
+    }
+
+    public func getApplicationEmoji(applicationId: String, emojiId: String) async throws -> GuildEmoji {
+        try await rest.getApplicationEmoji(applicationId: applicationId, emojiId: emojiId)
+    }
+
+    public func createApplicationEmoji(applicationId: String, emoji: CreateApplicationEmoji) async throws -> GuildEmoji {
+        try await rest.createApplicationEmoji(applicationId: applicationId, emoji: emoji)
+    }
+
+    public func modifyApplicationEmoji(
+        applicationId: String,
+        emojiId: String,
+        modify: ModifyApplicationEmoji
+    ) async throws -> GuildEmoji {
+        try await rest.modifyApplicationEmoji(applicationId: applicationId, emojiId: emojiId, modify: modify)
+    }
+
+    public func deleteApplicationEmoji(applicationId: String, emojiId: String) async throws {
+        try await rest.deleteApplicationEmoji(applicationId: applicationId, emojiId: emojiId)
+    }
+
     public func getApplicationEntitlements(
         _ applicationId: String,
         query: EntitlementsQuery = EntitlementsQuery()
     ) async throws -> [Entitlement] {
         try await rest.getApplicationEntitlements(applicationId: applicationId, query: query)
+    }
+
+    public func getApplicationEntitlement(applicationId: String, entitlementId: String) async throws -> Entitlement {
+        try await rest.getApplicationEntitlement(applicationId: applicationId, entitlementId: entitlementId)
+    }
+
+    public func createTestEntitlement(
+        applicationId: String,
+        entitlement: CreateTestEntitlement
+    ) async throws -> Entitlement {
+        try await rest.createTestEntitlement(applicationId: applicationId, entitlement: entitlement)
+    }
+
+    public func deleteTestEntitlement(applicationId: String, entitlementId: String) async throws {
+        try await rest.deleteTestEntitlement(applicationId: applicationId, entitlementId: entitlementId)
     }
 
     public func consumeEntitlement(applicationId: String, entitlementId: String) async throws {
@@ -1437,7 +1576,7 @@ public final class DiscordBot: Sendable {
 
 
     public func start() async throws {
-        logger.info("DiscordKit starting up...")
+        logger.info("SWDCK starting up...")
 
         await gateway.setEventHandlers(
             onReady: { [weak self] ready in
@@ -1475,7 +1614,7 @@ public final class DiscordBot: Sendable {
     }
 
     public func stop() async {
-        logger.info("DiscordKit shutting down...")
+        logger.info("SWDCK shutting down...")
         await gateway.disconnect()
     }
 
@@ -1721,6 +1860,10 @@ public final class DiscordBot: Sendable {
 
     public func listStickerPacks() async throws -> StickerPacksResponse {
         try await rest.listStickerPacks()
+    }
+
+    public func getStickerPack(packId: String) async throws -> StickerPack {
+        try await rest.getStickerPack(packId: packId)
     }
 }
 

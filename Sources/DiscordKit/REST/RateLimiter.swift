@@ -9,8 +9,7 @@ actor RateLimiter {
     }
 
     private var buckets: [String: Bucket] = [:]
-
-    private var routeToBucket: [String: String] = [:]
+    private var routeToBucketScope: [String: String] = [:]
     private var globalResetAt: Date?
 
 
@@ -25,8 +24,8 @@ actor RateLimiter {
             }
         }
 
-        guard let bucketId = routeToBucket[route],
-              let bucket = buckets[bucketId]
+        guard let bucketScope = routeToBucketScope[route],
+              let bucket = buckets[bucketScope]
         else { return }
 
         if bucket.remaining <= 0 {
@@ -57,8 +56,9 @@ actor RateLimiter {
             return
         }
 
-        routeToBucket[route] = bucketId
-        buckets[bucketId] = Bucket(remaining: remaining, resetAt: resetAt, limit: limit)
+        let bucketScope = bucketScopeKey(bucketId: bucketId, route: route)
+        routeToBucketScope[route] = bucketScope
+        buckets[bucketScope] = Bucket(remaining: remaining, resetAt: resetAt, limit: limit)
 
         if remaining == 0 {
             logger.debug("Bucket \(bucketId) exhausted. Resets at \(resetAt)")
@@ -79,5 +79,54 @@ actor RateLimiter {
             normalized[normalizedKey] = String(describing: value)
         }
         return normalized
+    }
+
+    private func bucketScopeKey(bucketId: String, route: String) -> String {
+        "\(bucketId)|\(majorParameterKey(from: route))"
+    }
+
+    private func majorParameterKey(from route: String) -> String {
+        let path = routePath(from: route)
+        let segments = path
+            .split(separator: "/", omittingEmptySubsequences: true)
+            .map(String.init)
+
+        guard !segments.isEmpty else { return "global" }
+
+        var parts: [String] = []
+        for index in segments.indices {
+            let segment = segments[index]
+            if segment == "channels" || segment == "guilds" {
+                guard index + 1 < segments.count else { continue }
+                let id = segments[index + 1]
+                if id != ":id" {
+                    parts.append("\(segment):\(id)")
+                }
+                continue
+            }
+
+            if segment == "webhooks" {
+                guard index + 1 < segments.count else { continue }
+                let webhookId = segments[index + 1]
+                if webhookId != ":id" {
+                    parts.append("webhooks:\(webhookId)")
+                }
+                if index + 2 < segments.count {
+                    let token = segments[index + 2]
+                    if token != ":id", token != "messages" {
+                        parts.append("token:\(token)")
+                    }
+                }
+            }
+        }
+
+        return parts.isEmpty ? "global" : parts.joined(separator: "|")
+    }
+
+    private func routePath(from route: String) -> String {
+        guard let separatorIndex = route.firstIndex(of: ":") else {
+            return route
+        }
+        return String(route[route.index(after: separatorIndex)...])
     }
 }

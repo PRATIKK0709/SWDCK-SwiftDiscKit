@@ -1,5 +1,5 @@
 import XCTest
-@testable import DiscordKit
+@testable import SWDCK
 
 
 final class JSONCoderTests: XCTestCase {
@@ -1511,6 +1511,87 @@ final class AdditionalAPIModelsTests: XCTestCase {
         XCTAssertEqual(entitlement.consumed, false)
     }
 
+    func testApplicationEmojiAndLobbyDecoding() throws {
+        let emojisJSON = """
+        {
+          "items": [
+            {
+              "id": "emoji_1",
+              "name": "party",
+              "roles": [],
+              "require_colons": true,
+              "managed": false,
+              "animated": false,
+              "available": true
+            }
+          ]
+        }
+        """.data(using: .utf8)!
+        let lobbyJSON = """
+        {
+          "id": "lobby_1",
+          "application_id": "app_1",
+          "capacity": 16,
+          "locked": false,
+          "metadata": { "mode": "ranked" },
+          "members": [
+            { "id": "user_1", "metadata": { "team": "red" } }
+          ],
+          "linked_channel_ids": ["chan_1"],
+          "secret": "secret"
+        }
+        """.data(using: .utf8)!
+
+        let emojis = try JSONCoder.decode(ApplicationEmojisResponse.self, from: emojisJSON)
+        let lobby = try JSONCoder.decode(Lobby.self, from: lobbyJSON)
+        XCTAssertEqual(emojis.items.count, 1)
+        XCTAssertEqual(emojis.items.first?.id, "emoji_1")
+        XCTAssertEqual(lobby.id, "lobby_1")
+        XCTAssertEqual(lobby.capacity, 16)
+        XCTAssertEqual(lobby.members?.first?.id, "user_1")
+        XCTAssertEqual(lobby.linkedChannelIds?.first, "chan_1")
+    }
+
+    func testSoundboardAndSubscriptionDecoding() throws {
+        let soundboardJSON = """
+        {
+          "items": [
+            {
+              "sound_id": "snd_1",
+              "name": "airhorn",
+              "volume": 0.8,
+              "emoji_id": null,
+              "emoji_name": "📣",
+              "available": true
+            }
+          ]
+        }
+        """.data(using: .utf8)!
+        let subscriptionJSON = """
+        {
+          "id": "sub_1",
+          "user_id": "user_1",
+          "sku_ids": ["sku_1"],
+          "entitlement_ids": ["ent_1"],
+          "current_period_start": "2026-02-18T00:00:00.000Z",
+          "current_period_end": "2026-03-18T00:00:00.000Z",
+          "status": 1,
+          "country": "US",
+          "renewal_sku_ids": ["sku_1"]
+        }
+        """.data(using: .utf8)!
+
+        let response = try JSONCoder.decode(SoundboardSoundsResponse.self, from: soundboardJSON)
+        let subscription = try JSONCoder.decode(Subscription.self, from: subscriptionJSON)
+        XCTAssertEqual(response.items.count, 1)
+        XCTAssertEqual(response.items.first?.id, "snd_1")
+        XCTAssertEqual(response.items.first?.emojiName, "📣")
+        XCTAssertEqual(subscription.id, "sub_1")
+        XCTAssertEqual(subscription.userId, "user_1")
+        XCTAssertEqual(subscription.skuIds?.first, "sku_1")
+        XCTAssertEqual(subscription.renewalSkuIds?.first, "sku_1")
+    }
+
     func testPollAnswerVotersDecoding() throws {
         let json = """
         {
@@ -1605,12 +1686,68 @@ final class AdditionalAPIModelsTests: XCTestCase {
             "\(Routes.baseURL)/applications/app/skus"
         )
         XCTAssertEqual(
+            Routes.skuSubscriptions("sku"),
+            "\(Routes.baseURL)/skus/sku/subscriptions"
+        )
+        XCTAssertEqual(
+            Routes.skuSubscription("sku", subscriptionId: "sub"),
+            "\(Routes.baseURL)/skus/sku/subscriptions/sub"
+        )
+        XCTAssertEqual(
+            Routes.applicationEmojis("app"),
+            "\(Routes.baseURL)/applications/app/emojis"
+        )
+        XCTAssertEqual(
+            Routes.applicationEmoji("app", emojiId: "emoji"),
+            "\(Routes.baseURL)/applications/app/emojis/emoji"
+        )
+        XCTAssertEqual(
             Routes.applicationEntitlements("app"),
             "\(Routes.baseURL)/applications/app/entitlements"
         )
         XCTAssertEqual(
+            Routes.applicationEntitlement("app", entitlementId: "ent"),
+            "\(Routes.baseURL)/applications/app/entitlements/ent"
+        )
+        XCTAssertEqual(
             Routes.applicationEntitlementConsume("app", entitlementId: "ent"),
             "\(Routes.baseURL)/applications/app/entitlements/ent/consume"
+        )
+        XCTAssertEqual(
+            Routes.lobbies(),
+            "\(Routes.baseURL)/lobbies"
+        )
+        XCTAssertEqual(
+            Routes.lobby("lobby"),
+            "\(Routes.baseURL)/lobbies/lobby"
+        )
+        XCTAssertEqual(
+            Routes.lobbyMember("lobby", userId: "user"),
+            "\(Routes.baseURL)/lobbies/lobby/members/user"
+        )
+        XCTAssertEqual(
+            Routes.lobbyMemberMe("lobby"),
+            "\(Routes.baseURL)/lobbies/lobby/members/@me"
+        )
+        XCTAssertEqual(
+            Routes.lobbyChannelLinking("lobby"),
+            "\(Routes.baseURL)/lobbies/lobby/channel-linking"
+        )
+        XCTAssertEqual(
+            Routes.soundboardDefaultSounds(),
+            "\(Routes.baseURL)/soundboard-default-sounds"
+        )
+        XCTAssertEqual(
+            Routes.guildSoundboardSounds("guild"),
+            "\(Routes.baseURL)/guilds/guild/soundboard-sounds"
+        )
+        XCTAssertEqual(
+            Routes.guildSoundboardSound("guild", soundId: "sound"),
+            "\(Routes.baseURL)/guilds/guild/soundboard-sounds/sound"
+        )
+        XCTAssertEqual(
+            Routes.channelSendSoundboardSound("channel"),
+            "\(Routes.baseURL)/channels/channel/send-soundboard-sound"
         )
     }
 
@@ -1630,6 +1767,10 @@ final class AdditionalAPIModelsTests: XCTestCase {
         XCTAssertEqual(
             Routes.stickerPacks,
             "\(Routes.baseURL)/sticker-packs"
+        )
+        XCTAssertEqual(
+            Routes.stickerPack("pack1"),
+            "\(Routes.baseURL)/sticker-packs/pack1"
         )
     }
 }
@@ -2057,6 +2198,12 @@ final class MessagePayloadTests: XCTestCase {
 // MARK: - Branch 2: Rate Limiting & Retries Tests
 
 final class RateLimiterTests: XCTestCase {
+    private func elapsedWait(for route: String, limiter: RateLimiter) async -> TimeInterval {
+        let start = Date()
+        await limiter.waitIfNeeded(for: route)
+        return Date().timeIntervalSince(start)
+    }
+
     func testWaitIfNeededNoExistingBucket() async {
         let limiter = RateLimiter()
         await limiter.waitIfNeeded(for: "GET:/test/route")
@@ -2083,6 +2230,71 @@ final class RateLimiterTests: XCTestCase {
         ]
         await limiter.update(route: "GET:/global-test", headers: headers)
         await limiter.waitIfNeeded(for: "GET:/other-route")
+    }
+
+    func testSharedBucketIdDoesNotCollideAcrossDifferentMajors() async {
+        let limiter = RateLimiter()
+        let exhaustedBucketHeaders: [AnyHashable: Any] = [
+            "X-RateLimit-Remaining": "0",
+            "X-RateLimit-Limit": "5",
+            "X-RateLimit-Reset-After": "0.08",
+            "X-RateLimit-Bucket": "shared-bucket"
+        ]
+        let healthyBucketHeaders: [AnyHashable: Any] = [
+            "X-RateLimit-Remaining": "5",
+            "X-RateLimit-Limit": "5",
+            "X-RateLimit-Reset-After": "0.08",
+            "X-RateLimit-Bucket": "shared-bucket"
+        ]
+
+        await limiter.update(
+            route: "GET:/channels/111/messages/:id",
+            headers: exhaustedBucketHeaders
+        )
+        await limiter.update(
+            route: "GET:/channels/222/messages/:id",
+            headers: healthyBucketHeaders
+        )
+
+        let blockedElapsed = await elapsedWait(for: "GET:/channels/111/messages/:id", limiter: limiter)
+        let freeElapsed = await elapsedWait(for: "GET:/channels/222/messages/:id", limiter: limiter)
+
+        XCTAssertGreaterThanOrEqual(blockedElapsed, 0.05)
+        XCTAssertLessThan(freeElapsed, 0.03)
+    }
+
+    func testConcurrentWaitsRespectMajorRouteIsolationWithSameBucketId() async {
+        let limiter = RateLimiter()
+        let exhaustedBucketHeaders: [AnyHashable: Any] = [
+            "X-RateLimit-Remaining": "0",
+            "X-RateLimit-Limit": "5",
+            "X-RateLimit-Reset-After": "0.08",
+            "X-RateLimit-Bucket": "shared-bucket"
+        ]
+        let healthyBucketHeaders: [AnyHashable: Any] = [
+            "X-RateLimit-Remaining": "5",
+            "X-RateLimit-Limit": "5",
+            "X-RateLimit-Reset-After": "0.08",
+            "X-RateLimit-Bucket": "shared-bucket"
+        ]
+
+        await limiter.update(
+            route: "GET:/guilds/555/members/:id",
+            headers: exhaustedBucketHeaders
+        )
+        await limiter.update(
+            route: "GET:/guilds/777/members/:id",
+            headers: healthyBucketHeaders
+        )
+
+        async let blockedElapsed = elapsedWait(for: "GET:/guilds/555/members/:id", limiter: limiter)
+        async let freeElapsed = elapsedWait(for: "GET:/guilds/777/members/:id", limiter: limiter)
+
+        let blocked = await blockedElapsed
+        let free = await freeElapsed
+
+        XCTAssertGreaterThanOrEqual(blocked, 0.05)
+        XCTAssertLessThan(free, 0.03)
     }
 }
 

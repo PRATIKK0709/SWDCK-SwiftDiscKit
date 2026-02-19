@@ -12,7 +12,7 @@ public final class RESTClient: Sendable {
     public convenience init(token: String, authPrefix: String = "Bot") {
         let config = URLSessionConfiguration.default
         config.httpAdditionalHeaders = [
-            "User-Agent": "DiscordBot (DiscordKit, 1.0.0)"
+            "User-Agent": "DiscordBot (SWDCK, 1.0.0)"
         ]
         let session = URLSession(configuration: config)
         self.init(
@@ -438,12 +438,101 @@ public final class RESTClient: Sendable {
         )
     }
 
+    func getSKUSubscriptions(
+        skuId: String,
+        query: SkuSubscriptionsQuery = SkuSubscriptionsQuery()
+    ) async throws -> [Subscription] {
+        let url = buildSKUSubscriptionsURL(skuId: skuId, query: query)
+        return try await request(method: "GET", url: url, decodeAs: [Subscription].self)
+    }
+
+    func getSKUSubscription(skuId: String, subscriptionId: String) async throws -> Subscription {
+        try await request(
+            method: "GET",
+            url: Routes.skuSubscription(skuId, subscriptionId: subscriptionId),
+            decodeAs: Subscription.self
+        )
+    }
+
+    func getApplicationEmojis(applicationId: String) async throws -> [GuildEmoji] {
+        let response = try await request(
+            method: "GET",
+            url: Routes.applicationEmojis(applicationId),
+            decodeAs: ApplicationEmojisResponse.self
+        )
+        return response.items
+    }
+
+    func getApplicationEmoji(applicationId: String, emojiId: String) async throws -> GuildEmoji {
+        try await request(
+            method: "GET",
+            url: Routes.applicationEmoji(applicationId, emojiId: emojiId),
+            decodeAs: GuildEmoji.self
+        )
+    }
+
+    func createApplicationEmoji(applicationId: String, emoji: CreateApplicationEmoji) async throws -> GuildEmoji {
+        try await request(
+            method: "POST",
+            url: Routes.applicationEmojis(applicationId),
+            body: emoji,
+            decodeAs: GuildEmoji.self
+        )
+    }
+
+    func modifyApplicationEmoji(
+        applicationId: String,
+        emojiId: String,
+        modify: ModifyApplicationEmoji
+    ) async throws -> GuildEmoji {
+        try await request(
+            method: "PATCH",
+            url: Routes.applicationEmoji(applicationId, emojiId: emojiId),
+            body: modify,
+            decodeAs: GuildEmoji.self
+        )
+    }
+
+    func deleteApplicationEmoji(applicationId: String, emojiId: String) async throws {
+        try await requestVoid(
+            method: "DELETE",
+            url: Routes.applicationEmoji(applicationId, emojiId: emojiId)
+        )
+    }
+
     func getApplicationEntitlements(
         applicationId: String,
         query: EntitlementsQuery = EntitlementsQuery()
     ) async throws -> [Entitlement] {
         let url = buildApplicationEntitlementsURL(applicationId: applicationId, query: query)
         return try await request(method: "GET", url: url, decodeAs: [Entitlement].self)
+    }
+
+    func getApplicationEntitlement(applicationId: String, entitlementId: String) async throws -> Entitlement {
+        try await request(
+            method: "GET",
+            url: Routes.applicationEntitlement(applicationId, entitlementId: entitlementId),
+            decodeAs: Entitlement.self
+        )
+    }
+
+    func createTestEntitlement(
+        applicationId: String,
+        entitlement: CreateTestEntitlement
+    ) async throws -> Entitlement {
+        try await request(
+            method: "POST",
+            url: Routes.applicationEntitlements(applicationId),
+            body: entitlement,
+            decodeAs: Entitlement.self
+        )
+    }
+
+    func deleteTestEntitlement(applicationId: String, entitlementId: String) async throws {
+        try await requestVoid(
+            method: "DELETE",
+            url: Routes.applicationEntitlement(applicationId, entitlementId: entitlementId)
+        )
     }
 
     func consumeEntitlement(applicationId: String, entitlementId: String) async throws {
@@ -1255,6 +1344,80 @@ public final class RESTClient: Sendable {
         )
     }
 
+    func getGuildSoundboardSounds(guildId: String) async throws -> [SoundboardSound] {
+        let response = try await request(
+            method: "GET",
+            url: Routes.guildSoundboardSounds(guildId),
+            decodeAs: SoundboardSoundsResponse.self
+        )
+        return response.items
+    }
+
+    func getGuildSoundboardSound(guildId: String, soundId: String) async throws -> SoundboardSound {
+        try await request(
+            method: "GET",
+            url: Routes.guildSoundboardSound(guildId, soundId: soundId),
+            decodeAs: SoundboardSound.self
+        )
+    }
+
+    func getDefaultSoundboardSounds() async throws -> [SoundboardSound] {
+        try await request(
+            method: "GET",
+            url: Routes.soundboardDefaultSounds(),
+            decodeAs: [SoundboardSound].self
+        )
+    }
+
+    func createGuildSoundboardSound(
+        guildId: String,
+        sound: CreateGuildSoundboardSound,
+        auditLogReason: String? = nil
+    ) async throws -> SoundboardSound {
+        try await request(
+            method: "POST",
+            url: Routes.guildSoundboardSounds(guildId),
+            body: sound,
+            headers: auditLogHeaders(reason: auditLogReason),
+            decodeAs: SoundboardSound.self
+        )
+    }
+
+    func modifyGuildSoundboardSound(
+        guildId: String,
+        soundId: String,
+        modify: ModifyGuildSoundboardSound,
+        auditLogReason: String? = nil
+    ) async throws -> SoundboardSound {
+        try await request(
+            method: "PATCH",
+            url: Routes.guildSoundboardSound(guildId, soundId: soundId),
+            body: modify,
+            headers: auditLogHeaders(reason: auditLogReason),
+            decodeAs: SoundboardSound.self
+        )
+    }
+
+    func deleteGuildSoundboardSound(
+        guildId: String,
+        soundId: String,
+        auditLogReason: String? = nil
+    ) async throws {
+        try await requestVoid(
+            method: "DELETE",
+            url: Routes.guildSoundboardSound(guildId, soundId: soundId),
+            headers: auditLogHeaders(reason: auditLogReason)
+        )
+    }
+
+    func sendSoundboardSound(channelId: String, sound: SendSoundboardSound) async throws {
+        try await requestVoid(
+            method: "POST",
+            url: Routes.channelSendSoundboardSound(channelId),
+            body: sound
+        )
+    }
+
     // MARK: - Sticker CRUD
 
     func getGuildStickers(guildId: String) async throws -> [Sticker] {
@@ -1312,6 +1475,10 @@ public final class RESTClient: Sendable {
 
     func listStickerPacks() async throws -> StickerPacksResponse {
         try await request(method: "GET", url: Routes.stickerPacks, decodeAs: StickerPacksResponse.self)
+    }
+
+    func getStickerPack(packId: String) async throws -> StickerPack {
+        try await request(method: "GET", url: Routes.stickerPack(packId), decodeAs: StickerPack.self)
     }
 
     func getGuildTemplate(code: String) async throws -> GuildTemplate {
@@ -1707,6 +1874,71 @@ public final class RESTClient: Sendable {
             url: Routes.inviteTargetUsers(code),
             body: users,
             decodeAs: InviteTargetUsersJobStatus.self
+        )
+    }
+
+    func createLobby(_ lobby: CreateLobby) async throws -> Lobby {
+        try await request(
+            method: "POST",
+            url: Routes.lobbies(),
+            body: lobby,
+            decodeAs: Lobby.self
+        )
+    }
+
+    func getLobby(lobbyId: String) async throws -> Lobby {
+        try await request(
+            method: "GET",
+            url: Routes.lobby(lobbyId),
+            decodeAs: Lobby.self
+        )
+    }
+
+    func modifyLobby(lobbyId: String, modify: ModifyLobby) async throws -> Lobby {
+        try await request(
+            method: "PATCH",
+            url: Routes.lobby(lobbyId),
+            body: modify,
+            decodeAs: Lobby.self
+        )
+    }
+
+    func deleteLobby(lobbyId: String) async throws {
+        try await requestVoid(
+            method: "DELETE",
+            url: Routes.lobby(lobbyId)
+        )
+    }
+
+    func addLobbyMember(lobbyId: String, userId: String, member: ModifyLobbyMember) async throws -> LobbyMember {
+        try await request(
+            method: "PUT",
+            url: Routes.lobbyMember(lobbyId, userId: userId),
+            body: member,
+            decodeAs: LobbyMember.self
+        )
+    }
+
+    func removeLobbyMember(lobbyId: String, userId: String) async throws {
+        try await requestVoid(
+            method: "DELETE",
+            url: Routes.lobbyMember(lobbyId, userId: userId)
+        )
+    }
+
+    func leaveLobby(lobbyId: String) async throws {
+        try await requestVoid(
+            method: "DELETE",
+            url: Routes.lobbyMemberMe(lobbyId)
+        )
+    }
+
+    func updateLobbyChannelLinking(lobbyId: String, linking: LobbyChannelLinking) async throws -> Lobby {
+        try await request(
+            method: "PATCH",
+            url: Routes.lobbyChannelLinking(lobbyId),
+            body: linking,
+            decodeAs: Lobby.self
         )
     }
 
@@ -2556,9 +2788,27 @@ private extension RESTClient {
         if let excludeEnded = query.excludeEnded {
             items.append(URLQueryItem(name: "exclude_ended", value: excludeEnded ? "true" : "false"))
         }
+        if let excludeDeleted = query.excludeDeleted {
+            items.append(URLQueryItem(name: "exclude_deleted", value: excludeDeleted ? "true" : "false"))
+        }
 
         components.queryItems = items.isEmpty ? nil : items
         return components.url?.absoluteString ?? Routes.applicationEntitlements(applicationId)
+    }
+
+    func buildSKUSubscriptionsURL(skuId: String, query: SkuSubscriptionsQuery) -> String {
+        guard var components = URLComponents(string: Routes.skuSubscriptions(skuId)) else {
+            return Routes.skuSubscriptions(skuId)
+        }
+
+        var items: [URLQueryItem] = []
+        if let before = query.before { items.append(URLQueryItem(name: "before", value: before)) }
+        if let after = query.after { items.append(URLQueryItem(name: "after", value: after)) }
+        if let limit = query.limit { items.append(URLQueryItem(name: "limit", value: String(limit))) }
+        if let userId = query.userId { items.append(URLQueryItem(name: "user_id", value: userId)) }
+
+        components.queryItems = items.isEmpty ? nil : items
+        return components.url?.absoluteString ?? Routes.skuSubscriptions(skuId)
     }
 
     func buildExecuteWebhookURL(webhookId: String, token: String, query: ExecuteWebhookQuery) -> String {

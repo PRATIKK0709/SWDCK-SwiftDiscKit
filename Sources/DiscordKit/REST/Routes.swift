@@ -245,6 +245,22 @@ enum Routes {
         "\(baseURL)/guilds/\(guildId)/emojis/\(emojiId)"
     }
 
+    static func guildSoundboardSounds(_ guildId: String) -> String {
+        "\(baseURL)/guilds/\(guildId)/soundboard-sounds"
+    }
+
+    static func guildSoundboardSound(_ guildId: String, soundId: String) -> String {
+        "\(baseURL)/guilds/\(guildId)/soundboard-sounds/\(soundId)"
+    }
+
+    static func soundboardDefaultSounds() -> String {
+        "\(baseURL)/soundboard-default-sounds"
+    }
+
+    static func channelSendSoundboardSound(_ channelId: String) -> String {
+        "\(baseURL)/channels/\(channelId)/send-soundboard-sound"
+    }
+
     static func guildStickers(_ guildId: String) -> String {
         "\(baseURL)/guilds/\(guildId)/stickers"
     }
@@ -259,6 +275,10 @@ enum Routes {
 
     static var stickerPacks: String {
         "\(baseURL)/sticker-packs"
+    }
+
+    static func stickerPack(_ packId: String) -> String {
+        "\(baseURL)/sticker-packs/\(packId)"
     }
 
     static func guildMember(_ guildId: String, userId: String) -> String {
@@ -307,6 +327,26 @@ enum Routes {
 
     static func inviteTargetUsersJobStatus(_ code: String) -> String {
         "\(baseURL)/invites/\(code)/target-users/job-status"
+    }
+
+    static func lobbies() -> String {
+        "\(baseURL)/lobbies"
+    }
+
+    static func lobby(_ lobbyId: String) -> String {
+        "\(baseURL)/lobbies/\(lobbyId)"
+    }
+
+    static func lobbyMember(_ lobbyId: String, userId: String) -> String {
+        "\(baseURL)/lobbies/\(lobbyId)/members/\(userId)"
+    }
+
+    static func lobbyMemberMe(_ lobbyId: String) -> String {
+        "\(baseURL)/lobbies/\(lobbyId)/members/@me"
+    }
+
+    static func lobbyChannelLinking(_ lobbyId: String) -> String {
+        "\(baseURL)/lobbies/\(lobbyId)/channel-linking"
     }
 
     static func webhook(_ webhookId: String) -> String {
@@ -373,8 +413,28 @@ enum Routes {
         "\(baseURL)/applications/\(applicationId)/skus"
     }
 
+    static func skuSubscriptions(_ skuId: String) -> String {
+        "\(baseURL)/skus/\(skuId)/subscriptions"
+    }
+
+    static func skuSubscription(_ skuId: String, subscriptionId: String) -> String {
+        "\(baseURL)/skus/\(skuId)/subscriptions/\(subscriptionId)"
+    }
+
+    static func applicationEmojis(_ applicationId: String) -> String {
+        "\(baseURL)/applications/\(applicationId)/emojis"
+    }
+
+    static func applicationEmoji(_ applicationId: String, emojiId: String) -> String {
+        "\(baseURL)/applications/\(applicationId)/emojis/\(emojiId)"
+    }
+
     static func applicationEntitlements(_ applicationId: String) -> String {
         "\(baseURL)/applications/\(applicationId)/entitlements"
+    }
+
+    static func applicationEntitlement(_ applicationId: String, entitlementId: String) -> String {
+        "\(baseURL)/applications/\(applicationId)/entitlements/\(entitlementId)"
     }
 
     static func applicationEntitlementConsume(_ applicationId: String, entitlementId: String) -> String {
