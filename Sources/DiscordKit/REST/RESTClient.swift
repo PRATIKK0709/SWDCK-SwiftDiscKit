@@ -12,7 +12,7 @@ public final class RESTClient: Sendable {
     public convenience init(token: String, authPrefix: String = "Bot") {
         let config = URLSessionConfiguration.default
         config.httpAdditionalHeaders = [
-            "User-Agent": "DiscordBot (DiscordKit, 1.0.0)"
+            "User-Agent": "DiscordBot (SWDCK, 1.0.0)"
         ]
         let session = URLSession(configuration: config)
         self.init(

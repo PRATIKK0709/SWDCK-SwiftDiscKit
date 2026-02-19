@@ -1576,7 +1576,7 @@ public final class DiscordBot: Sendable {
 
 
     public func start() async throws {
-        logger.info("DiscordKit starting up...")
+        logger.info("SWDCK starting up...")
 
         await gateway.setEventHandlers(
             onReady: { [weak self] ready in
@@ -1614,7 +1614,7 @@ public final class DiscordBot: Sendable {
     }
 
     public func stop() async {
-        logger.info("DiscordKit shutting down...")
+        logger.info("SWDCK shutting down...")
         await gateway.disconnect()
     }
 

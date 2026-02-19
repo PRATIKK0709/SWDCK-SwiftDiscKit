@@ -1,5 +1,5 @@
 import Foundation
-import DiscordKit
+import SWDCK
 
 private enum LocalDefaults {
     static let token = "SET_BOT_TOKEN"
@@ -77,7 +77,7 @@ private enum DotEnv {
 }
 
 @main
-struct DiscordKitBotMain {
+struct SWDCKBotMain {
     static func main() async throws {
         let dotenv = DotEnv.load()
         let token = ProcessInfo.processInfo.environment["BOT_TOKEN"]?.nonEmpty
@@ -130,7 +130,7 @@ struct DiscordKitBotMain {
             do {
                 let startup = try await bot.sendMessage(
                     to: testChannelId,
-                    content: "DiscordKitBot is online. Use `!help` for text commands."
+                    content: "SWDCKBot is online. Use `!help` for text commands."
                 )
                 await state.setLastBotMessage(startup)
             } catch {
@@ -544,7 +544,7 @@ struct DiscordKitBotMain {
             try await interaction.respond("Master API test panel sent as message \(sent.id).", ephemeral: true)
         }
 
-        print("Starting DiscordKitBot...")
+        print("Starting SWDCKBot...")
         try await bot.start()
     }
 }
@@ -1896,7 +1896,7 @@ private func runPanelTest(
             guildId: testGuildId,
             userId: targetUserId,
             modify: payload,
-            auditLogReason: "DiscordKit PATCH guild member endpoint test"
+            auditLogReason: "SWDCK PATCH guild member endpoint test"
         )
         try await sendDeferredInteractionDump(
             interaction,
@@ -1914,7 +1914,7 @@ private func runPanelTest(
             guildId: testGuildId,
             userId: targetUserId,
             roleId: roleId,
-            auditLogReason: "DiscordKit add role endpoint test"
+            auditLogReason: "SWDCK add role endpoint test"
         )
         try await sendDeferredInteractionDump(
             interaction,
@@ -1932,7 +1932,7 @@ private func runPanelTest(
             guildId: testGuildId,
             userId: targetUserId,
             roleId: roleId,
-            auditLogReason: "DiscordKit remove role endpoint test"
+            auditLogReason: "SWDCK remove role endpoint test"
         )
         try await sendDeferredInteractionDump(
             interaction,
@@ -1950,7 +1950,7 @@ private func runPanelTest(
                 preferredLocale: guild.preferredLocale,
                 description: guild.description
             ),
-            auditLogReason: "DiscordKit modify guild endpoint test"
+            auditLogReason: "SWDCK modify guild endpoint test"
         )
         try await sendDeferredInteractionDump(interaction, title: title, value: modified, ephemeral: true)
 
@@ -1991,13 +1991,13 @@ private func runPanelTest(
             guildId: testGuildId,
             userId: targetUserId,
             ban: CreateGuildBan(deleteMessageSeconds: 0),
-            auditLogReason: "DiscordKit create guild ban endpoint test"
+            auditLogReason: "SWDCK create guild ban endpoint test"
         )
         let fetched = try? await bot.getGuildBan(guildId: testGuildId, userId: targetUserId)
         try? await bot.deleteGuildBan(
             guildId: testGuildId,
             userId: targetUserId,
-            auditLogReason: "DiscordKit cleanup create guild ban endpoint test"
+            auditLogReason: "SWDCK cleanup create guild ban endpoint test"
         )
         try await sendDeferredInteractionDump(
             interaction,
@@ -2027,12 +2027,12 @@ private func runPanelTest(
             guildId: testGuildId,
             userId: targetUserId,
             ban: CreateGuildBan(deleteMessageSeconds: 0),
-            auditLogReason: "DiscordKit setup delete guild ban endpoint test"
+            auditLogReason: "SWDCK setup delete guild ban endpoint test"
         )
         try await bot.deleteGuildBan(
             guildId: testGuildId,
             userId: targetUserId,
-            auditLogReason: "DiscordKit delete guild ban endpoint test"
+            auditLogReason: "SWDCK delete guild ban endpoint test"
         )
         try await sendDeferredInteractionDump(
             interaction,
@@ -2063,7 +2063,7 @@ private func runPanelTest(
         let prune = try await bot.beginGuildPrune(
             testGuildId,
             prune: BeginGuildPrune(days: 3650, computePruneCount: true),
-            auditLogReason: "DiscordKit begin guild prune endpoint test"
+            auditLogReason: "SWDCK begin guild prune endpoint test"
         )
         try await sendDeferredInteractionDump(interaction, title: title, value: prune, ephemeral: true)
 
@@ -2076,7 +2076,7 @@ private func runPanelTest(
         try await bot.modifyGuildChannelPositions(
             guildId: testGuildId,
             positions: payload,
-            auditLogReason: "DiscordKit modify guild channel positions endpoint test"
+            auditLogReason: "SWDCK modify guild channel positions endpoint test"
         )
         try await sendDeferredInteractionDump(
             interaction,
@@ -2093,7 +2093,7 @@ private func runPanelTest(
         let updated = try await bot.modifyGuildRolePositions(
             guildId: testGuildId,
             positions: [ModifyGuildRolePosition(id: targetRole.id, position: targetRole.position)],
-            auditLogReason: "DiscordKit modify guild role positions endpoint test"
+            auditLogReason: "SWDCK modify guild role positions endpoint test"
         )
         try await sendDeferredInteractionDump(
             interaction,
@@ -2120,7 +2120,7 @@ private func runPanelTest(
                 temporary: false,
                 unique: true
             ),
-            auditLogReason: "DiscordKit create invite endpoint test"
+            auditLogReason: "SWDCK create invite endpoint test"
         )
         let channelInvites = try await bot.getChannelInvites(testChannelId)
         try await sendDeferredInteractionDump(
@@ -2148,11 +2148,11 @@ private func runPanelTest(
         let invite = try await bot.createChannelInvite(
             channelId: testChannelId,
             invite: CreateChannelInvite(maxAge: 600, maxUses: 1, unique: true),
-            auditLogReason: "DiscordKit create invite for delete test"
+            auditLogReason: "SWDCK create invite for delete test"
         )
         let deleted = try await bot.deleteInvite(
             code: invite.code,
-            auditLogReason: "DiscordKit delete invite endpoint test"
+            auditLogReason: "SWDCK delete invite endpoint test"
         )
         let guildInvites = try await bot.getGuildInvites(testGuildId)
         try await sendDeferredInteractionDump(
@@ -2171,13 +2171,13 @@ private func runPanelTest(
         let invite = try await bot.createChannelInvite(
             channelId: testChannelId,
             invite: CreateChannelInvite(maxAge: 3600, maxUses: 5, unique: true),
-            auditLogReason: "DiscordKit create invite for get test"
+            auditLogReason: "SWDCK create invite for get test"
         )
         let fetched = try await bot.getInvite(
             code: invite.code,
             query: GetInviteQuery(withCounts: true, withExpiration: true)
         )
-        _ = try? await bot.deleteInvite(code: invite.code, auditLogReason: "DiscordKit cleanup invite after get test")
+        _ = try? await bot.deleteInvite(code: invite.code, auditLogReason: "SWDCK cleanup invite after get test")
         try await sendDeferredInteractionDump(interaction, title: title, value: fetched, ephemeral: true)
 
     case "trigger_typing":
@@ -2218,7 +2218,7 @@ private func runPanelTest(
         try await bot.pinMessage(
             channelId: testMessage.channelId,
             messageId: testMessage.id,
-            auditLogReason: "DiscordKit pin message endpoint test"
+            auditLogReason: "SWDCK pin message endpoint test"
         )
         let pins = try await bot.getMessagePins(channelId: testMessage.channelId, query: MessagePinsQuery(limit: 25))
         try await sendDeferredInteractionDump(
@@ -2241,7 +2241,7 @@ private func runPanelTest(
         try await bot.pin(
             channelId: testMessage.channelId,
             messageId: testMessage.id,
-            auditLogReason: "DiscordKit legacy pin endpoint test"
+            auditLogReason: "SWDCK legacy pin endpoint test"
         )
         let pins = try await bot.getPins(testMessage.channelId)
         try await sendDeferredInteractionDump(
@@ -2264,12 +2264,12 @@ private func runPanelTest(
         try await bot.pinMessage(
             channelId: testMessage.channelId,
             messageId: testMessage.id,
-            auditLogReason: "DiscordKit pre-pin for unpin endpoint test"
+            auditLogReason: "SWDCK pre-pin for unpin endpoint test"
         )
         try await bot.unpinMessage(
             channelId: testMessage.channelId,
             messageId: testMessage.id,
-            auditLogReason: "DiscordKit unpin message endpoint test"
+            auditLogReason: "SWDCK unpin message endpoint test"
         )
         let pins = try await bot.getMessagePins(channelId: testMessage.channelId, query: MessagePinsQuery(limit: 25))
         try await sendDeferredInteractionDump(
@@ -2292,12 +2292,12 @@ private func runPanelTest(
         try await bot.pin(
             channelId: testMessage.channelId,
             messageId: testMessage.id,
-            auditLogReason: "DiscordKit setup legacy unpin endpoint test"
+            auditLogReason: "SWDCK setup legacy unpin endpoint test"
         )
         try await bot.unpin(
             channelId: testMessage.channelId,
             messageId: testMessage.id,
-            auditLogReason: "DiscordKit legacy unpin endpoint test"
+            auditLogReason: "SWDCK legacy unpin endpoint test"
         )
         let pins = try await bot.getPins(testMessage.channelId)
         try await sendDeferredInteractionDump(
@@ -2464,27 +2464,27 @@ private func runPanelTest(
         let role = try await bot.createGuildRole(
             guildId: testGuildId,
             role: CreateGuildRole(name: tempRoleName(prefix: "api-perm-edit"), mentionable: false),
-            auditLogReason: "DiscordKit setup channel permission edit endpoint test"
+            auditLogReason: "SWDCK setup channel permission edit endpoint test"
         )
         do {
             try await bot.editChannelPermission(
                 channelId: testChannelId,
                 overwriteId: role.id,
                 permission: EditChannelPermission(allow: "1024", deny: "0", type: 0),
-                auditLogReason: "DiscordKit edit channel permission endpoint test"
+                auditLogReason: "SWDCK edit channel permission endpoint test"
             )
         } catch {
             try? await bot.deleteGuildRole(
                 guildId: testGuildId,
                 roleId: role.id,
-                auditLogReason: "DiscordKit cleanup role after failed permission edit test"
+                auditLogReason: "SWDCK cleanup role after failed permission edit test"
             )
             throw error
         }
         try? await bot.deleteGuildRole(
             guildId: testGuildId,
             roleId: role.id,
-            auditLogReason: "DiscordKit cleanup role after permission edit test"
+            auditLogReason: "SWDCK cleanup role after permission edit test"
         )
         try await sendDeferredInteractionDump(
             interaction,
@@ -2502,23 +2502,23 @@ private func runPanelTest(
         let role = try await bot.createGuildRole(
             guildId: testGuildId,
             role: CreateGuildRole(name: tempRoleName(prefix: "api-perm-delete"), mentionable: false),
-            auditLogReason: "DiscordKit setup channel permission delete endpoint test"
+            auditLogReason: "SWDCK setup channel permission delete endpoint test"
         )
         try await bot.editChannelPermission(
             channelId: testChannelId,
             overwriteId: role.id,
             permission: EditChannelPermission(allow: "1024", deny: "0", type: 0),
-            auditLogReason: "DiscordKit setup overwrite for permission delete endpoint test"
+            auditLogReason: "SWDCK setup overwrite for permission delete endpoint test"
         )
         try await bot.deleteChannelPermission(
             channelId: testChannelId,
             overwriteId: role.id,
-            auditLogReason: "DiscordKit delete channel permission endpoint test"
+            auditLogReason: "SWDCK delete channel permission endpoint test"
         )
         try? await bot.deleteGuildRole(
             guildId: testGuildId,
             roleId: role.id,
-            auditLogReason: "DiscordKit cleanup role after permission delete test"
+            auditLogReason: "SWDCK cleanup role after permission delete test"
         )
         try await sendDeferredInteractionDump(
             interaction,
@@ -2540,7 +2540,7 @@ private func runPanelTest(
                 type: ChannelType.guildAnnouncement.rawValue,
                 topic: "Crosspost endpoint test channel"
             ),
-            auditLogReason: "DiscordKit setup announcement channel for crosspost endpoint test"
+            auditLogReason: "SWDCK setup announcement channel for crosspost endpoint test"
         )
         do {
             let message = try await bot.sendMessage(
@@ -2552,13 +2552,13 @@ private func runPanelTest(
         } catch {
             _ = try? await bot.deleteChannel(
                 channelId: announcement.id,
-                auditLogReason: "DiscordKit cleanup announcement channel after failed crosspost test"
+                auditLogReason: "SWDCK cleanup announcement channel after failed crosspost test"
             )
             throw error
         }
         _ = try? await bot.deleteChannel(
             channelId: announcement.id,
-            auditLogReason: "DiscordKit cleanup announcement channel after crosspost test"
+            auditLogReason: "SWDCK cleanup announcement channel after crosspost test"
         )
 
     case "create_guild_channel":
@@ -2569,11 +2569,11 @@ private func runPanelTest(
                 type: ChannelType.guildText.rawValue,
                 topic: "Create guild channel endpoint test"
             ),
-            auditLogReason: "DiscordKit create guild channel endpoint test"
+            auditLogReason: "SWDCK create guild channel endpoint test"
         )
         let deleted = try await bot.deleteChannel(
             channelId: created.id,
-            auditLogReason: "DiscordKit cleanup created guild channel endpoint test"
+            auditLogReason: "SWDCK cleanup created guild channel endpoint test"
         )
         try await sendDeferredInteractionDump(
             interaction,
@@ -2590,16 +2590,16 @@ private func runPanelTest(
                 type: ChannelType.guildText.rawValue,
                 topic: "Before modify"
             ),
-            auditLogReason: "DiscordKit setup channel for modify endpoint test"
+            auditLogReason: "SWDCK setup channel for modify endpoint test"
         )
         let modified = try await bot.modifyChannel(
             channelId: created.id,
             modify: ModifyChannel(name: "\(created.name ?? "modified")-updated", topic: "After modify"),
-            auditLogReason: "DiscordKit modify channel endpoint test"
+            auditLogReason: "SWDCK modify channel endpoint test"
         )
         let deleted = try await bot.deleteChannel(
             channelId: created.id,
-            auditLogReason: "DiscordKit cleanup channel after modify endpoint test"
+            auditLogReason: "SWDCK cleanup channel after modify endpoint test"
         )
         try await sendDeferredInteractionDump(
             interaction,
@@ -2616,11 +2616,11 @@ private func runPanelTest(
                 type: ChannelType.guildText.rawValue,
                 topic: "Delete channel endpoint test"
             ),
-            auditLogReason: "DiscordKit setup channel for delete endpoint test"
+            auditLogReason: "SWDCK setup channel for delete endpoint test"
         )
         let deleted = try await bot.deleteChannel(
             channelId: created.id,
-            auditLogReason: "DiscordKit delete channel endpoint test"
+            auditLogReason: "SWDCK delete channel endpoint test"
         )
         try await sendDeferredInteractionDump(
             interaction,
@@ -2638,10 +2638,10 @@ private func runPanelTest(
                 type: ChannelType.publicThread.rawValue,
                 invitable: false
             ),
-            auditLogReason: "DiscordKit start thread without message endpoint test"
+            auditLogReason: "SWDCK start thread without message endpoint test"
         )
         let members = try await bot.getThreadMembers(channelId: thread.id, query: ThreadMembersQuery(withMember: true, limit: 100))
-        _ = try? await bot.deleteChannel(channelId: thread.id, auditLogReason: "DiscordKit cleanup thread without message endpoint test")
+        _ = try? await bot.deleteChannel(channelId: thread.id, auditLogReason: "SWDCK cleanup thread without message endpoint test")
         try await sendDeferredInteractionDump(
             interaction,
             title: title,
@@ -2661,10 +2661,10 @@ private func runPanelTest(
                 name: tempThreadName(prefix: "api-msg-thread"),
                 autoArchiveDuration: 60
             ),
-            auditLogReason: "DiscordKit start thread from message endpoint test"
+            auditLogReason: "SWDCK start thread from message endpoint test"
         )
         let members = try await bot.getThreadMembers(channelId: thread.id, query: ThreadMembersQuery(withMember: true, limit: 100))
-        _ = try? await bot.deleteChannel(channelId: thread.id, auditLogReason: "DiscordKit cleanup thread from message endpoint test")
+        _ = try? await bot.deleteChannel(channelId: thread.id, auditLogReason: "SWDCK cleanup thread from message endpoint test")
         try await sendDeferredInteractionDump(
             interaction,
             title: title,
@@ -2680,15 +2680,15 @@ private func runPanelTest(
                 autoArchiveDuration: 60,
                 type: ChannelType.publicThread.rawValue
             ),
-            auditLogReason: "DiscordKit setup public archived threads endpoint test"
+            auditLogReason: "SWDCK setup public archived threads endpoint test"
         )
         _ = try await bot.modifyChannel(
             channelId: thread.id,
             modify: ModifyChannel(archived: true),
-            auditLogReason: "DiscordKit archive thread for public archived list endpoint test"
+            auditLogReason: "SWDCK archive thread for public archived list endpoint test"
         )
         let archive = try await bot.getPublicArchivedThreads(channelId: testChannelId, query: ArchivedThreadsQuery(limit: 50))
-        _ = try? await bot.deleteChannel(channelId: thread.id, auditLogReason: "DiscordKit cleanup archived public thread endpoint test")
+        _ = try? await bot.deleteChannel(channelId: thread.id, auditLogReason: "SWDCK cleanup archived public thread endpoint test")
         try await sendDeferredInteractionDump(
             interaction,
             title: title,
@@ -2705,15 +2705,15 @@ private func runPanelTest(
                 type: ChannelType.privateThread.rawValue,
                 invitable: false
             ),
-            auditLogReason: "DiscordKit setup private archived threads endpoint test"
+            auditLogReason: "SWDCK setup private archived threads endpoint test"
         )
         _ = try await bot.modifyChannel(
             channelId: thread.id,
             modify: ModifyChannel(archived: true),
-            auditLogReason: "DiscordKit archive thread for private archived list endpoint test"
+            auditLogReason: "SWDCK archive thread for private archived list endpoint test"
         )
         let archive = try await bot.getPrivateArchivedThreads(channelId: testChannelId, query: ArchivedThreadsQuery(limit: 50))
-        _ = try? await bot.deleteChannel(channelId: thread.id, auditLogReason: "DiscordKit cleanup archived private thread endpoint test")
+        _ = try? await bot.deleteChannel(channelId: thread.id, auditLogReason: "SWDCK cleanup archived private thread endpoint test")
         try await sendDeferredInteractionDump(
             interaction,
             title: title,
@@ -2730,15 +2730,15 @@ private func runPanelTest(
                 type: ChannelType.privateThread.rawValue,
                 invitable: false
             ),
-            auditLogReason: "DiscordKit setup joined private archived endpoint test"
+            auditLogReason: "SWDCK setup joined private archived endpoint test"
         )
         _ = try await bot.modifyChannel(
             channelId: thread.id,
             modify: ModifyChannel(archived: true),
-            auditLogReason: "DiscordKit archive thread for joined private archived endpoint test"
+            auditLogReason: "SWDCK archive thread for joined private archived endpoint test"
         )
         let archive = try await bot.getJoinedPrivateArchivedThreads(channelId: testChannelId, query: ArchivedThreadsQuery(limit: 50))
-        _ = try? await bot.deleteChannel(channelId: thread.id, auditLogReason: "DiscordKit cleanup joined private archived thread endpoint test")
+        _ = try? await bot.deleteChannel(channelId: thread.id, auditLogReason: "SWDCK cleanup joined private archived thread endpoint test")
         try await sendDeferredInteractionDump(
             interaction,
             title: title,
@@ -2754,13 +2754,13 @@ private func runPanelTest(
                 autoArchiveDuration: 60,
                 type: ChannelType.publicThread.rawValue
             ),
-            auditLogReason: "DiscordKit setup thread members endpoint test"
+            auditLogReason: "SWDCK setup thread members endpoint test"
         )
         let members = try await bot.getThreadMembers(
             channelId: thread.id,
             query: ThreadMembersQuery(withMember: true, limit: 100)
         )
-        _ = try? await bot.deleteChannel(channelId: thread.id, auditLogReason: "DiscordKit cleanup thread members endpoint test")
+        _ = try? await bot.deleteChannel(channelId: thread.id, auditLogReason: "SWDCK cleanup thread members endpoint test")
         try await sendDeferredInteractionDump(
             interaction,
             title: title,
@@ -2776,13 +2776,13 @@ private func runPanelTest(
                 autoArchiveDuration: 60,
                 type: ChannelType.publicThread.rawValue
             ),
-            auditLogReason: "DiscordKit setup thread member endpoint test"
+            auditLogReason: "SWDCK setup thread member endpoint test"
         )
         guard let botUserId = await bot.currentUser?.id else {
             throw DiscordError.invalidRequest(message: "Bot user ID not available yet.")
         }
         let member = try await bot.getThreadMember(channelId: thread.id, userId: botUserId, withMember: true)
-        _ = try? await bot.deleteChannel(channelId: thread.id, auditLogReason: "DiscordKit cleanup thread member endpoint test")
+        _ = try? await bot.deleteChannel(channelId: thread.id, auditLogReason: "SWDCK cleanup thread member endpoint test")
         try await sendDeferredInteractionDump(interaction, title: title, value: member, ephemeral: true)
 
     case "join_thread":
@@ -2793,12 +2793,12 @@ private func runPanelTest(
                 autoArchiveDuration: 60,
                 type: ChannelType.publicThread.rawValue
             ),
-            auditLogReason: "DiscordKit setup join thread endpoint test"
+            auditLogReason: "SWDCK setup join thread endpoint test"
         )
         try await bot.leaveThread(channelId: thread.id)
         try await bot.joinThread(channelId: thread.id)
         let members = try await bot.getThreadMembers(channelId: thread.id, query: ThreadMembersQuery(withMember: true, limit: 100))
-        _ = try? await bot.deleteChannel(channelId: thread.id, auditLogReason: "DiscordKit cleanup join thread endpoint test")
+        _ = try? await bot.deleteChannel(channelId: thread.id, auditLogReason: "SWDCK cleanup join thread endpoint test")
         try await sendDeferredInteractionDump(
             interaction,
             title: title,
@@ -2814,11 +2814,11 @@ private func runPanelTest(
                 autoArchiveDuration: 60,
                 type: ChannelType.publicThread.rawValue
             ),
-            auditLogReason: "DiscordKit setup leave thread endpoint test"
+            auditLogReason: "SWDCK setup leave thread endpoint test"
         )
         try await bot.leaveThread(channelId: thread.id)
         let members = try await bot.getThreadMembers(channelId: thread.id, query: ThreadMembersQuery(withMember: true, limit: 100))
-        _ = try? await bot.deleteChannel(channelId: thread.id, auditLogReason: "DiscordKit cleanup leave thread endpoint test")
+        _ = try? await bot.deleteChannel(channelId: thread.id, auditLogReason: "SWDCK cleanup leave thread endpoint test")
         try await sendDeferredInteractionDump(
             interaction,
             title: title,
@@ -2835,7 +2835,7 @@ private func runPanelTest(
                 type: ChannelType.privateThread.rawValue,
                 invitable: true
             ),
-            auditLogReason: "DiscordKit setup add thread member endpoint test"
+            auditLogReason: "SWDCK setup add thread member endpoint test"
         )
         guard let targetUserId = interaction.invoker?.id else {
             throw DiscordError.invalidRequest(message: "Unable to resolve target user for add thread member test.")
@@ -2847,13 +2847,13 @@ private func runPanelTest(
         } catch {
             _ = try? await bot.deleteChannel(
                 channelId: thread.id,
-                auditLogReason: "DiscordKit cleanup thread after failed add thread member endpoint test"
+                auditLogReason: "SWDCK cleanup thread after failed add thread member endpoint test"
             )
             throw error
         }
         _ = try? await bot.deleteChannel(
             channelId: thread.id,
-            auditLogReason: "DiscordKit cleanup thread after add thread member endpoint test"
+            auditLogReason: "SWDCK cleanup thread after add thread member endpoint test"
         )
 
     case "get_active_guild_threads":
@@ -2864,11 +2864,11 @@ private func runPanelTest(
         let webhook = try await bot.createWebhook(
             channelId: testChannelId,
             webhook: CreateWebhook(name: tempWebhookName(prefix: "api-create")),
-            auditLogReason: "DiscordKit create webhook endpoint test"
+            auditLogReason: "SWDCK create webhook endpoint test"
         )
         try? await bot.deleteWebhook(
             webhookId: webhook.id,
-            auditLogReason: "DiscordKit cleanup create webhook endpoint test"
+            auditLogReason: "SWDCK cleanup create webhook endpoint test"
         )
         try await sendDeferredInteractionDump(
             interaction,
@@ -2888,12 +2888,12 @@ private func runPanelTest(
         let webhook = try await bot.createWebhook(
             channelId: testChannelId,
             webhook: CreateWebhook(name: tempWebhookName(prefix: "api-list-channel")),
-            auditLogReason: "DiscordKit setup channel webhooks endpoint test"
+            auditLogReason: "SWDCK setup channel webhooks endpoint test"
         )
         let webhooks = try await bot.getChannelWebhooks(testChannelId)
         try? await bot.deleteWebhook(
             webhookId: webhook.id,
-            auditLogReason: "DiscordKit cleanup channel webhooks endpoint test"
+            auditLogReason: "SWDCK cleanup channel webhooks endpoint test"
         )
         try await sendDeferredInteractionDump(
             interaction,
@@ -2906,12 +2906,12 @@ private func runPanelTest(
         let webhook = try await bot.createWebhook(
             channelId: testChannelId,
             webhook: CreateWebhook(name: tempWebhookName(prefix: "api-list-guild")),
-            auditLogReason: "DiscordKit setup guild webhooks endpoint test"
+            auditLogReason: "SWDCK setup guild webhooks endpoint test"
         )
         let webhooks = try await bot.getGuildWebhooks(testGuildId)
         try? await bot.deleteWebhook(
             webhookId: webhook.id,
-            auditLogReason: "DiscordKit cleanup guild webhooks endpoint test"
+            auditLogReason: "SWDCK cleanup guild webhooks endpoint test"
         )
         try await sendDeferredInteractionDump(
             interaction,
@@ -2924,12 +2924,12 @@ private func runPanelTest(
         let webhook = try await bot.createWebhook(
             channelId: testChannelId,
             webhook: CreateWebhook(name: tempWebhookName(prefix: "api-get")),
-            auditLogReason: "DiscordKit setup get webhook endpoint test"
+            auditLogReason: "SWDCK setup get webhook endpoint test"
         )
         let fetched = try await bot.getWebhook(webhook.id)
         try? await bot.deleteWebhook(
             webhookId: webhook.id,
-            auditLogReason: "DiscordKit cleanup get webhook endpoint test"
+            auditLogReason: "SWDCK cleanup get webhook endpoint test"
         )
         try await sendDeferredInteractionDump(
             interaction,
@@ -2949,7 +2949,7 @@ private func runPanelTest(
         let webhook = try await bot.createWebhook(
             channelId: testChannelId,
             webhook: CreateWebhook(name: tempWebhookName(prefix: "api-get-token")),
-            auditLogReason: "DiscordKit setup get webhook token endpoint test"
+            auditLogReason: "SWDCK setup get webhook token endpoint test"
         )
         guard let token = webhook.token else {
             throw DiscordError.invalidRequest(message: "Webhook token missing in create webhook response.")
@@ -2957,7 +2957,7 @@ private func runPanelTest(
         let fetched = try await bot.getWebhook(webhook.id, token: token)
         try? await bot.deleteWebhook(
             webhookId: webhook.id,
-            auditLogReason: "DiscordKit cleanup get webhook token endpoint test"
+            auditLogReason: "SWDCK cleanup get webhook token endpoint test"
         )
         try await sendDeferredInteractionDump(
             interaction,
@@ -2977,16 +2977,16 @@ private func runPanelTest(
         let webhook = try await bot.createWebhook(
             channelId: testChannelId,
             webhook: CreateWebhook(name: tempWebhookName(prefix: "api-modify")),
-            auditLogReason: "DiscordKit setup modify webhook endpoint test"
+            auditLogReason: "SWDCK setup modify webhook endpoint test"
         )
         let modified = try await bot.modifyWebhook(
             webhookId: webhook.id,
             modify: ModifyWebhook(name: "\(webhook.name ?? "webhook")-updated"),
-            auditLogReason: "DiscordKit modify webhook endpoint test"
+            auditLogReason: "SWDCK modify webhook endpoint test"
         )
         try? await bot.deleteWebhook(
             webhookId: webhook.id,
-            auditLogReason: "DiscordKit cleanup modify webhook endpoint test"
+            auditLogReason: "SWDCK cleanup modify webhook endpoint test"
         )
         try await sendDeferredInteractionDump(
             interaction,
@@ -3006,7 +3006,7 @@ private func runPanelTest(
         let webhook = try await bot.createWebhook(
             channelId: testChannelId,
             webhook: CreateWebhook(name: tempWebhookName(prefix: "api-modify-token")),
-            auditLogReason: "DiscordKit setup modify webhook token endpoint test"
+            auditLogReason: "SWDCK setup modify webhook token endpoint test"
         )
         guard let token = webhook.token else {
             throw DiscordError.invalidRequest(message: "Webhook token missing in create webhook response.")
@@ -3018,7 +3018,7 @@ private func runPanelTest(
         )
         try? await bot.deleteWebhook(
             webhookId: webhook.id,
-            auditLogReason: "DiscordKit cleanup modify webhook token endpoint test"
+            auditLogReason: "SWDCK cleanup modify webhook token endpoint test"
         )
         try await sendDeferredInteractionDump(
             interaction,
@@ -3038,11 +3038,11 @@ private func runPanelTest(
         let webhook = try await bot.createWebhook(
             channelId: testChannelId,
             webhook: CreateWebhook(name: tempWebhookName(prefix: "api-delete")),
-            auditLogReason: "DiscordKit setup delete webhook endpoint test"
+            auditLogReason: "SWDCK setup delete webhook endpoint test"
         )
         try await bot.deleteWebhook(
             webhookId: webhook.id,
-            auditLogReason: "DiscordKit delete webhook endpoint test"
+            auditLogReason: "SWDCK delete webhook endpoint test"
         )
         try await sendDeferredInteractionDump(
             interaction,
@@ -3062,7 +3062,7 @@ private func runPanelTest(
         let webhook = try await bot.createWebhook(
             channelId: testChannelId,
             webhook: CreateWebhook(name: tempWebhookName(prefix: "api-delete-token")),
-            auditLogReason: "DiscordKit setup delete webhook token endpoint test"
+            auditLogReason: "SWDCK setup delete webhook token endpoint test"
         )
         guard let token = webhook.token else {
             throw DiscordError.invalidRequest(message: "Webhook token missing in create webhook response.")
@@ -3086,7 +3086,7 @@ private func runPanelTest(
         let webhook = try await bot.createWebhook(
             channelId: testChannelId,
             webhook: CreateWebhook(name: tempWebhookName(prefix: "api-exec")),
-            auditLogReason: "DiscordKit setup execute webhook endpoint test"
+            auditLogReason: "SWDCK setup execute webhook endpoint test"
         )
         guard let token = webhook.token else {
             throw DiscordError.invalidRequest(message: "Webhook token missing in create webhook response.")
@@ -3101,7 +3101,7 @@ private func runPanelTest(
             throw DiscordError.invalidRequest(message: "Webhook execute with wait=true returned no message.")
         }
         try? await bot.deleteWebhookMessage(webhookId: webhook.id, token: token, messageId: message.id)
-        try? await bot.deleteWebhook(webhookId: webhook.id, auditLogReason: "DiscordKit cleanup execute webhook endpoint test")
+        try? await bot.deleteWebhook(webhookId: webhook.id, auditLogReason: "SWDCK cleanup execute webhook endpoint test")
         try await sendDeferredInteractionDump(
             interaction,
             title: title,
@@ -3119,7 +3119,7 @@ private func runPanelTest(
         let webhook = try await bot.createWebhook(
             channelId: testChannelId,
             webhook: CreateWebhook(name: tempWebhookName(prefix: "api-get-msg")),
-            auditLogReason: "DiscordKit setup get webhook message endpoint test"
+            auditLogReason: "SWDCK setup get webhook message endpoint test"
         )
         guard let token = webhook.token else {
             throw DiscordError.invalidRequest(message: "Webhook token missing in create webhook response.")
@@ -3138,7 +3138,7 @@ private func runPanelTest(
             messageId: message.id
         )
         try? await bot.deleteWebhookMessage(webhookId: webhook.id, token: token, messageId: message.id)
-        try? await bot.deleteWebhook(webhookId: webhook.id, auditLogReason: "DiscordKit cleanup get webhook message endpoint test")
+        try? await bot.deleteWebhook(webhookId: webhook.id, auditLogReason: "SWDCK cleanup get webhook message endpoint test")
         try await sendDeferredInteractionDump(
             interaction,
             title: title,
@@ -3156,7 +3156,7 @@ private func runPanelTest(
         let webhook = try await bot.createWebhook(
             channelId: testChannelId,
             webhook: CreateWebhook(name: tempWebhookName(prefix: "api-edit-msg")),
-            auditLogReason: "DiscordKit setup edit webhook message endpoint test"
+            auditLogReason: "SWDCK setup edit webhook message endpoint test"
         )
         guard let token = webhook.token else {
             throw DiscordError.invalidRequest(message: "Webhook token missing in create webhook response.")
@@ -3176,7 +3176,7 @@ private func runPanelTest(
             edit: EditWebhookMessage(content: "Edited webhook message endpoint test")
         )
         try? await bot.deleteWebhookMessage(webhookId: webhook.id, token: token, messageId: message.id)
-        try? await bot.deleteWebhook(webhookId: webhook.id, auditLogReason: "DiscordKit cleanup edit webhook message endpoint test")
+        try? await bot.deleteWebhook(webhookId: webhook.id, auditLogReason: "SWDCK cleanup edit webhook message endpoint test")
         try await sendDeferredInteractionDump(
             interaction,
             title: title,
@@ -3194,7 +3194,7 @@ private func runPanelTest(
         let webhook = try await bot.createWebhook(
             channelId: testChannelId,
             webhook: CreateWebhook(name: tempWebhookName(prefix: "api-del-msg")),
-            auditLogReason: "DiscordKit setup delete webhook message endpoint test"
+            auditLogReason: "SWDCK setup delete webhook message endpoint test"
         )
         guard let token = webhook.token else {
             throw DiscordError.invalidRequest(message: "Webhook token missing in create webhook response.")
@@ -3208,7 +3208,7 @@ private func runPanelTest(
             throw DiscordError.invalidRequest(message: "Webhook execute with wait=true returned no message.")
         }
         try await bot.deleteWebhookMessage(webhookId: webhook.id, token: token, messageId: message.id)
-        try? await bot.deleteWebhook(webhookId: webhook.id, auditLogReason: "DiscordKit cleanup delete webhook message endpoint test")
+        try? await bot.deleteWebhook(webhookId: webhook.id, auditLogReason: "SWDCK cleanup delete webhook message endpoint test")
         try await sendDeferredInteractionDump(
             interaction,
             title: title,
@@ -3226,12 +3226,12 @@ private func runPanelTest(
         let created = try await bot.createGuildRole(
             guildId: testGuildId,
             role: CreateGuildRole(name: tempRoleName(prefix: "api-create-role"), mentionable: true),
-            auditLogReason: "DiscordKit create guild role endpoint test"
+            auditLogReason: "SWDCK create guild role endpoint test"
         )
         try? await bot.deleteGuildRole(
             guildId: testGuildId,
             roleId: created.id,
-            auditLogReason: "DiscordKit cleanup create guild role endpoint test"
+            auditLogReason: "SWDCK cleanup create guild role endpoint test"
         )
         try await sendDeferredInteractionDump(
             interaction,
@@ -3244,13 +3244,13 @@ private func runPanelTest(
         let created = try await bot.createGuildRole(
             guildId: testGuildId,
             role: CreateGuildRole(name: tempRoleName(prefix: "api-get-role"), mentionable: false),
-            auditLogReason: "DiscordKit setup get guild role endpoint test"
+            auditLogReason: "SWDCK setup get guild role endpoint test"
         )
         let fetched = try await bot.getGuildRole(guildId: testGuildId, roleId: created.id)
         try? await bot.deleteGuildRole(
             guildId: testGuildId,
             roleId: created.id,
-            auditLogReason: "DiscordKit cleanup get guild role endpoint test"
+            auditLogReason: "SWDCK cleanup get guild role endpoint test"
         )
         try await sendDeferredInteractionDump(
             interaction,
@@ -3263,18 +3263,18 @@ private func runPanelTest(
         let created = try await bot.createGuildRole(
             guildId: testGuildId,
             role: CreateGuildRole(name: tempRoleName(prefix: "api-mod-role"), mentionable: false),
-            auditLogReason: "DiscordKit setup modify guild role endpoint test"
+            auditLogReason: "SWDCK setup modify guild role endpoint test"
         )
         let modified = try await bot.modifyGuildRole(
             guildId: testGuildId,
             roleId: created.id,
             modify: ModifyGuildRole(name: "\(created.name)-updated", mentionable: true),
-            auditLogReason: "DiscordKit modify guild role endpoint test"
+            auditLogReason: "SWDCK modify guild role endpoint test"
         )
         try? await bot.deleteGuildRole(
             guildId: testGuildId,
             roleId: created.id,
-            auditLogReason: "DiscordKit cleanup modify guild role endpoint test"
+            auditLogReason: "SWDCK cleanup modify guild role endpoint test"
         )
         try await sendDeferredInteractionDump(
             interaction,
@@ -3287,12 +3287,12 @@ private func runPanelTest(
         let created = try await bot.createGuildRole(
             guildId: testGuildId,
             role: CreateGuildRole(name: tempRoleName(prefix: "api-del-role"), mentionable: false),
-            auditLogReason: "DiscordKit setup delete guild role endpoint test"
+            auditLogReason: "SWDCK setup delete guild role endpoint test"
         )
         try await bot.deleteGuildRole(
             guildId: testGuildId,
             roleId: created.id,
-            auditLogReason: "DiscordKit delete guild role endpoint test"
+            auditLogReason: "SWDCK delete guild role endpoint test"
         )
         try await sendDeferredInteractionDump(
             interaction,
@@ -3344,7 +3344,7 @@ private func tempRoleName(prefix: String) -> String {
 
 private func componentV2DemoData() -> (components: [ComponentV2Node], attachments: [DiscordFileUpload]) {
     let attachmentName = "component-v2-demo.txt"
-    let attachmentData = Data("DiscordKit Components V2 file component demo.".utf8)
+    let attachmentData = Data("SWDCK Components V2 file component demo.".utf8)
 
     let attachment = DiscordFileUpload(
         filename: attachmentName,
@@ -3357,7 +3357,7 @@ private func componentV2DemoData() -> (components: [ComponentV2Node], attachment
             ComponentV2Container(
                 accentColor: 0x5865F2,
                 components: [
-                    .textDisplay(ComponentV2TextDisplay("DiscordKit Components V2 demo")),
+                    .textDisplay(ComponentV2TextDisplay("SWDCK Components V2 demo")),
                     .separator(ComponentV2Separator()),
                     .section(
                         ComponentV2Section(

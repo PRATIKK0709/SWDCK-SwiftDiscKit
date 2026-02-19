@@ -1,5 +1,5 @@
 import XCTest
-@testable import DiscordKit
+@testable import SWDCK
 
 
 final class JSONCoderTests: XCTestCase {

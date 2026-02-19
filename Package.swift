@@ -2,35 +2,35 @@
 import PackageDescription
 
 let package = Package(
-    name: "DiscordKit",
+    name: "SWDCK",
     platforms: [
         .macOS(.v14),
         .iOS(.v17),
     ],
     products: [
         .library(
-            name: "DiscordKit",
-            targets: ["DiscordKit"]
+            name: "SWDCK",
+            targets: ["SWDCK"]
         ),
         .executable(
-            name: "DiscordKitBot",
-            targets: ["DiscordKitBot"]
+            name: "SWDCKBot",
+            targets: ["SWDCKBot"]
         ),
     ],
     targets: [
         .target(
-            name: "DiscordKit",
+            name: "SWDCK",
             path: "Sources/DiscordKit"
         ),
         .executableTarget(
-            name: "DiscordKitBot",
-            dependencies: ["DiscordKit"],
+            name: "SWDCKBot",
+            dependencies: ["SWDCK"],
             path: "Examples",
             sources: ["Bot.swift"]
         ),
         .testTarget(
             name: "DiscordKitTests",
-            dependencies: ["DiscordKit"],
+            dependencies: ["SWDCK"],
             path: "Tests/DiscordKitTests"
         ),
     ]

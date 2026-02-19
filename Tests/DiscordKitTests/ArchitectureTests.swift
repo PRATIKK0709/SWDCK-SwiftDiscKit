@@ -1,6 +1,6 @@
 import Foundation
 import XCTest
-@testable import DiscordKit
+@testable import SWDCK
 
 private final class MockURLProtocol: URLProtocol {
     struct StubResponse {
