@@ -1,0 +1,44 @@
+{
+    "configurations": [
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:SwiftDiscKit}",
+            "name": "Debug DiscordKitBot",
+            "target": "DiscordKitBot",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug DiscordKitBot"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:SwiftDiscKit}",
+            "name": "Release DiscordKitBot",
+            "target": "DiscordKitBot",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release DiscordKitBot"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:SwiftDiscKit}",
+            "name": "Debug SWDCKBot",
+            "target": "SWDCKBot",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug SWDCKBot"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:SwiftDiscKit}",
+            "name": "Release SWDCKBot",
+            "target": "SWDCKBot",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release SWDCKBot"
+        }
+    ]
+}
